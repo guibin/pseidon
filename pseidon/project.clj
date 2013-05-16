@@ -6,7 +6,7 @@
   :dependencies [
                  [org.clojure/clojure "1.5.1"]
                  [commons-net "3.2"]
-                 [org.streams/streams-log "0.4.0"]
+                 [org.streams/streams-log "0.5.0"]
                  [org.clojure/tools.namespace "0.2.4-SNAPSHOT"]
                  ]
   

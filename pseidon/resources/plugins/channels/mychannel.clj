@@ -8,21 +8,28 @@
 ;MessageMetaData(msg: Array[Byte], topics: Array[String], accept: Boolean = true, 
 ;  ts:Long=System.currentTimeMillis())
 
-(def ds  (r/get-ds "test"))
-
+ 
 (defn send-file [file]
-     (with-open [rdr ((:reader ds) file)]
+     (with-open [rdr ((:reader (r/get-ds "test")) file)]
         (doseq [line (line-seq rdr)]
            (prn "Sending " line)
-          (q/publish data-queue (MessageMetaData. (.getBytes line) (into-array ["test"]) true (System/currentTimeMillis) ) )
+          (q/publish data-queue (MessageMetaData. (.getBytes line) (into-array ["test"]) true (System/currentTimeMillis) 1) )
        ))
    )
 
-
- (doseq [file  ( (:list-files ds ) ) ]
+(defn start [] 
+ (doseq [file ((:list-files (r/get-ds "test" )))]
          (send-file file)
         )
- 
+ )
+
+(defn stop []
+  (prn "stop my channel")
+  )
+
+
+(r/register-channel {:start start :stop stop})
+
          
         
 

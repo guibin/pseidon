@@ -1,6 +1,7 @@
 (ns pseidon.core.registry)
 
 (defrecord DataSource [name close list-files reader])
+(defrecord Channel [start stop])
 
 (defn close-ds [ds]
   ((:close ds)))
@@ -12,9 +13,9 @@
 
 
 (def reg-state (agent {}))
+(def channel-state (agent {}))
 
 (defn assoc2 [m & xs]
-  (prn "registered " m)
   (apply assoc m xs)
   )
 
@@ -23,4 +24,27 @@
 )
 
 (defn get-ds [name]
+  (Thread/sleep 500)
   ((keyword name) @reg-state))
+
+(defn register-channel [ch]
+   (send channel-state assoc2 (keyword (:name ch)) ch)
+   )
+
+(defn stop-ds [] 
+  (doseq [[k,ds] @reg-state]
+     (close-ds ds)
+    )
+  )
+
+(defn stop-channels [] 
+  (doseq [[k,ch] @channel-state]
+     ((:stop ch))
+    )
+  )
+
+(defn start-channels []
+  (doseq [[k,ch] @channel-state]
+     ((:start ch))
+    )
+  )
