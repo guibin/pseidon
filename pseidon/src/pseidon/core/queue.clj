@@ -1,8 +1,8 @@
-(ns pseidon.core)
+(ns pseidon.core.queue)
 
 (def exec (java.util.concurrent.Executors/newCachedThreadPool))
-
 (def master (java.util.concurrent.Executors/newCachedThreadPool))
+
 
 (defn submit [f]
   "Submits a function to a thread pool"
@@ -18,11 +18,14 @@
     (f msg)
    ))))
 
-
-
 (defn publish [channel msg]
   (.add channel msg))
 
-(def ch (channel))
+;(def ch (channel))
 
-(consume ch (submit #(prn "hey->" %1)))
+;(consume ch (submit #(prn "hey->" %1)))
+
+(defn publish-seq [channel xs]
+ (doseq [msg xs] (publish channel msg))
+ )
+ 
