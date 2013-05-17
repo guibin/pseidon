@@ -12,7 +12,7 @@
 (defn send-file [file]
      (with-open [rdr ((:reader (r/get-ds "test")) file)]
         (doseq [line (line-seq rdr)]
-           (prn "Sending " line)
+           (prn "Sending " line) ;/prefixdir/topic-/dateparition
           (q/publish data-queue (MessageMetaData. (.getBytes line) (into-array ["test"]) true (System/currentTimeMillis) 1) )
        ))
    )
@@ -28,7 +28,7 @@
   )
 
 
-(r/register-channel {:start start :stop stop})
+(r/register-channel (r/->Channel "test" start stop))
 
          
         
