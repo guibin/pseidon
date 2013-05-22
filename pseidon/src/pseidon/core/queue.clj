@@ -29,3 +29,7 @@
  (doseq [msg xs] (publish channel msg))
  )
  
+(defn qpeek [channel]
+  (.peek channel)
+  )
+  

@@ -2,7 +2,7 @@
 ;this module contains the application configuration defaults and all logic that is used to read the configuration
 
 
-(def ^@dynamic *default-conf* "resources/conf/pseidon.properties")
+(def ^:dynamic *default-conf* "resources/conf/pseidon.properties")
 
 (def conf (ref {}))
 
@@ -12,6 +12,11 @@
     (into {} (doto (java.util.Properties.) (.load rdr)) ))
   )
 
+(defn loadConfig [configFile]
 (dosync (alter conf
-               (fn [p] (conj p (loadProps *default-conf*)  ))))
+               (fn [p] (conj p (loadProps configFile)  ))))
+
+)
+
+(loadConfig *default-conf*)
 

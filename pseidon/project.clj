@@ -8,8 +8,13 @@
                  [commons-net "3.2"]
                  [org.streams/streams-log "0.5.1"]
                  [org.clojure/tools.namespace "0.2.4-SNAPSHOT"]
+                 [prismatic/plumbing "0.1.0"]
+                 [org.clojure/core.logic "0.8.3"]
                  ]
-  
+   :profiles {:dev {:dependencies [[midje "1.6-alpha2"]]
+                    :plugins [[lein-midje "3.0.1"]]
+                    }}
+
   :repositories {"sonatype-oss-public"
                "https://oss.sonatype.org/content/groups/public/"
                "streams-repo"

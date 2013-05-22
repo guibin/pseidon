@@ -15,20 +15,15 @@
   )
 
 
-(defn start-app [] 
+(defn start-app []
   (refresh-plugins)
   (Thread/sleep 1000)
-  (r/start-channels)  
-  (Thread/sleep 1000)
-  (r/start-processors)
+  (r/start-all)
   (Thread/sleep 1000)
   (w/start-consume data-queue)  
   )
 
 (defn stop-app []
-  (r/stop-channels)
-  (r/stop-ds)
-  (r/stop-processors)
-  (r/stop-sinks)
+   (r/stop-all)
   )
 

@@ -3,8 +3,8 @@
 (use '[pseidon.core.ds.dummy :as d])
 
 
-(r/register-ds (d/dummy-ds "test"))
+(r/register (d/dummy-ds "ds-test"))
 
-(r/register-ds (d/dummy-ds "test"))
+(r/register (d/dummy-ds "ds-test"))
 
 
