@@ -26,3 +26,6 @@
 (defn send-writer [topic msg]
      (.tell (.get res topic) msg)
  )
+
+
+
