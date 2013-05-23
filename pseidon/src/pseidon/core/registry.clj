@@ -1,4 +1,6 @@
-(ns pseidon.core.registry)
+(ns pseidon.core.registry 
+  (:use clojure.tools.logging)
+  )
 
 (defrecord DataSource [name start stop list-files reader])
 (defrecord Channel [name start stop])
@@ -9,7 +11,7 @@
 
 (defn register [{name :name :as item}]
   "Register a service "
-   (prn "Regiser service " name  (class item))
+   (info "Regiser service " name  (class item))
   (dosync (alter reg-state (fn [p] (assoc p (keyword name) item) ) ))
   )
 

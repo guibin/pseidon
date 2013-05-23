@@ -1,4 +1,5 @@
 (ns pseidon.core.worker)
+(use '[clojure.tools.logging])
 (use '[pseidon.core.queue :as q])
 (use '[pseidon.core.registry :as r])
 
@@ -14,7 +15,7 @@
   (try 
     (doseq [topic (.-topics msg)]
       (process-msg (r/reg-get topic) msg)
-     )    (catch Exception e (prn "ERROR @TO FIX implement an error handling sink " e)))
+     )    (catch Exception e (error "ERROR @TO FIX implement an error handling sink " e)))
   
   )
 

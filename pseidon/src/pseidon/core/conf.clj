@@ -1,6 +1,7 @@
-(ns pseidon.core.conf)
+(ns pseidon.core.conf
+  :use clojure.tools.logging)
 ;this module contains the application configuration defaults and all logic that is used to read the configuration
-
+(set-logger!)
 
 (def ^:dynamic *default-conf* "resources/conf/pseidon.properties")
 
@@ -13,6 +14,7 @@
   )
 
 (defn loadConfig [configFile]
+(info "Loading config " configFile)
 (dosync (alter conf
                (fn [p] (conj p (loadProps configFile)  ))))
 

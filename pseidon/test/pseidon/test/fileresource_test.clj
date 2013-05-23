@@ -3,7 +3,7 @@
 (use '[pseidon.core.fileresource])
 
 (facts "Test internals of the file resource"
-       (fact "get codec test"
+       (fact "get default codec test"
              
              (class (get-codec "blabla")) => org.apache.hadoop.io.compress.GzipCodec 
        
