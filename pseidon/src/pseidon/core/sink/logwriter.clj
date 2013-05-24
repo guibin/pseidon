@@ -6,6 +6,7 @@
 (import '[org.streams.commons.compression.impl CompressionPoolFactoryImpl])
 (import '[org.streams.streamslog.log.file TopicConfigParser])
 
+(comment 
 (def codec (get c/conf "writer.codec" "org.apache.hadoop.io.compress.GzipCodec"))
 
 ;this module will use the bigstreams 
@@ -27,5 +28,6 @@
      (.tell (.get res topic) msg)
  )
 
+)
 
 

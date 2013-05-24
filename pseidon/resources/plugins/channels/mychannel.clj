@@ -3,29 +3,27 @@
 (use '[pseidon.core.registry :as r])
 (use '[pseidon.core.ds.dummy :as d])
 (use '[pseidon.core.queue :as q])
-(import '[org.streams.streamslog.log.file MessageMetaData])
+(use '[pseidon.core.message :as m])
 
-;MessageMetaData(msg: Array[Byte], topics: Array[String], accept: Boolean = true, 
-;  ts:Long=System.currentTimeMillis())
 
  
 (defn send-file [file]
-     (with-open [rdr ((:reader r/reg-get "ds-test") file)]
+     (with-open [rdr ((:reader (r/reg-get "ds-test")) file)]
         (doseq [line (line-seq rdr)]
            (prn "Sending " line) ;/prefixdir/topic-/dateparition
-          (q/publish data-queue (MessageMetaData. (.getBytes line) (into-array ["test"]) true (System/currentTimeMillis) 1) )
+          (q/publish data-queue (m/->Message (.getBytes line) "test" true (System/currentTimeMillis) 1) )
        ))
    )
 
 (defn start [] 
   (prn "Startin sending data")
- ;(doseq [file ((:list-files (r/get "test" )))]
- ;        (send-file file)
- ;       )
+ (doseq [file ((:list-files (r/reg-get "ds-test" )))]
+         (send-file file)
+        )
  )
 
 (defn stop []
-  ;(prn "stop my channel")
+  (prn "stop my channel")
   )
 
 

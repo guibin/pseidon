@@ -7,4 +7,35 @@
              
              (class (get-codec "blabla")) => org.apache.hadoop.io.compress.GzipCodec 
        
+       )
+       
+       (fact "Test create file name"
+        ;(create-file-name "mykey" (get-codec "blabla")) => "mykey.gz_"
+             
+       )
+       (fact "Add agent"
+             (let [topic "mytopic" key "mykey" agnt (get-agent topic key) ]
+              (class agnt) => clojure.lang.Agent
+             ))
+       (fact "Create File"
+         (let [fileName "target/testdir/mytestfile.txt"]
+           ;open and close the file
+          (with-open [out (create-file fileName gzip-codec (org.apache.hadoop.io.compress.CodecPool/getCompressor gzip-codec) )])
+          (.exists (java.io.File. fileName)) => true
+          (clojure.java.io/delete-file fileName)
+          
        ))
+       
+       )
+
+
+(facts "Test file resource writing"
+       (fact "Write to file"
+          
+          (let [written (ref false) topic "test"  file "myfile"]   
+               (write topic key (fn [p] (prn "Writer has " p) (dosync (set)  )))
+                @written => true
+               ))
+       
+       )
+

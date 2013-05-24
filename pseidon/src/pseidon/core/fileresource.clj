@@ -1,7 +1,11 @@
-(ns pseidon.core.fileresource)
+(ns pseidon.core.fileresource
+   (:use clojure.tools.logging)
+  )
 
 (defrecord FileRS [name output codec compressor])
 (defrecord TopicConf [key codec])
+
+(def baseDir "target")
 
 (def fileMap (ref {}))
 (def codecMap {})
@@ -15,22 +19,32 @@
 
 ;returns the complete file name with extension adding an extra '_' suffix
 (defn create-file-name [key, codec]
-   (str key (.getDefaultExtension codec) "_"))
+   (str key (.getDefaultExtension codec) "_" (System/nanoTime)))
 
 ;alter the fileMap to contain the  agent
 (defn add-agent [topic key]
-  (let [codec (get-codec topic) agnt (agent (->FileRS (create-file-name key codec) nil codec (org.apache.hadoop.io.compress.CodecPool/getCompressor codec) ) )]
-  (alter fileMap (fn [p] (assoc p key agnt )))
+  (prn "Adding agent " (keys @fileMap))
+  (let [codec (get-codec topic) 
+        compressor (org.apache.hadoop.io.compress.CodecPool/getCompressor codec)
+        agnt (agent (->FileRS (create-file-name (clojure.string/join "/" [baseDir key]) codec) nil codec compressor ) )]
+        (alter fileMap (fn [p] (assoc p (keyword key) agnt )))
+        agnt
   ))
 
 ;get an agent and if it doesnt exist create one with a FileRS instance as value
 (defn get-agent [topic key]
-  (dosync (if-let [agnt (get fileMap key)] agnt (add-agent topic key))
+  (dosync (if-let [agnt ((keyword key) @fileMap) ] agnt (add-agent topic key) )
   ))
 
 ;create a file using the codec
 (defn create-file [name codec compressor]
-     (.createOutputStream codec (java.io.BufferedOutputStream. (java.io.FileOutputStream name ) ) compressor) )
+     (let [ file (java.io.File. name)]
+       (if-let [parent (.getParentFile file)] (.mkdirs parent) (prn "File has no parent " file) )
+       (.createNewFile file)
+       (if (.exists file) (info "Created " file) (throw (java.io.IOException. (str "Failed to create " file)))  )
+       (.createOutputStream codec (java.io.BufferedOutputStream. (java.io.FileOutputStream. name ) ) compressor) 
+     
+     ))
 
 (defn write-to-frs [frs writer]
   (let [codec (:codec frs) 
@@ -47,3 +61,13 @@
     
   )
 
+(defn close-roll-agent [frs]
+  (.close (:output frs) ) 
+  (org.apache.hadoop.io.compress.CodecPool/returnCompressor (:compressor frs) ) 
+  )
+
+(defn close-all [] 
+  (doseq [[k agnt]  @fileMap]
+      (send agnt close-roll-agent ) 
+      (dosync (alter fileMap (fn [p] (dissoc p k))) )
+      ))
