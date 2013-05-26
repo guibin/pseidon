@@ -14,7 +14,7 @@
 (defn delegate-msg [msg]
   (try 
     (doseq [topic (.-topics msg)]
-      (process-msg (r/reg-get (keyword topic)) msg)
+      (process-msg (r/reg-get topic) msg)
      )    (catch Exception e (error "ERROR @TO FIX implement an error handling sink " e)))
   )
 

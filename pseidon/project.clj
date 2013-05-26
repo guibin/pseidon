@@ -19,7 +19,8 @@
                                               com.sun.jmx/jmxri]]
                  [clj-logging-config "1.9.10"]
                  [org.clojure/tools.logging "0.2.3"]
-                 
+		 [criterium "0.4.1"] 
+                
                  ]
    :profiles {:dev {:dependencies [[midje "1.6-alpha2"]]
                     :plugins [[lein-midje "3.0.1"]]
