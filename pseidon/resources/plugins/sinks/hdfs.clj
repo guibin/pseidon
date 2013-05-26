@@ -5,4 +5,4 @@
 
 ;[name start stop writer]
 
-(register (->DataSink "ds-writer" (fn [] ) (fn [] (close-all)) (fn [msg] )))
+(register (->DataSink :ds-writer (fn [] ) (fn [] (close-all)) (fn [msg] )))

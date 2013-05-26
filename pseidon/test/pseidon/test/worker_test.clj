@@ -3,6 +3,8 @@
 (use '[pseidon.core.queue])
 (use '[pseidon.core.worker])
 (use '[pseidon.core.registry])
+(comment 
+  
 (import '[org.streams.streamslog.log.file MessageMetaData])
 
 (def worker-done (ref false))
@@ -16,5 +18,8 @@
 
 (facts "Test worker delegation"
        (fact "Test delegate"
+             (prn "Test: " (delegate-msg msg))
              (do (delegate-msg msg) @worker-done) => true
              ))
+
+)

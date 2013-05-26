@@ -27,7 +27,7 @@
   )
 
 
-(r/register (r/->Channel "ch-test" start stop))
+(r/register (r/->Channel :ch-test start stop))
 
          
         

@@ -23,7 +23,7 @@
 
 ;alter the fileMap to contain the  agent
 (defn add-agent [topic key]
-  (prn "Adding agent " (keys @fileMap))
+  (prn "Adding agent " (keys @fileMap) " topic " topic " key  " key)
   (let [codec (get-codec topic) 
         compressor (org.apache.hadoop.io.compress.CodecPool/getCompressor codec)
         agnt (agent (->FileRS (create-file-name (clojure.string/join "/" [baseDir key]) codec) nil codec compressor ) )]
@@ -33,7 +33,10 @@
 
 ;get an agent and if it doesnt exist create one with a FileRS instance as value
 (defn get-agent [topic key]
-  (dosync (if-let [agnt ((keyword key) @fileMap) ] agnt (add-agent topic key) )
+  (println "get-agent fileMap " @fileMap  " key; " key " topic " topic)
+  (println "Key word: " (class key)) ;keyword key is null
+  (println "FileMap : " (get @fileMap key))
+  (dosync (if-let [agnt (get @fileMap key) ] (do (prn "return agent " agnt) agnt) (add-agent topic key) )
   ))
 
 ;create a file using the codec

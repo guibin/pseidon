@@ -12,7 +12,10 @@
                  [org.clojure/core.logic "0.8.3"]
                  
                  
-                 [log4j/log4j "1.2.16" :exclusions [javax.mail/mail                                              javax.jms/jms                                              com.sun.jdmk/jmxtools                                              com.sun.jmx/jmxri]]
+                 [log4j/log4j "1.2.16" :exclusions [javax.mail/mail
+                                              javax.jms/jms
+                                              com.sun.jdmk/jmxtools
+                                              com.sun.jmx/jmxri]]
                  [clj-logging-config "1.9.10"]
                  [org.clojure/tools.logging "0.2.3"]
                  

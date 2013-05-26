@@ -32,10 +32,6 @@
 (facts "Test file resource writing"
        (fact "Write to file"
           
-          (let [written (ref false) topic "test"  file "myfile"]   
-               (write topic key (fn [p] (prn "Writer has " p) (dosync (set)  )))
-                @written => true
-               ))
        
-       )
+       ))
 

@@ -12,19 +12,18 @@
 (defn register [{name :name :as item}]
   "Register a service "
    (info "Regiser service " name  (class item))
-  (dosync (alter reg-state (fn [p] (assoc p (keyword name) item) ) ))
+  (dosync (alter reg-state (fn [p] (assoc p name item) ) ))
   )
 
 
 (defn reg-get [name]
   "Gets a service registered"
-   ((keyword name) @reg-state)
+   (get @reg-state name)
   )
 
 
   (defn start-all []
     (doseq [[name {start :start}] @reg-state]
-        
         (start)
         ))
   

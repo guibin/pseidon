@@ -1,2 +1,3 @@
-(ns pseidon.core_test  (:use clojure.test))
-
+(ns pseidon.core-test
+  (:use clojure.test
+        pseidon.core))
