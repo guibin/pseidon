@@ -72,7 +72,7 @@
 
 ; will do an async function send to that will call the writer (writer output-stream)
 (defn write [topic key ^clojure.lang.IFn writer]
-  ;  (dosync (send-off (get-agent topic key) write-to-frs writer) )
+   (dosync (send-off (get-agent topic key) write-to-frs writer) )
   )
 
 (defn close-roll-agent [^FileRS frs]
