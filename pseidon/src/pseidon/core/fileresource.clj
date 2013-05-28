@@ -34,8 +34,11 @@
      
   ))
 
-;alter the fileMap to contain the  agent
-(defn add-agent [topic key]
+
+;get an agent and if it doesnt exist create one with a FileRS instance as value
+(defn get-agent [topic key]
+ ;alter the fileMap to contain the  agent
+ (defn add-agent [topic key]
   (prn "Adding agent " (keys @fileMap) " topic " topic " key  " key)
   (let [codec (get-codec topic) 
         compressor (org.apache.hadoop.io.compress.CodecPool/getCompressor codec)
@@ -44,8 +47,6 @@
         agnt
   ))
 
-;get an agent and if it doesnt exist create one with a FileRS instance as value
-(defn get-agent [topic key]
   (dosync (if-let [agnt (get @fileMap key) ]  agnt (add-agent topic key) )
   ))
 
@@ -69,9 +70,7 @@
 
 ; will do an async function send to that will call the writer (writer output-stream)
 (defn write [topic key writer]
-   
-    (send-off (get-agent topic key) write-to-frs writer) 
-    
+    (dosync (send-off (get-agent topic key) write-to-frs writer) )
   )
 
 (defn close-roll-agent [frs]
@@ -87,6 +86,7 @@
   
 (defn close-all [] 
   (doseq [[k agnt]  @fileMap]
-      (send agnt close-roll-agent ) 
-      (dosync (alter fileMap (fn [p] (dissoc p k))) )
+      (dosync 
+        (send agnt close-roll-agent ) 
+        (alter fileMap (fn [p] (dissoc p k))) )
       ))
