@@ -1,5 +1,6 @@
 (ns pseidon.core.fileresource
-   (:use clojure.tools.logging)
+   (:use clojure.tools.logging 
+         pseidon.core.watchdog)
   )
 
 (defrecord FileRS [name output codec compressor])
@@ -61,7 +62,7 @@
 
 (defn write-to-frs [frs writer]
   (let [codec (:codec frs) 
-        frs-t (if (:output frs) frs (->FileRS name (create-file (:name frs) codec (:compressor frs) ) codec (:compressor frs) ))
+        frs-t (if (:output frs) frs (->FileRS (:name frs) (create-file (:name frs) codec (:compressor frs) ) codec (:compressor frs) ))
         ]
       (writer (:output frs-t))
       ;we always return a FileRS instance
@@ -85,8 +86,19 @@
      (if renamed (info "File " new-file " created") (throw Exception "Unable to roll file from " file " to " new-file) ) 
   ))
   
+(defn check-roll[f-check]
+   (doseq [[k agnt]  @fileMap]
+     (send agnt (fn [frs] (f-check frs) (watch-agent-error (close-agent k agnt))))
+      ))
+
 (defn close-all [] 
   (doseq [[k agnt]  @fileMap]
-      (send agnt close-roll-agent ) 
-      (dosync (alter fileMap (fn [p] (dissoc p k))) )
+      (close-agent k agnt)
       ))
+
+(defn close-agent [k agnt]
+  (dosync
+   (send agnt (watch-agent-error close-roll-agent) ) 
+   (alter fileMap (fn [p] (dissoc p k))) )
+  )
+
