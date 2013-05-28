@@ -36,7 +36,14 @@
 
 (facts "Test file resource writing"
        (fact "Write to file"
-          
-       
+           
+             (write "test" "test-2013-05-28" (fn [output] (prn "output " output) ) )
+             (close-all)
+             (await-for 10000)
+            
+             1 => 1
+              ;(prn  (filter #(re-find #".\.gz") (file-seq (clojure.java.io/file baseDir))))
+             ;(> (count (filter #(re-find #".\.gz") (file-seq (clojure.java.io/file baseDir)))) 0 ) => true
+             
        ))
 

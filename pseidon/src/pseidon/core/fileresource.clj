@@ -1,5 +1,6 @@
 (ns pseidon.core.fileresource
-   (:use clojure.tools.logging)
+   (:use clojure.tools.logging 
+         pseidon.core.watchdog)
   )
 
 (defrecord FileRS [name output codec compressor])
@@ -22,10 +23,10 @@
    (str key (.getDefaultExtension codec) "_" (System/nanoTime)))
 
 
-(def last-nth (fn [xs n] (xs (- (count xs) n))))
-
-(defn create-rolled-file-name [file-name]
+(defn create-rolled-file-name [^String file-name]
   "Split the filename by . and _, then swap the last two values and joint the list with ."
+  (def last-nth (fn [xs n] (xs (- (count xs) n))))
+
   (let [s (clojure.string/split file-name #"[_|\.]")
         s-count (count s)
         ]
@@ -43,6 +44,7 @@
   (let [codec (get-codec topic) 
         compressor (org.apache.hadoop.io.compress.CodecPool/getCompressor codec)
         agnt (agent (->FileRS (create-file-name (clojure.string/join "/" [baseDir key]) codec) nil codec compressor ) )]
+        (set-error-handler! agnt agent-error-handler)
         (alter fileMap (fn [p] (assoc p key agnt )))
         agnt
   ))
@@ -51,7 +53,7 @@
   ))
 
 ;create a file using the codec
-(defn create-file [name codec compressor]
+(defn create-file [^String name ^org.apache.hadoop.io.compress.CompressionCodec codec ^org.apache.hadoop.io.compress.Compressor compressor]
      (let [ file (java.io.File. name)]
        (if-let [parent (.getParentFile file)] (.mkdirs parent) (info "File has no parent " file) )
        (.createNewFile file)
@@ -60,20 +62,22 @@
      
      ))
 
-(defn write-to-frs [frs writer]
+(defn write-to-frs [^FileRS frs ^clojure.lang.IFn writer]
   (let [codec (:codec frs) 
-        frs-t (if (:output frs) frs (->FileRS name (create-file (:name frs) codec (:compressor frs) ) codec (:compressor frs) ))
+        frs-t (if (:output frs) frs (->FileRS (:name frs) (create-file (:name frs) codec (:compressor frs) ) codec (:compressor frs) ))
         ]
       (writer (:output frs-t))
       ;we always return a FileRS instance
       frs-t))
 
 ; will do an async function send to that will call the writer (writer output-stream)
-(defn write [topic key writer]
-    (dosync (send-off (get-agent topic key) write-to-frs writer) )
+(defn write [topic key ^clojure.lang.IFn writer]
+  ;  (dosync (send-off (get-agent topic key) write-to-frs writer) )
   )
 
-(defn close-roll-agent [frs]
+(defn close-roll-agent [^FileRS frs]
+  (if (and (not (nil? frs)) (not (nil? (:output frs) ) ) ) 
+  (do
   (.close (:output frs) ) 
   (if (nil? (:compressor frs)) (org.apache.hadoop.io.compress.CodecPool/returnCompressor (:compressor frs) ))
   ;find rename the file by removing the last \.([a-zA-Z0-9])+_([0-9]+) piece of the filename and appending (group2).(group1)
@@ -82,11 +86,24 @@
         renamed (.renameTo file new-file)
         ]
      (if renamed (info "File " new-file " created") (throw Exception "Unable to roll file from " file " to " new-file) ) 
-  ))
-  
+  ))))
+
+
+(defn close-agent [k ^clojure.lang.Agent agnt]
+  (dosync
+   (send agnt (watch-agent-error close-roll-agent) ) 
+   (alter fileMap (fn [p] (dissoc p k))) )
+  )
+
+(defn check-roll[^clojure.lang.IFn f-check]
+  "Receives a function f-check parameter FileRS that should return true or false"
+   (doseq [[k agnt]  @fileMap]
+     (send agnt watch-agent-error  (fn [frs] (if (f-check frs) (close-agent k frs) ) ))
+      ))
+
 (defn close-all [] 
   (doseq [[k agnt]  @fileMap]
-      (dosync 
-        (send agnt close-roll-agent ) 
-        (alter fileMap (fn [p] (dissoc p k))) )
+      (close-agent k agnt)
       ))
+
+
