@@ -26,8 +26,13 @@
           
        ))
        
-       )
-
+       (fact "Roll file name creation"
+         (let [filename "myfile-123.gz_121212"
+               expected "myfile-123.121212.gz"
+               ]
+         (create-rolled-file-name filename ) => expected
+       ))
+)
 
 (facts "Test file resource writing"
        (fact "Write to file"
