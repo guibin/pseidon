@@ -14,9 +14,9 @@
 ;delagate to workers
 (defn delegate-msg [msg]
     (let [topic (:topic msg)
-          exec (r/reg-get topic)]
+          exec (:exec (r/reg-get topic) ) ]
      (exec msg)   
-  ))
+   ) )
 
 (defn start-consume [channel]
   "Start consuming from the channel this method runs async"
