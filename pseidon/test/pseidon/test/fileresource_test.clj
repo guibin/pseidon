@@ -34,16 +34,20 @@
        ))
 )
 
+(defn delete-test-files []
+  (doseq [f (filter #(-> %1 .getName (.endsWith ".gz")  ) (file-seq (clojure.java.io/file baseDir)))] (.delete f))
+  )
+
 (facts "Test file resource writing"
        (fact "Write to file"
-           
+             ;remove files
+             (delete-test-files)
              (write "test" "test-2013-05-28" (fn [output] (prn "output " output) ) )
              (close-all)
-             (await-for 10000)
-            
-             1 => 1
-              ;(prn  (filter #(re-find #".\.gz") (file-seq (clojure.java.io/file baseDir))))
-             ;(> (count (filter #(re-find #".\.gz") (file-seq (clojure.java.io/file baseDir)))) 0 ) => true
+             (await-for 10000) => true
+             (Thread/sleep 1000)
+             
+             (>  (count (filter #(-> %1 .getName (.endsWith ".gz")  ) (file-seq (clojure.java.io/file "./target")))) 0) => true
              
        ))
 

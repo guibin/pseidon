@@ -11,7 +11,7 @@
   ) 
   
 (defn handle-critical-error []
-  (shutdown-agents)
+  ;any shutdown logic should be handled by JVM shutdown hooks
   (java.lang.System/exit -1)
   )
 
