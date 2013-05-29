@@ -4,6 +4,7 @@
 (use '[pseidon.core.queue :as q])
 (use '[pseidon.core.registry :as r])
 (use '[pseidon.core.worker :as w])
+(use '[pseidon.core.fileresource :as frs])
 
 (def data-queue (q/channel))
 
@@ -17,6 +18,16 @@
                     (java.io.File. "resources/plugins/processors")) (refresh)
   )
 
+
+(defn stop-app []
+   (info "Stopping")
+   (r/stop-all)
+   (frs/close-all)
+   (await-for 10000)
+   (shutdown-agents)
+   (info "Stopped")
+  )
+
 (defn start-app []
   (refresh-plugins)
   (Thread/sleep 1000)
@@ -24,10 +35,9 @@
   (Thread/sleep 1000)
   (w/start-consume data-queue)  
   (info "Started")
+  (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (stop-app) )) )))
+  
   )
 
-(defn stop-app []
-   (r/stop-all)
-   (info "Stopped")
-  )
+
 

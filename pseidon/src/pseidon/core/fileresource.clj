@@ -72,7 +72,7 @@
 
 ; will do an async function send to that will call the writer (writer output-stream)
 (defn write [topic key ^clojure.lang.IFn writer]
-   (dosync (send-off (get-agent topic key) write-to-frs writer) )
+   (dosync (send-off ((watch-critical-error get-agent topic key)) write-to-frs writer) )
   )
 
 (defn close-roll-agent [^FileRS frs]
@@ -91,6 +91,7 @@
 
 (defn close-agent [k ^clojure.lang.Agent agnt]
   (dosync
+    (prn "Closing agent " agnt)
    (send agnt (watch-agent-error close-roll-agent) ) 
    (alter fileMap (fn [p] (dissoc p k))) )
   )
@@ -102,8 +103,11 @@
       ))
 
 (defn close-all [] 
-  (doseq [[k agnt]  @fileMap]
+   (doseq [[k agnt]  @fileMap]
       (close-agent k agnt)
-      ))
+      (await-for 10000 agnt)      
+      )
+   (info "Closed all file agents")  
+  )
 
 

@@ -1,5 +1,6 @@
 (ns pseidon.core.registry 
-  (:use clojure.tools.logging)
+  (:use clojure.tools.logging
+        pseidon.core.watchdog)
   )
 
 (defrecord DataSource [name start stop list-files reader])
@@ -24,10 +25,10 @@
 
   (defn start-all []
     (doseq [[name {start :start}] @reg-state]
-        (start)
+        (watch-critical-error start)
         ))
   
   (defn stop-all []
      (doseq [[name {stop :stop}] @reg-state]
-          (stop)
+          (watch-normal-error stop)
           ))
