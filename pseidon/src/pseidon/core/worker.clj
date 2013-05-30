@@ -20,6 +20,6 @@
 
 (defn start-consume [channel]
   "Start consuming from the channel this method runs async"
-   (consume channel (submit (w/watch-critical-error delegate-msg) ))
+    (consume channel (submit (w/watch-msg-error delegate-msg) ))
    true
   )

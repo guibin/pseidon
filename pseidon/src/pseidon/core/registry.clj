@@ -25,10 +25,11 @@
 
   (defn start-all []
     (doseq [[name {start :start}] @reg-state]
-        (watch-critical-error start)
+      (time ((watch-critical-error start)))
+      (info "Started " name)
         ))
   
   (defn stop-all []
      (doseq [[name {stop :stop}] @reg-state]
-          (watch-normal-error stop)
+          ((watch-normal-error stop))
           ))

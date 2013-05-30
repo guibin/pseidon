@@ -4,7 +4,7 @@
 
 (defn dummy-ds [name] 
   (r/->DataSource name (fn [] (prn "Starting " name)) (fn [] (prn "closing " name)) 
-                  (fn [] ["resources/plugins/ds/myds.clj", "resources/plugins/ds/myds.clj"])
+                  (fn [] ["resources/plugins/datasources/myds.clj", "resources/plugins/datasources/myds.clj"])
              (fn [file] (clojure.java.io/reader file ))
              )
    )

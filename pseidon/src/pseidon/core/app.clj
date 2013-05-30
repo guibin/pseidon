@@ -13,8 +13,9 @@
 ;will reload all of the plugins
 (defn refresh-plugins []
   (set-refresh-dirs (java.io.File. "resources/conf/logging.clj") 
-                    (java.io.File. "resources/plugins/ds") (java.io.File. "resources/plugins/channels") 
                     (java.io.File. "resources/plugins/sinks")
+                    (java.io.File. "resources/plugins/datasources") 
+                    (java.io.File. "resources/plugins/channels") 
                     (java.io.File. "resources/plugins/processors")) (refresh)
   )
 

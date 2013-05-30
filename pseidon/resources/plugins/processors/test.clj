@@ -26,5 +26,5 @@
   )
 
 ;register processor with topic test
-(r/register (r/->Processor "pr-test" start stop exec))
+(r/register (r/->Processor "test" start stop exec))
  
