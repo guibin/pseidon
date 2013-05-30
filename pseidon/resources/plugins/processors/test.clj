@@ -3,7 +3,7 @@
 
 ;this method will be called when a new message for topic test arrives at the queue
 (defn exec [ msg ]
-  
+  ;(throw Exception "Induced")
   (prn "Processing message " msg)
       ; topics, bytes, priority, ts
       ; msg.topic  = useractions

@@ -3,7 +3,7 @@
         pseidon.core.message)
   )
 
-(defn handle-critical-error [^Throwable t & msg]
+(defn handle-critical-error [ t & msg]
   (error t (apply str msg))
   ;any shutdown logic should be handled by JVM shutdown hooks
   (java.lang.System/exit -1)
@@ -11,7 +11,8 @@
 
 
 ;message error recovery etc should be tried here
-(defn handle-msg-error [message ^Throwable t & msg]
+(defn handle-msg-error [message  t & msg]
+    ;write to file here
     (handle-critical-error t msg)
   )
 
