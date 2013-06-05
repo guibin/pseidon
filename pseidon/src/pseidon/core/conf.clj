@@ -1,24 +1,36 @@
 (ns pseidon.core.conf
   (:use clojure.tools.logging
+        clojure.edn
         ))
 ;this module contains the application configuration defaults and all logic that is used to read the configuration
 
-(def ^:dynamic *default-conf* "resources/conf/pseidon.properties")
+(def ^:dynamic *default-conf* "resources/conf/pseidon.edn")
 
 (def conf (ref {}))
 
 
-(defn loadProps[file]
-  (with-open [rdr (clojure.java.io/reader file)]
-    (into {} (doto (java.util.Properties.) (.load rdr)) ))
+(defn load-props[file]
+  (read-string (slurp file))
   )
-
-(defn loadConfig [configFile]
+  
+(defn load-config! [configFile]
 (info "Loading config " configFile)
 (dosync (alter conf
-               (fn [p] (conj p (loadProps configFile)  ))))
+               (fn [p] (conj p (load-props configFile)  ))))
 
 )
 
-(loadConfig *default-conf*)
+(defn load-default-config! []
+  (load-config! *default-conf*)
+  )
 
+(load-default-config!)
+
+
+(defn get-conf [n]
+  (get @conf n)  
+  )
+
+(defn get-conf2 [n default-v]
+  (get @conf n default-v)  
+  )

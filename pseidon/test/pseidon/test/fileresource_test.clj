@@ -1,6 +1,7 @@
 (ns pseidon.test.fileresource_test)
 (use '[midje.sweet])
 (use '[pseidon.core.fileresource])
+(use '[pseidon.core.conf])
 
 (facts "Test internals of the file resource"
        (fact "get default codec test"
@@ -35,7 +36,7 @@
 )
 
 (defn delete-test-files []
-  (doseq [f (filter #(-> %1 .getName (.endsWith ".gz")  ) (file-seq (clojure.java.io/file baseDir)))] (.delete f))
+  (doseq [f (filter #(-> %1 .getName (.endsWith ".gz")  ) (file-seq (clojure.java.io/file (get-writer-basedir))))] (.delete f))
   )
 
 (facts "Test file resource writing"
@@ -47,7 +48,7 @@
              (await-for 10000) => true
              (Thread/sleep 1000)
              
-             (>  (count (filter #(-> %1 .getName (.endsWith ".gz")  ) (file-seq (clojure.java.io/file "./target")))) 0) => true
+             (>  (count (filter #(-> %1 .getName (.endsWith ".gz")  ) (file-seq (clojure.java.io/file (get-writer-basedir) )))) 0) => true
              
        ))
 

@@ -1,4 +1,6 @@
-(ns pseidon.core.queue)
+(ns pseidon.core.queue
+  (:use pseidon.core.conf)
+  )
 
 (def exec (java.util.concurrent.Executors/newCachedThreadPool))
 (def master (java.util.concurrent.Executors/newCachedThreadPool))
@@ -9,7 +11,11 @@
   (fn [msg](.submit exec #(f msg)))
   )
 
-(defn channel [] (java.util.concurrent.PriorityBlockingQueue.))
+(defn get-worker-queue []
+  (java.lang.Class/forName (name (get-conf2 :worker-queue 'java.util.concurrent.PriorityBlockingQueue)) )
+  )
+
+(defn channel [] (let [^java.lang.Class cls (get-worker-queue) ] (.newInstance cls)))
 
 (defn consume [channel f]
   "Consumes asynchronously from the channel"
@@ -20,10 +26,6 @@
 
 (defn publish [channel msg]
   (.add channel msg))
-
-;(def ch (channel))
-
-;(consume ch (submit #(prn "hey->" %1)))
 
 (defn publish-seq [channel xs]
  (doseq [msg xs] (publish channel msg))

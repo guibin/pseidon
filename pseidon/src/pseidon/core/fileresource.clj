@@ -1,22 +1,30 @@
 (ns pseidon.core.fileresource
    (:use clojure.tools.logging 
-         pseidon.core.watchdog)
+         pseidon.core.watchdog
+         pseidon.core.conf)
   )
 
 (defrecord FileRS [name output codec compressor])
 (defrecord TopicConf [key codec])
 
-(def baseDir "target")
 
 (def fileMap (ref {}))
-(def codecMap {})
 
 (def gzip-codec (org.apache.hadoop.io.compress.GzipCodec.))
 
 ;find codec from codec map otherwise return the GzipCodec
 (defn get-codec [topic]
-   (if-let [codec ((keyword topic) codecMap)] codec gzip-codec)
+   (get  (get-conf2 :topic-codecs {}) topic  gzip-codec)
   )
+(defn get-writer-basedir [] 
+  (get-conf2 :writer-basedir "target")
+  )
+
+(defn get-topic-basedir [topic] 
+  "Returns the base directories for a topic and if not defined uses the writer base dir"
+  (get (get-conf2 :topic-basedirs {}) topic (get-writer-basedir))
+  )
+
 
 ;returns the complete file name with extension adding an extra '_' suffix
 (defn create-file-name [key, codec]
@@ -36,20 +44,20 @@
   ))
 
 
-;get an agent and if it doesnt exist create one with a FileRS instance as value
-(defn get-agent [topic key]
  ;alter the fileMap to contain the  agent
  (defn add-agent [topic key]
-  (prn "Adding agent " (keys @fileMap) " topic " topic " key  " key)
+   
   (let [codec (get-codec topic) 
         compressor (org.apache.hadoop.io.compress.CodecPool/getCompressor codec)
-        agnt (agent (->FileRS (create-file-name (clojure.string/join "/" [baseDir key]) codec) nil codec compressor ) )]
+        agnt (agent (->FileRS (create-file-name (clojure.string/join "/" [(get-topic-basedir topic) key]) codec) nil codec compressor ) )]
         (set-error-handler! agnt agent-error-handler)
         (alter fileMap (fn [p] (assoc p key agnt )))
         agnt
   ))
-
-  (dosync (if-let [agnt (get @fileMap key) ]  agnt (add-agent topic key) )
+ 
+;get an agent and if it doesnt exist create one with a FileRS instance as value
+(defn get-agent [topic key]
+ (dosync (if-let [agnt (get @fileMap key) ]  agnt (add-agent topic key) )
   ))
 
 ;create a file using the codec
