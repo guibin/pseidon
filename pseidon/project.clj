@@ -9,9 +9,9 @@
                  [commons-net "3.2"]
                  [org.streams/streams-log "0.5.1"]
                  [org.clojure/tools.namespace "0.2.4-SNAPSHOT"]
-                 [prismatic/plumbing "0.1.0"]
-                 [org.clojure/core.logic "0.8.3"]
-                 
+                 ;[prismatic/plumbing "0.1.0"]
+                 ;[org.clojure/core.logic "0.8.3"]
+                 [org.clojure/tools.cli "0.2.2"]
                  
                  [log4j/log4j "1.2.16" :exclusions [javax.mail/mail
                                               javax.jms/jms
@@ -19,6 +19,7 @@
                                               com.sun.jmx/jmxri]]
                  [clj-logging-config "1.9.10"]
                  [org.clojure/tools.logging "0.2.3"]
+                 [org.clojure/tools.nrepl "0.2.3"]
 		 [criterium "0.4.1"] 
                 
                  ]

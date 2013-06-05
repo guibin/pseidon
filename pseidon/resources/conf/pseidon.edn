@@ -5,11 +5,13 @@
  :topic-codecs {}
  :writer-basedir "target"
  :topic-basedirs {}
- :plugin-dirs [(java.io.File. "resources/conf/logging.clj") 
-                    (java.io.File. "resources/plugins/sinks")
-                    (java.io.File. "resources/plugins/datasources") 
-                    (java.io.File. "resources/plugins/channels") 
-                    (java.io.File. "resources/plugins/processors")]
+ :plugin-dirs [ "resources/conf/logging.clj"
+                 "resources/plugins/sinks"
+                 "resources/plugins/datasources"
+                 "resources/plugins/channels"
+                  "resources/plugins/processors"]
  
  :worker-queue java.util.concurrent.PriorityBlockingQueue
+ 
+ :repl-port 7111
  }

@@ -7,9 +7,10 @@
 (use '[pseidon.core.fileresource :as frs])
 (use '[pseidon.core.conf :as c])
 
+(set! *warn-on-reflection* true)
+
 (def data-queue (q/channel))
 
-(set! *warn-on-reflection* true)
 
 ;will reload all of the plugins
 (defn refresh-plugins []

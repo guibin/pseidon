@@ -1,6 +1,6 @@
 (ns pseidon.core.conf
   (:use clojure.tools.logging
-        clojure.edn
+        [clojure.edn :only [read-string]]
         ))
 ;this module contains the application configuration defaults and all logic that is used to read the configuration
 
@@ -23,8 +23,6 @@
 (defn load-default-config! []
   (load-config! *default-conf*)
   )
-
-(load-default-config!)
 
 
 (defn get-conf [n]
