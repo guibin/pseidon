@@ -31,4 +31,19 @@
                "https://oss.sonatype.org/content/groups/public/"
                "streams-repo"
                "https://bigstreams.googlecode.com/svn/mvnrepo/releases"}
+  
+  
+  :plugins [[lein-rpm "0.0.5"]]
+  :rpm {:name "pseidon"
+        :summary "pseidon streaming imports"
+        :copyright "Apache-2 Licence"
+        :workarea "target"
+        :mappings [{:directory "/opt/pseidon/lib"
+                    :filemode "440"
+                    :username "root"
+                    :groupname "root"
+                    ;; There are also postinstall, preremove and postremove
+                    :sources {:source [{:location "target/classes"}
+                                       {:location "src"}]
+                           }}]}
   )
