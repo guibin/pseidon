@@ -1,4 +1,5 @@
 (ns pseidon.core
+  (:gen-class)
   (:use [clojure.tools.cli :only [cli]] 
         [pseidon.core.conf :only [load-config! get-conf2] ]
         [pseidon.core.app :only [start-app stop-app]]
@@ -49,7 +50,7 @@
           (repl/response-values)
                                   )))
 
-(defn main [& args]
+(defn -main [& args]
      
      (if-let [opts (check-opts (cmd args) ) ]
        (if (:stop opts) 
