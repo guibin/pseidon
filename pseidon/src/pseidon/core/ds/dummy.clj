@@ -2,9 +2,14 @@
 
 (use '[pseidon.core.registry :as r])
 
+(defn get-files [] 
+  (let [files ["/opt/pseidon/plugins/datasources/myds.clj" "resources/plugins/datasources/myds.clj"] ]
+    (filter #(.exists (java.io.File. %)) files)
+  ))
+  
 (defn dummy-ds [name] 
   (r/->DataSource name (fn [] (prn "Starting " name)) (fn [] (prn "closing " name)) 
-                  (fn [] ["resources/plugins/datasources/myds.clj", "resources/plugins/datasources/myds.clj"])
+                  get-files
              (fn [file] (clojure.java.io/reader file ))
              )
    )

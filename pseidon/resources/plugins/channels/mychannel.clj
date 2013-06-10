@@ -6,7 +6,7 @@
 (use '[pseidon.core.message :as m])
 
 
- 
+(prn "hi")
 (defn send-file [file]
      (with-open [rdr ((:reader (r/reg-get "ds-test")) file)]
         (doseq [line (line-seq rdr)]

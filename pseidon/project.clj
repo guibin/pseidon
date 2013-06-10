@@ -26,13 +26,14 @@
    :profiles {:dev {:dependencies [[midje "1.6-alpha2"]]
                     :plugins [[lein-midje "3.0.1"]]
                     }}
-
+  :aot [pseidon.core]
+  :main pseidon.core
   :repositories {"sonatype-oss-public"
                "https://oss.sonatype.org/content/groups/public/"
                "streams-repo"
                "https://bigstreams.googlecode.com/svn/mvnrepo/releases"}
   
-  
+   
   :plugins [[lein-rpm "0.0.5"]]
   :rpm {:name "pseidon"
         :summary "pseidon streaming imports"

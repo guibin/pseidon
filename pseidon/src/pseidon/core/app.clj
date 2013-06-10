@@ -15,12 +15,12 @@
 ;will reload all of the plugins
 (defn refresh-plugins []
   "Reads the plugin-dirs list and if no such files are found uses the default test locations"
-  (apply set-refresh-dirs (c/get-conf2 :plugin-dirs [(java.io.File. "resources/conf/logging.clj") 
-                    (java.io.File. "resources/plugins/sinks")
-                    (java.io.File. "resources/plugins/datasources") 
-                    (java.io.File. "resources/plugins/channels") 
-                    (java.io.File. "resources/plugins/processors")] ) )
-   (refresh)
+  (println (c/get-conf2 :plugin-dirs "NOTHING"))
+
+  (apply set-refresh-dirs (c/get-conf2 :plugin-dirs []))
+
+   (binding [*ns* *ns*]
+   (refresh))
   )
 
 
