@@ -90,7 +90,13 @@
 									</source>
 								</sources>
 							</mapping>
-
+							<mapping>
+								<directory>/opt/pseidon/lib</directory>
+								<filemode>775</filemode>
+								<username>pseidon</username>
+								<groupname>pseidon</groupname>
+								<dependency/>
+							</mapping>
 							<mapping>
 								<directory>/opt/pseidon/lib</directory>
 								<filemode>775</filemode>
@@ -132,14 +138,14 @@
 						  <preinstallScriptlet>
                         	<script>
 #!/usr/bin/env bash
-#Creates the glue user and group
+#Creates the pseidon user and group
 #see http://fedoraproject.org/wiki/Packaging%3aUsersAndGroups
 #safety for when the commands to not exist
 type getent || exit 0
 
 getent group pseidon >/dev/null || groupadd -r pseidon
        getent passwd pseidon >/dev/null || \
-       useradd -r -g pseidon -d HOMEDIR -s /sbin/nologin \
+       useradd -r -g pseidon -d /home/pseidon -s /sbin/nologin \
        -c "pseidon runs under the pseidon user and group" pseidon
 exit 
 							</script>
