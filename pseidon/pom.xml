@@ -42,12 +42,12 @@
 
 					<configuration>
 						<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
-						<distribution>Glue task manager</distribution>
+						<distribution>pseidon</distribution>
 						<group>utilties</group>
 						<release>1</release>
-						<packager>http://code.google.com/p/glue/</packager>
+						<packager>http://code.google.com/p/</packager>
 						<provides>
-							<provide>glue-server</provide>
+							<provide>pseidon</provide>
 						</provides>
 						<defineStatements>
 							<defineStatement>_unpackaged_files_terminate_build 0
@@ -75,7 +75,7 @@
 								<groupname>root</groupname>
 								<sources>
 									<source>
-										<location>src/main/resources/etc/init.d/pseidon</location>
+										<location>resources/etc/init.d/pseidon</location>
 									</source>
 								</sources>
 							</mapping>
@@ -87,7 +87,7 @@
 								<groupname>pseidon</groupname>
 								<sources>
 									<source>
-										<location>src/main/resources/conf</location>
+										<location>resources/conf</location>
 									</source>
 								</sources>
 							</mapping>
@@ -99,7 +99,7 @@
 								<groupname>pseidon</groupname>
 								<sources>
 									<source>
-										<location>src/main/resources/plugins</location>
+										<location>resources/plugins</location>
 									</source>
 								</sources>
 							</mapping>
@@ -122,7 +122,7 @@
 								<groupname>pseidon</groupname>
 								<sources>
 									<source>
-										<location>src/main/resources/bin</location>
+										<location>resources/bin</location>
 									</source>
 								</sources>
 							</mapping>
