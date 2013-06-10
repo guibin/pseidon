@@ -20,7 +20,8 @@
                     (java.io.File. "resources/plugins/datasources") 
                     (java.io.File. "resources/plugins/channels") 
                     (java.io.File. "resources/plugins/processors")] ) )
-   (refresh)
+  (binding [*ns* *ns*]
+   (refresh))
   )
 
 

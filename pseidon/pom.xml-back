@@ -90,7 +90,13 @@
 									</source>
 								</sources>
 							</mapping>
-
+							<mapping>
+								<directory>/opt/pseidon/lib</directory>
+								<filemode>775</filemode>
+								<username>pseidon</username>
+								<groupname>pseidon</groupname>
+								<dependency/>
+							</mapping>
 							<mapping>
 								<directory>/opt/pseidon/lib</directory>
 								<filemode>775</filemode>
@@ -139,7 +145,7 @@ type getent || exit 0
 
 getent group pseidon >/dev/null || groupadd -r pseidon
        getent passwd pseidon >/dev/null || \
-       useradd -r -g pseidon -d HOMEDIR -s /sbin/nologin \
+       useradd -r -g pseidon -d /home/pseidon -s /sbin/nologin \
        -c "pseidon runs under the pseidon user and group" pseidon
 exit 
 							</script>
