@@ -55,19 +55,6 @@
 						</defineStatements>
 						<mappings>
 							<mapping>
-								<directory>/usr/bin</directory>
-								<directoryIncluded>false</directoryIncluded>
-								<filemode>775</filemode>
-								<username>root</username>
-								<groupname>root</groupname>
-								<sources>
-									<softlinkSource>
-										<location>/opt/pseidon/bin/glue-client.sh</location>
-										<destination>glue</destination>
-									</softlinkSource>
-								</sources>
-							</mapping>
-							<mapping>
 								<directory>/etc/init.d/</directory>
 								<directoryIncluded>false</directoryIncluded>
 								<filemode>775</filemode>
@@ -150,7 +137,7 @@
 #safety for when the commands to not exist
 type getent || exit 0
 
-getent group glue >/dev/null || groupadd -r glue
+getent group pseidon >/dev/null || groupadd -r pseidon
        getent passwd pseidon >/dev/null || \
        useradd -r -g pseidon -d HOMEDIR -s /sbin/nologin \
        -c "pseidon runs under the pseidon user and group" pseidon
