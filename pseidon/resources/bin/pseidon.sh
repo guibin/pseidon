@@ -8,7 +8,7 @@
 abspath=$(cd ${0%/*} && echo $PWD/${0##*/})
 BIN_HOME=`dirname $abspath`
 
-PSEIDON_HOME=/opt/glue
+PSEIDON_HOME=/opt/pseidon
 
 export CONF_DIR=$PSEIDON_HOME/conf
 
@@ -42,7 +42,7 @@ for f in $PSEIDON_HOME/lib/*.jar; do
 CLASSPATH=${CLASSPATH}:$f;
 done
 
-CLIENT_CLASS="org.glue.rest.Client"
+CLIENT_CLASS="pseidon.core"
 
 CLASSPATH=$CONF_DIR:$CONF_DIR/META-INF:$CLASSPATH
 

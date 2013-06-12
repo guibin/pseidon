@@ -16,9 +16,9 @@
 ;will reload all of the plugins
 (defn refresh-plugins []
   "Reads the plugin-dirs list and if no such files are found uses the default test locations"
-  (info (c/get-conf2 :plugin-dirs))
-  (apply set-refresh-dirs (c/get-conf2 :plugin-dirs {} ) )
-  (binding [*ns* *ns*]
+   (info (c/get-conf2 :plugin-dirs "NO PLUGIN CONFIG"))
+   (apply set-refresh-dirs (c/get-conf2 :plugin-dirs []))
+   (binding [*ns* *ns*]
    (refresh))
   )
 

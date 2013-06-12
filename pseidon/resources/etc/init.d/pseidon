@@ -1,189 +1,174 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # chkconfig: 2345 20 80
 # description: pseidon
 #
-# /etc/rc.d/init.d/pseidon
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
 #
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+PATH=/usr/bin:/sbin:/bin:/usr/sbin
+export PATH
+
+OK_STAT=0
+DEAD_STAT=1
+UNKOWN_STAT=4
+
+mkdir -p /var/lock/subsys
+
+[ -f /etc/sysconfig/pseidon ] && . /etc/sysconfig/pseidon
+lockfile=${LOCKFILE-/var/lock/subsys/pseidon}
+gcronsd="${GCRONSD-/opt/pseidon/bin/pseidon.sh} cron"
+REGEX="pseidon.core"
+
+RETVAL=0
+ISDAEMON=0
 # Source function library.
 
-if [ -f /etc/init.d/functions ]; then
-. /etc/init.d/functions
-fi
+FUNCTIONS="/etc/rc.d/init.d/functions"
+[ -f $FUNCTIONS ] && . $FUNCTIONS && ISDAEMON=$(grep "daemon()" /etc/rc.d/init.d/functions  | wc -l)
 
-if [ ! -f /var/lock/subsys ]; then
-  mkdir -p /var/lock/subsys
-fi
+JAVASH="/etc/profile.d/java.sh"
+[ -f $JAVASH ] && . $JAVASH
 
-if [ -f /etc/profile.d/java ]; then
- . /etc/profile.d/java
-fi
+ENV_FILE="/opt/gluecron/conf/env.sh"
+[ -f $ENV_FILE ] && . $ENV_FILE
 
-if [ -f /etc/profile.d/java.sh ]; then
- . /etc/profile.d/java.sh
-fi
-
-LOCKFILE="/var/lock/subsys/pseidon"
-PIDFILE="/var/run/pseidon.pid"
-
-#setup glue home variable
-if [ -z "$PSEIDON_HOME" ]; then
-  export PSEIDON_HOME="/opt/glue"
-fi
-
-if [ -z "$CONF_DIR" ]; then
-  export CONF_DIR="$PSEIDON_HOME/conf"
-fi
-
-LAUNCH_CLASS="org.glue.rest.Launcher"
-CLIENT_CLASS="org.glue.rest.Client"
 
 if [ -z "$JAVA_HOME" ]; then
 
- echo "No JAVA_HOME defined setting to /usr/java/latest"
- export JAVA_HOME="/usr/java/latest"
+  echo "JAVA_HOME not set using /usr/java/latest"
+  export JAVA_HOME="/usr/java/latest"
 
 fi
-
-
-JAVA=$JAVA_HOME/bin/java
-
-if [ -z $JAVA_HEAP ]; then
- export JAVA_HEAP="-XX:PermSize=64M -XX:MaxPermSize=512M -Xmx2048m"
-fi
-
-CLASSPATH=${CLASSPATH}:$JAVA_HOME/lib/tools.jar
-
-# so that filenames w/ spaces are handled correctly in loops below
-# add libs to CLASSPATH.
-CLASSPATH=${CLASSPATH}:$PSEIDON_HOME/lib/*;
-CLASSPATH=$CONF_DIR:$CONF_DIR/META-INF:$CLASSPATH
-
-JAVA_OPTS="-XX:+CMSClassUnloadingEnabled -XX:MaxDirectMemorySize=1024M -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:SurvivorRatio=6 -XX:NewRatio=3 -XX:+DisableExplicitGC $JAVA_OPTS"
-
-
-
-startPseidon(){
-  echo
-  
-  LOG="$PSEIDON_HOME/log/serverlog.log"
-
-  RUN_CMD="$JAVA $JAVA_HEAP $JAVA_OPTS -classpath "$CLASSPATH" $LAUNCH_CLASS $CONF_DIR/exec.groovy $CONF_DIR/modules.groovy"
-  
-  nohup $RUN_CMD > "$LOG" 2>&1 < /dev/null &
-  RETVAL=$?
-  echo $! > $PIDFILE
-
-  sleep 2; tail "$LOG"
-
-  return $RETVAL
-}
-
-
-stopPseidon(){
-
-   #stop glue server via the client first
-   RUN_CMD="$JAVA $JAVA_HEAP $JAVA_OPTS -classpath "$CLASSPATH" $CLIENT_CLASS -stop"  
-
-   exec $RUN_CMD 
-
-   sleep 5s
-
-   #check if still running after client command was called
-   checkIfRunning
-   ISRUNNING=$?
-
-
-   if [ $ISRUNNING == 0  ]; then
-     echo "pseidon is still running"
-     exit 1
-   fi 
-
-  
-}
-
-
-exitIfRunning(){
- # Check to see if the glue server is running
- # if so this function calls exit 1
-
- PID=$(pgrep -f $LAUNCH_CLASS)
-
- if [ ! -z $PID ]; then
-   echo "pseidon is running $PID"
-   exit 1
- fi
-
-}
-
-checkIfRunning(){
-  #if the pseidon is running this script will return 0 else 1
-  RETVAL=0
-  PID=$(pgrep -f $LAUNCH_CLASS)
-
-  if [ -z $PID ]; then
-   RETVAL=1
-  fi   
-
-  return $RETVAL
-}
 
 start() {
 
-          #this method will exit if running
-          exitIfRunning
-          
-          echo -n "Starting : pseidon"
+   touch $lockfile
 
-          startPseidon
-          RETVAL=$?
-          checkIfRunning
-          ISRUNNING=$?
+   status
+   RETVAL=$?
 
-          if [[ $RETVAL == 0 &&  $ISRUNNING == 0 ]]; then
-           touch $LOCKFILE
-          else
-            echo -n "pseidon could not be started"
-          fi
+   if [ $RETVAL = $OK_STAT ]; then
+    echo "The pseidon is already running"
+    RETVAL=$OK_STAT
+   else
 
-        echo        
-        return $RETVAL
+    echo -n $"Starting pseidon: "
+    
+    su - pseidon -l -m -c "nohup bash $gcronsd > /opt/pseidon/log/serverlog.log 2>&1 /dev/null&"
+
+    counter=0
+    while [ $counter -lt 5 ]
+    do
+        status
+        RETVAL=$?
+        sleep 1s
+        counter=$(( counter + 1 ))
+    done
+
+   fi
+
+   [ $RETVAL = $OK_STAT ] && echo " OK"
+   [ $RETVAL = $DEAD_STAT ] && echo " FAILED"
+
+   return $RETVAL
+
 }
 
 stop() {
 
-        checkIfRunning
-        ISRUNNING=$?
-        if [ $ISRUNNING == 0 ]; then
-          echo -n "Shutting down : pseidon "
-         
-         stopPseidon         
-         rm -f $LOCKFILE
-         
-        else
-          echo -n "pseidon is not running"
-        fi
+    status
+    RETVAL=$?
 
-        echo
-        return 0
+    if [ $RETVAL = $OK_STAT ]; then
+      echo -n "Stopping pseidon: "
+
+	  kill
+      
+      counter=0
+      while [ $counter -lt 5 ]
+      do
+        status
+        RETVAL=$?
+        sleep 1s
+        counter=$(( counter + 1 ))
+
+        [ $counter -gt 3 ] && [ $RETVAL = $OK_STAT ] && kill
+      done
+
+       [ $RETVAL = $DEAD_STAT ] && rm -f ${lockfile} && echo "OK"
+
+    else
+       echo "No pseidon instance is running" 
+       RETVAL=$DEAD_STAT
+    fi
+
+    return $RETVAL
+
+}
+
+restart() {
+    stop
+    start
+}
+
+kill() {
+
+  pid=`pgrep -f "$REGEX"`
+  if [ -n "$pid" ]; then
+    su - -c "kill $pid"
+  fi
+
+}
+status() {
+
+   pid=`pgrep -f "$REGEX"`
+   if [ -n "$pid" ]; then
+       RETVAL=$OK_STAT
+   else
+       RETVAL=$DEAD_STAT
+   fi
+
+
+  return $RETVAL
 }
 
 case "$1" in
-    start)
-        start
-        ;;
-    stop)
-        stop
-        ;;
-    status)
-        status pseidon
-        ;;
-    restart)
-        stop
-        start
-        ;;
-    *)
-        echo "Usage: pseidon  {start|stop|status|reload|restart[|probe]"
-        exit 1
-        ;;
+  start)
+    start
+    exit $?
+    ;;
+  stop)
+    stop
+    exit $?
+    ;;
+  restart)
+    stop
+    start
+    exit $?
+    ;;
+  status)
+    status
+    RETVAL=$?
+    [ $RETVAL = $OK_STAT ] && echo "Running"
+    [ $RETVAL = $DEAD_STAT ] && echo "Stopped"
+    exit $RETVAL
+    ;;
+  *)
+    echo $"Usage: $0 {start|stop|status|restart}"
+    exit $DEAD_STAT
 esac
-exit $?
+
+exit $OK_STAT
+

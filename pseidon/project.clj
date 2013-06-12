@@ -27,7 +27,6 @@
                  [criterium "0.4.1"] ;benchmarking
                 
                  ]
-
   :aot [pseidon.core]
   :main pseidon.core
   :repositories {"sonatype-oss-public"
@@ -38,6 +37,7 @@
   :java-source-paths ["java"]
   
   :plugins [[lein-rpm "0.0.5"] [lein-midje "3.0.1"] [lein-marginalia "0.7.1"] ]
+
   :rpm {:name "pseidon"
         :summary "pseidon streaming imports"
         :copyright "Apache-2 Licence"

@@ -138,7 +138,7 @@
 						  <preinstallScriptlet>
                         	<script>
 #!/usr/bin/env bash
-#Creates the glue user and group
+#Creates the pseidon user and group
 #see http://fedoraproject.org/wiki/Packaging%3aUsersAndGroups
 #safety for when the commands to not exist
 type getent || exit 0
@@ -265,6 +265,11 @@ exit
       <groupId>criterium</groupId>
       <artifactId>criterium</artifactId>
       <version>0.4.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.curator</groupId>
+      <artifactId>curator-framework</artifactId>
+      <version>2.0.1-incubating</version>
     </dependency>
     <dependency>
       <groupId>midje</groupId>
