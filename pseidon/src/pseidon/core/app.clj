@@ -6,6 +6,7 @@
 (use '[pseidon.core.worker :as w])
 (use '[pseidon.core.fileresource :as frs])
 (use '[pseidon.core.conf :as c])
+(use '[pseidon.core.datastore :as ds])
 
 (set! *warn-on-reflection* true)
 
@@ -15,11 +16,8 @@
 ;will reload all of the plugins
 (defn refresh-plugins []
   "Reads the plugin-dirs list and if no such files are found uses the default test locations"
-  (apply set-refresh-dirs (c/get-conf2 :plugin-dirs [(java.io.File. "resources/conf/logging.clj") 
-                    (java.io.File. "resources/plugins/sinks")
-                    (java.io.File. "resources/plugins/datasources") 
-                    (java.io.File. "resources/plugins/channels") 
-                    (java.io.File. "resources/plugins/processors")] ) )
+  (info (c/get-conf2 :plugin-dirs))
+  (apply set-refresh-dirs (c/get-conf2 :plugin-dirs {} ) )
   (binding [*ns* *ns*]
    (refresh))
   )
@@ -31,6 +29,7 @@
    (frs/close-all)
    (await-for 10000)
    (shutdown-agents)
+   (ds/shutdown)
    (info "Stopped")
   )
 

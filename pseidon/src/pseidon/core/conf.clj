@@ -8,7 +8,11 @@
 
 (def conf (ref {}))
 
-
+(defn set-conf! [k v]
+  "Sets the configuration value"
+  (dosync (alter conf (fn [p] (assoc p k v)) 
+  )))
+  
 (defn load-props[file]
   (read-string (slurp file))
   )

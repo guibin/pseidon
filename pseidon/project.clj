@@ -20,20 +20,24 @@
                  [clj-logging-config "1.9.10"]
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/tools.nrepl "0.2.3"]
-		 [criterium "0.4.1"] 
+                 [org.apache.curator/curator-framework "2.0.1-incubating"]
+   		           [org.apache.curator/curator-test "2.0.1-incubating" :scope "test"]
+                 [midje "1.6-alpha2" :scope "test"]
+                
+                 [criterium "0.4.1"] ;benchmarking
                 
                  ]
-   :profiles {:dev {:dependencies [[midje "1.6-alpha2"]]
-                    :plugins [[lein-midje "3.0.1"]]
-                    }}
 
+  :aot [pseidon.core]
+  :main pseidon.core
   :repositories {"sonatype-oss-public"
                "https://oss.sonatype.org/content/groups/public/"
                "streams-repo"
                "https://bigstreams.googlecode.com/svn/mvnrepo/releases"}
   
+  :java-source-paths ["java"]
   
-  :plugins [[lein-rpm "0.0.5"]]
+  :plugins [[lein-rpm "0.0.5"] [lein-midje "3.0.1"] [lein-marginalia "0.7.1"] ]
   :rpm {:name "pseidon"
         :summary "pseidon streaming imports"
         :copyright "Apache-2 Licence"

@@ -14,4 +14,8 @@
  :worker-queue java.util.concurrent.PriorityBlockingQueue
  
  :repl-port 7111
+ 
+ :zk-url "localhost:7111"
+ :zk-ns "pseidon"
+ 
  }
