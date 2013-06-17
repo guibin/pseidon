@@ -10,7 +10,7 @@
   (if (nil? @client)
       (dosync (alter client 
                      (fn [p]
-                       (let [retry-policy (org.apache.curator.retry.ExponentialBackoffRetry. 1000 3)
+                       (let [retry-policy (org.apache.curator.retry.ExponentialBackoffRetry. 1000 10)
                            bclient (-> (org.apache.curator.framework.CuratorFrameworkFactory/builder) (.namespace (get-conf2 :zk-ns "pseidon") )  (.connectString (get-conf :zk-url) ) (.retryPolicy retry-policy)  .build   )
                            ]
                            (.start bclient)
@@ -39,8 +39,17 @@
 (defn ensure-path [client ns path]
   (let [p (clojure.string/join "/" [ns path])]
   (if (not (-> client .checkExists (.forPath p)))
-     (-> client .create .creatingParentsIfNeeded (.forPath  p)))
-  p ;return the path
+     (do 
+       (def create (fn  [dirs dir] 
+                       (let [p2 (clojure.string/join "/" [dirs dir])]
+                                   (if (not (-> client .checkExists (.forPath p2))) (-> client .create (.withMode (org.apache.zookeeper.CreateMode/PERSISTENT)) (.withACL org.apache.zookeeper.ZooDefs$Ids/OPEN_ACL_UNSAFE) 
+                                                                                      (.forPath p2) 
+                                      ))
+                                     (clojure.string/join "/" [dirs dir])
+                     )))
+       (reduce create (clojure.string/split p #"/"))
+     ))
+     p ;return the path
   ))
 
 (defn set-data! [ns id value]
@@ -53,18 +62,16 @@
   ))
 
 
-(defn mkdirs [ & dirs]
+(defn mkdirs [ns & dirs]
   "
     Takes directories as a b c .. and joins then by '/'
     The first argument must always begin with '/'
     Create all the directories if the do not exist
   "
-  (let [dir (clojure.string/join "/" dirs)
-        bclient (get-client)
-        exists #(-> %1 .checkExists (.forPath dir))
-        create #(-> %1 .create .creatingParentsIfNeeded (.forPath dir)) ]
-        (if (not (exists bclient))
-            (create bclient))))
+  (let [p (clojure.string/join "/" dirs)
+        bclient (get-client)]
+        (ensure-path bclient ns p)
+        ))
 
 (defn list-dirs [ & dirs]
   "Takes directories as a b c .. and joins then by '/'
