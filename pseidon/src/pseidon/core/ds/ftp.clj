@@ -52,6 +52,13 @@
      (-> f1-obj (.moveTo f2-obj))
    )))
 
+(defn ftp-details [ {:keys [fs host opts] } ^String remote ]
+  "Returns a map with :size on ftp server, :last-modified-time :attributes"
+   (let [url (clojure.string/join "/" [host remote]) ]
+    (with-open [f-obj (-> fs (.resolveFile url opts))] 
+     (let [cnt (.getContent f-obj)]
+       {:size (.getSize cnt) :last-modified-time (.getLastModifiedTime cnt) :attributes (.getAttributes cnt) }
+   ))))
 
 (defn ftp-mkdirs [{:keys [fs host opts] :as m } ^String remote]
   "Performs a FTP/SFTP mkdir on all parent directories of remote before calling mkdir on the remote directories"

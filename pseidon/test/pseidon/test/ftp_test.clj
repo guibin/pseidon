@@ -55,6 +55,16 @@
              (FileUtils/contentEquals (java.io.File. local-file) (java.io.File. local-file2)) => true
              ))
        
+       (fact "Test ftp details"
+             ;put multiple files
+             (let [local-file "resources/conf/logging.clj" 
+                   remote-file "/a/b/c/logging.clj"
+                   ]
+             (ftp-put conn local-file remote-file )
+             (let [details (ftp-details conn remote-file) ]
+                (:size details) => 195                                          
+             )))
+       
        (fact "Test delete mkdir and exist"
              (let [dir "/a/b/myremotedir"]
              (ftp-mkdirs conn dir)
