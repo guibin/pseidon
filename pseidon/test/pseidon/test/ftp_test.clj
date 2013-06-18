@@ -99,6 +99,7 @@
              (ftp-put conn local-file remote-file )
              (with-open [in (-> (ftp-inputstream conn remote-file) java.io.InputStreamReader. java.io.BufferedReader.) 
                          out (-> (java.io.File. test-file) java.io.PrintWriter.)]
+                (println "!!!!!!!!!!!!! in " in)
                 (doseq [line (line-seq in)]
                   (.println out line)
              ))

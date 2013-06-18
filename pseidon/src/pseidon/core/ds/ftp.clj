@@ -62,10 +62,27 @@
 
 (defn ftp-inputstream [ {:keys [fs host opts] } ^String remote ]
   "Returns an inputstream for the file"
-   (let [url (clojure.string/join "/" [host remote]) ]
-    (let [f-obj (-> fs (.resolveFile url opts))] 
-      (-> f-obj .getContent .getInputStream))))
+   (let [url (clojure.string/join "/" [host remote]) 
+         f-obj (-> fs (.resolveFile url opts))
+         in (-> f-obj .getContent .getInputStream)]
+          (proxy [java.io.InputStream] []
+				    (available [] (.available in))
+				    (mark [limit] (.mark in))
+				    (markSupported [] (.markSupported in))
+				    (read  ([] (.read in))
+                   ([bts] (.read in bts))
+                   ([bts off len] (.read in bts off len))
+                )
+				    (reset [] (.reset in))
+				    (skip [n] (.skip n in))
+				    (close [] ;we need to close obht the f-obj and the inputstream
+				      (.close in)
+				      (.close f-obj)
+				    )
+				  )
+         ))
 
+ 
 
 (defn ftp-mkdirs [{:keys [fs host opts] :as m } ^String remote]
   "Performs a FTP/SFTP mkdir on all parent directories of remote before calling mkdir on the remote directories"
