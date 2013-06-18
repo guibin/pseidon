@@ -2,7 +2,7 @@
   (:gen-class)
   (:use [clojure.tools.cli :only [cli]] 
         [pseidon.core.conf :only [load-config! get-conf2] ]
-        [pseidon.core.app :only [start-app stop-app]]
+        [pseidon.core.app :only [start-app stop-app refresh-plugins]]
         [clojure.tools.nrepl.server :only [start-server stop-server] ]
         ) 
   )
@@ -16,6 +16,7 @@
   (cli args
     ["-c" "--config" "Configuration directory that must contain a pseidon.edn file" :parse-fn #(java.io.File. %) :default (java.io.File. "/opt/pseidon/conf")]
     ["-stop" "--stop" "Shutdown the application" :flag true]
+    ["-r" "--refresh-plugins" "Refresh all edited plugins" :flag true] 
   ))
 
 
@@ -43,6 +44,18 @@
   (stop-app)
   )
 
+(defn app-refresh-plugins[]
+  (refresh-plugins)
+  )
+
+
+(defn send-refresh []
+  "we need to connect to the repl"
+   (with-open [conn (repl/connect :port (get-conf2 :repl-port 7111))]
+      (-> (repl/client conn 1000) (repl/message {:op :eval :code "(do (pseidon.core/app-refresh-plugins) )"  })
+          (repl/response-values)
+                                  )))
+
 (defn send-shutdown []
   "we need to connect to the repl"
    (with-open [conn (repl/connect :port (get-conf2 :repl-port 7111))]
@@ -53,7 +66,9 @@
 (defn -main [& args]
      
      (if-let [opts (check-opts (cmd args) ) ]
-       (if (:stop opts) 
+      (if (:refresh-plugins opts)
+        (send-refresh)
+        (if (:stop opts) 
          (send-shutdown)
          (do 
              (load-config! (clojure.string/join "/" [ (:config opts) "pseidon.edn"] )) 
@@ -61,6 +76,7 @@
              (start-app)
            
              ))
+        )
        ))
 
 

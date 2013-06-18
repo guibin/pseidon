@@ -60,6 +60,13 @@
        {:size (.getSize cnt) :last-modified-time (.getLastModifiedTime cnt) :attributes (.getAttributes cnt) }
    ))))
 
+(defn ftp-inputstream [ {:keys [fs host opts] } ^String remote ]
+  "Returns an inputstream for the file"
+   (let [url (clojure.string/join "/" [host remote]) ]
+    (let [f-obj (-> fs (.resolveFile url opts))] 
+      (-> f-obj .getContent .getInputStream))))
+
+
 (defn ftp-mkdirs [{:keys [fs host opts] :as m } ^String remote]
   "Performs a FTP/SFTP mkdir on all parent directories of remote before calling mkdir on the remote directories"
   (def _mkdir (fn [parent dir]

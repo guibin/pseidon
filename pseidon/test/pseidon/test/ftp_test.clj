@@ -91,6 +91,21 @@
              (ftp-mv conn f1 f2)
              (ftp-exists? conn f2) => true
              ))
+        (fact "Test ftp-inputstream"
+             (let [local-file "resources/conf/log4j.properties" 
+                   remote-file "/a/b/ctestinputstream/log4j.properties"
+                   test-file "target/testftpinputstream"
+                   ]
+             (ftp-put conn local-file remote-file )
+             (with-open [in (-> (ftp-inputstream conn remote-file) java.io.InputStreamReader. java.io.BufferedReader.) 
+                         out (-> (java.io.File. test-file) java.io.PrintWriter.)]
+                (doseq [line (line-seq in)]
+                  (.println out line)
+             ))
+             
+             (FileUtils/contentEquals (java.io.File. local-file) (java.io.File. test-file)) => true
+             ))
+        
        )
         
        (finally (.stop sshd-server))
