@@ -40,7 +40,14 @@
 
 
 (facts "Test ftp list get and put"
-    (let [sshd-server (setup)]
+    (let [sshd-server (setup)
+          zk-server (org.apache.curator.test.TestingServer.)
+          zk-url (str "localhost:" (.getPort zk-server))
+          ]
+       
+       (load-default-config!)
+       (set-conf! :zk-url zk-url)
+
       (try
         (do
        (fact "Test put/get files"
@@ -99,7 +106,6 @@
              (ftp-put conn local-file remote-file )
              (with-open [in (-> (ftp-inputstream conn remote-file) java.io.InputStreamReader. java.io.BufferedReader.) 
                          out (-> (java.io.File. test-file) java.io.PrintWriter.)]
-                (println "!!!!!!!!!!!!! in " in)
                 (doseq [line (line-seq in)]
                   (.println out line)
              ))
@@ -107,6 +113,22 @@
              (FileUtils/contentEquals (java.io.File. local-file) (java.io.File. test-file)) => true
              ))
         
+          (fact "Test get-files and get-reader"
+                (let [local-file "resources/conf/log4j.properties" 
+                   remote-file "/a/b/testgetfiles/log4j.properties"
+                   ]
+                  (ftp-put conn local-file remote-file )
+                  (let [files (get-files conn "test" "/a/b/testgetfiles" (fn [x] true) )]
+                     (count files) => 1
+                     (doseq [file files]
+                        (doseq [line (get-line-seq conn "test" file)]
+                           (println "!!!! line " line)
+                          )
+                       )
+                    )
+                    
+                )
+          )   
        )
         
        (finally (.stop sshd-server))

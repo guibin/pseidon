@@ -8,16 +8,16 @@
 
 (prn "hi")
 (defn send-file [file]
-     (with-open [rdr ((:reader (r/reg-get "ds-test")) file)]
-        (doseq [line (line-seq rdr)]
+     (with-open [rdr ((:reader-seq (r/reg-get "ds-test")) file)]
+        (doseq [line rdr]
            (prn "Sending " line) ;/prefixdir/topic-/dateparition
           (q/publish data-queue (m/->Message (.getBytes line) "test" true (System/currentTimeMillis) 1) )
        ))
    )
 
-(defn start [] 
+(defn run [] 
   (prn "Startin sending data")
- (doseq [file ((:list-files (r/reg-get "ds-test" )))]
+ (doseq [file ((:list-files (r/reg-get-wait "ds-test" 10000)))]
          (send-file file)
         )
  )

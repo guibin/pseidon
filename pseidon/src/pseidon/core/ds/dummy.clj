@@ -10,7 +10,7 @@
 (defn dummy-ds [name] 
   (r/->DataSource name (fn [] (prn "Starting " name)) (fn [] (prn "closing " name)) 
                   get-files
-             (fn [file] (clojure.java.io/reader file ))
+             (fn [file]  (line-seq (clojure.java.io/reader file )))
              )
    )
 

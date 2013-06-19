@@ -25,6 +25,7 @@
  "
    Application level method and calls close on the client.
  "  
+  (println "!!!!!!!!!!!!! Data Store Shutdown")
   (dosync 
         (alter client 
                (fn [p]
@@ -36,17 +37,27 @@
 (defn get-bytes [value]
   (pseidon.util.Bytes/toBytes value))
   
+(defn join-path [ns path]
+   (let [p (-> (str ns "/" path) (org.apache.commons.lang.StringUtils/replace "//" "/"))  
+         
+         p2 (if (.startsWith p "/") p (str "/" p))  ]
+     p2
+   ))
+
 (defn ensure-path [client ns path]
-  (let [p (clojure.string/join "/" [ns path])]
+  (let [p   (join-path ns path) ]
   (if (not (-> client .checkExists (.forPath p)))
      (do 
-       (def create (fn  [dirs dir] 
+       (def create (fn  [dirs dir]
+                       
                        (let [p2 (clojure.string/join "/" [dirs dir])]
                                    (if (not (-> client .checkExists (.forPath p2))) (-> client .create (.withMode (org.apache.zookeeper.CreateMode/PERSISTENT)) (.withACL org.apache.zookeeper.ZooDefs$Ids/OPEN_ACL_UNSAFE) 
                                                                                       (.forPath p2) 
                                       ))
                                      (clojure.string/join "/" [dirs dir])
-                     )))
+                       )
+                       
+                       ))
        (reduce create (clojure.string/split p #"/"))
      ))
      p ;return the path
@@ -109,19 +120,17 @@
   )
 
 
-(defn inc-bytes[bts val]
-   (println "Class of val " (class bts))
-   (if (= (.length bts) 4)
-       (+ (pseidon.util.Bytes/toInt bts) val)
-       (if (= (.length bts) 8)
-           (+ (pseidon.util.Bytes/toLong bts) val)
-           (throw Exception "Type with byte length " (.length bts) " cannot be incremented" ))
-     )  
+(defn inc-bytes[^bytes bts val]
+      (pseidon.util.Bytes/inc bts (long val))
   )
 
 (defn inc-data! [ns id inc-val]
   "Increments the data value by the inc-val, the value must be numeric long or int"
-    (set-data! ns id (inc-bytes (get-data ns id) inc-val) ))
+    (let [bts (get-data ns id)
+          cnt (count bts)
+          v (if (or (= cnt 4) (= cnt 8)) bts pseidon.util.Bytes/ZERO)
+          ]
+    (set-data! ns id (inc-bytes v inc-val))))
 
 
 (defn dec-data! [ns id dec-val]

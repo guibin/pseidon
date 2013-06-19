@@ -3,12 +3,14 @@
         pseidon.core.watchdog)
   )
 
-(defrecord DataSource [name start stop list-files reader])
-(defrecord Channel [name start stop])
-(defrecord DataSink [name start stop writer])
-(defrecord Processor [name start stop exec])
+(defrecord DataSource [name run stop list-files reader-seq])
+(defrecord Channel [name run stop])
+(defrecord DataSink [name run stop writer])
+(defrecord Processor [name run stop exec])
 
 (def reg-state (ref {}))
+
+(def exec-service (java.util.concurrent.Executors/newCachedThreadPool))
 
 (defn register [{name :name :as item}]
   "Register a service "
@@ -22,11 +24,26 @@
    (get @reg-state name)
   )
 
+(defn reg-get-wait [name timeout]
+   "Gets a service by name and if its nil waits for timeout milliseconds"
+   (let [start (System/currentTimeMillis)]
+     (loop [diff 0 service (reg-get name)]
+       (if (not (and (nil? service)
+               (> timeout diff)
+            ))
+            service
+            (do (Thread/sleep 500) (recur (Math/abs (- start (System/currentTimeMillis)))  (reg-get name) ))
+       )
+     )   
+  )
+)
+
 
   (defn start-all []
-    (doseq [[name {start :start}] @reg-state]
-      (time ((watch-critical-error start)))
-      (info "Started " name)
+    (doseq [[name {run :run}] @reg-state]
+          (.submit exec-service (fn [] 
+             (time ((watch-critical-error run)))
+           ))
         ))
   
   (defn stop-all []

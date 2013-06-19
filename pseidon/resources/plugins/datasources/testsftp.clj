@@ -1,6 +1,6 @@
 (ns plugins.datasources.testsftp
   (:require
-      [pseidon.core.ds.ftp :refer [ftp-connect ftp-details ftp-ls ftp-inputstream]]
+      [pseidon.core.ds.ftp :refer [get-files get-reader-seq]]
       [pseidon.core.datastore :refer [get-data-long]]
       [pseidon.core.conf :refer [get-conf2]]
     )
@@ -16,31 +16,16 @@
 
 (def ^:dynamic conn (ftp-connect url uid pwd))
 (def ^:dynamic name-space "testftp")
-
-(defn get-file-data [file]
-  (comment
-  "Returns a map with :sent-size and :file"
-  {:sent-size (get-data-long name-space (str file)) :file file }
-  )
-  {:sent-size 0 :file file}
-  )
-
-(defn filter-done [{:keys [size sent-size] }]
-  "Returns false if the size and sent-size are equal"
-  (not (= size sent-size)
-       ))
-
- (defn get-files []
- (let [files  (ftp-ls conn "/") ]
-     (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data %) ) (filter #(.endsWith % ".txt") files)) ) )
-  ))
-
-(defn get-reader [file]
-  (doto (ftp-inputstream file) java.io.InputStreamReader. java.io.BufferedReader.)
-  )
+; (defn get-files [conn dir pred-filter]
 
 ;register the testftp datasource
-(register (->DataSource "testftp" #() #(.close conn) get-files get-reader))
+(register (->DataSource "testftp" 
+                         #()
+                         #(.close conn)
+                         #(get-files conn "/" 
+                              (fn [file] (.endsWith file ".txt" ) ))
+                         #(get-reader-seq conn %)  
+                         ))
              
 
 
