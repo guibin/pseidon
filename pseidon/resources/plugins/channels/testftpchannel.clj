@@ -13,10 +13,10 @@
 
 ;(defrecord DataSource [name start stop list-files reader])
 
-(defn read-ftp [{:keys [list-files reader]}]
+(defn read-ftp [{:keys [list-files reader-seq]}]
   "For each file reads each line and sends as a message"
   (doseq [file (list-files)]
-    (doseq [line (line-seq (reader file))]
+    (doseq [line reader-seq]
       (q/publish data-queue (m/->Message (.getBytes line) topic true (System/currentTimeMillis) 1) )
   )))
 
