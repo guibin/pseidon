@@ -7,7 +7,7 @@
 (def client (ref nil))
 
 (defn get-client ^org.apache.curator.framework.CuratorFramework []; CuratorFramework    client = CuratorFrameworkFactory.builder().namespace("MyApp") ... build();
-  (if (nil? @client)
+   (let [ client (if (nil? @client)
       (dosync (alter client 
                      (fn [p]
                        (let [retry-policy (org.apache.curator.retry.ExponentialBackoffRetry. 1000 10)
@@ -17,8 +17,16 @@
                            bclient
                         ))
        ))
-       @client
-      )
+         
+      @client
+      )]
+     
+       
+       (while (not (= (.getState client) org.apache.curator.framework.imps.CuratorFrameworkState/STARTED)) (do (Thread/sleep 1000)))  
+       client
+     )
+  
+  
   )
 
 (defn shutdown[]

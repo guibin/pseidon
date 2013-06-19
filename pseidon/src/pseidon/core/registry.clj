@@ -10,7 +10,7 @@
 
 (def reg-state (ref {}))
 
-(def exec-service (java.util.concurrent.Executors/newCachedThreadPool))
+(def exec-service (ref {}))
 
 (defn register [{name :name :as item}]
   "Register a service "
@@ -40,13 +40,19 @@
 
 
   (defn start-all []
+    (dosync
+      (alter exec-service (fn [x] (java.util.concurrent.Executors/newCachedThreadPool))) 
+      )
+    
     (doseq [[name {run :run}] @reg-state]
-          (.submit exec-service (fn [] 
+          (.submit @exec-service (fn [] 
              (time ((watch-critical-error run)))
            ))
         ))
   
   (defn stop-all []
+     (try 
      (doseq [[name {stop :stop}] @reg-state]
           ((watch-normal-error stop))
-          ))
+          ) (finally (.shutdown @exec-service))
+     ))

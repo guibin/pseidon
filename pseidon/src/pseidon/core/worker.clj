@@ -14,8 +14,12 @@
 ;delagate to workers
 (defn delegate-msg [msg]
     (let [topic (:topic msg)
-          exec (:exec (r/reg-get topic) ) ]
-     (exec msg)   
+          exec (:exec (r/reg-get-wait topic 1000) ) ]
+      (if (nil? exec) 
+                      (throw (Exception. (str "Error no processor for " topic)))
+                      (exec msg)   
+                      )
+      
    ) )
 
 (defn start-consume [channel]

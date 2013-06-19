@@ -1,6 +1,6 @@
 (ns plugins.datasources.testsftp
   (:require
-      [pseidon.core.ds.ftp :refer [get-files get-reader-seq]]
+      [pseidon.core.ds.ftp :refer [ftp-connect get-files get-line-seq]]
       [pseidon.core.datastore :refer [get-data-long]]
       [pseidon.core.conf :refer [get-conf2]]
     )
@@ -20,11 +20,11 @@
 
 ;register the testftp datasource
 (register (->DataSource "testftp" 
-                         #()
-                         #(.close conn)
-                         #(get-files conn "/" 
+                         #() 
+                         #(.close (:fs conn) )
+                         #(get-files conn name-space "/" 
                               (fn [file] (.endsWith file ".txt" ) ))
-                         #(get-reader-seq conn %)  
+                         #(get-line-seq conn name-space %)  
                          ))
              
 

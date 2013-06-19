@@ -53,10 +53,24 @@
      (-> f1-obj (.moveTo f2-obj))
    )))
 
+(defn safe-resolve-file [fs url opts]
+   (println "!!!!!! FTP RESOLVE " url)
+   (try (.resolveFile fs url opts) (catch Exception e (do (error (str e " " url " " opts) ) nil) ))
+  )
+(defn resolve-file [fs url opts]
+   (let [f (loop [i 0 fs-obj nil]
+     (if (and (< i 10) (nil? fs-obj))
+           (recur (inc i) (safe-resolve-file fs url opts) )
+           fs-obj
+  ))]
+   
+     (if (nil? f) (throw (java.lang.Exception. (str "Cannot resolve file for " url ))) f)
+   ))
+
 (defn ftp-details [ {:keys [fs host opts] } ^String remote ]
   "Returns a map with :size on ftp server, :last-modified-time :attributes"
-   (let [url (clojure.string/join "/" [host remote]) ]
-    (with-open [f-obj (-> fs (.resolveFile url opts))] 
+   (let [url (if (.startsWith remote "/") (str host remote) (clojure.string/join "/" [host remote])) ]
+    (with-open [f-obj  (resolve-file fs url opts)] 
      (let [cnt (.getContent f-obj)]
        {:size (.getSize cnt) :last-modified-time (.getLastModifiedTime cnt) :attributes (.getAttributes cnt) }
    ))))
