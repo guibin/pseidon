@@ -3,13 +3,17 @@
   (:require 
       [pseidon.core.datastore :refer [get-data-long]]
       [pseidon.core.conf :refer [get-conf2]]
+      [pseidon.core.queue :refer [publish]]
+      [pseidon.core.app :refer [data-queue]]
     )
     
-     (:use pseidon.core.registry)
+     (:use pseidon.core.registry
+           pseidon.core.message
+           )
     
     )
   
-(defn ^:dynamic topic "abctopics")
+(def ^:dynamic topic "abctopics")
 
 ;(defrecord DataSource [name start stop list-files reader])
 
@@ -17,7 +21,7 @@
   "For each file reads each line and sends as a message"
   (doseq [file (list-files)]
     (doseq [line reader-seq]
-      (q/publish data-queue (m/->Message (.getBytes line) topic true (System/currentTimeMillis) 1) )
+      (publish data-queue (->Message (.getBytes line) topic true (System/currentTimeMillis) 1) )
   )))
 
 (defn run [] 
