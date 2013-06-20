@@ -13,6 +13,7 @@
                  [com.jcraft/jsch "0.1.50"]
                  [org.streams/streams-log "0.5.1"]
                  [org.clojure/tools.namespace "0.2.4-SNAPSHOT"]
+                 [clj-time "0.5.1"]
                  ;[prismatic/plumbing "0.1.0"]
                  ;[org.clojure/core.logic "0.8.3"]
                  [org.clojure/tools.cli "0.2.2"]

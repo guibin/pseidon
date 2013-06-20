@@ -54,7 +54,6 @@
    )))
 
 (defn safe-resolve-file [fs url opts]
-   (println "!!!!!! FTP RESOLVE " url)
    (try (.resolveFile fs url opts) (catch Exception e (do (error (str e " " url " " opts) ) nil) ))
   )
 (defn resolve-file [fs url opts]
@@ -166,8 +165,10 @@
    "Get only files that have not been sent yet
     the pred-filter is applied using filter
    "
- (let [files  (ftp-ls conn dir) ]
-     (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
+ (let [files  (ftp-ls conn dir) 
+      names (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
+      ]
+    names
   ))
 
 (defn get-line-seq [conn ns file]
@@ -182,7 +183,7 @@
           (proxy [java.io.BufferedReader] [reader]
                   (readLine []
                     (let [line (.readLine reader)]
-                       (if line (save-file-data ns file line))
+                       (if line (save-file-data ns file line) (.close reader) )
                        line
                   ))) 
              seq2 (fn f2 [rdr]  (if-let [line (.readLine rdr) ]  (cons line (lazy-seq (f2 rdr)) ) (do (.close rdr) nil)  ))

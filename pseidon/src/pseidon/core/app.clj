@@ -39,6 +39,7 @@
   (r/start-all)
   (Thread/sleep 1000)
   (w/start-consume data-queue)  
+  (frs/start-services)
   (info "Started")
   (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (stop-app) )) )))
   

@@ -33,7 +33,6 @@
  "
    Application level method and calls close on the client.
  "  
-  (println "!!!!!!!!!!!!! Data Store Shutdown")
   (dosync 
         (alter client 
                (fn [p]

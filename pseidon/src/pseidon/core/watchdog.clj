@@ -30,8 +30,8 @@
   (error e (apply str msg)))
 
 
-(defn watch-agent-error [f]
-  (fn [obj] (try (f obj) (catch Throwable t (handle-agent-error t "agent error")))) 
+(defn watch-agent-error [f & arg1]
+  (fn [& args] (try (apply f (concat arg1 args)) (catch Throwable t (handle-critical-error t "error")))) 
   )
 
 (defn watch-normal-error [f]

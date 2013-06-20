@@ -2,13 +2,13 @@
   (:use pseidon.core.conf)
   )
 
-(def exec (java.util.concurrent.Executors/newCachedThreadPool))
-(def master (java.util.concurrent.Executors/newCachedThreadPool))
+(def queue-exec (java.util.concurrent.Executors/newCachedThreadPool))
+(def queue-master (java.util.concurrent.Executors/newCachedThreadPool))
 
 
 (defn submit [f]
   "Submits a function to a thread pool"
-  (fn [msg](.submit exec #(f msg)))
+  (fn [msg](.submit queue-exec #(f msg)))
   )
 
 (defn get-worker-queue []
@@ -20,7 +20,7 @@
 (defn consume [channel f]
   "Consumes asynchronously from the channel"
   (let [sI (repeatedly #(.take channel))]
-  (.submit master #(doseq [msg sI]
+  (.submit queue-master #(doseq [msg sI]
     (f msg)
    ))))
 
