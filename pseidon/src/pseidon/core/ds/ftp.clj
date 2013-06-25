@@ -144,9 +144,9 @@
 
 
 
-(defn save-file-data [ns file line]
-  "Increments the file data by (.length line)"
-   (inc-data! ns file (+ 1 (.length line)))
+(defn save-file-data [ns file & lines]
+  "Increments the file data by (.length line)  the argument line can be a single line or a sequence of lines"
+   (inc-data! ns file (apply + (map #(+ 1 (.length %)) lines) ))
   )
 
 (defn get-file-data [ns file]
@@ -165,12 +165,12 @@
    "Get only files that have not been sent yet
     the pred-filter is applied using filter
    "
- (let [files  (ftp-ls conn dir) 
+ (let [files  (ftp-ls conn dir)
       names (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
       ]
     names
   ))
-
+ 
 (defn get-line-seq [conn ns file]
   "Helper method for ftp data sources, returns a reader that will save the number of characters read on each readLine call
    The method will also read the file data and skip the characters already read
@@ -179,20 +179,27 @@
     (let [pos (:sent-size (get-file-data ns file))
           reader  (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.)]
           (if (> 0 pos) (.skip reader pos)) ;skip n characters
-          (let [proxy 
-          (proxy [java.io.BufferedReader] [reader]
-                  (readLine []
-                    (let [line (.readLine reader)]
-                       (if line (save-file-data ns file line) (.close reader) )
-                       line
-                  ))) 
-             seq2 (fn f2 [rdr]  (if-let [line (.readLine rdr) ]  (cons line (lazy-seq (f2 rdr)) ) (do (.close rdr) nil)  ))
-            ]
-            
-            (seq2 proxy)
-            
+          (file-line-seq nil reader)
+          )
+    )
+     
+
+(defn file-line-seq [lines reader]
+  (if-let [l (or (nil? lines) (empty? lines)) (read-n-lines 10 reader) lines]
+    (cons (first l) (lazy-seq (file-line-seq (rest lines) reader)))
+    (do (.close reader) nil)
+    )
+  )
+    
+                                                                      
+
+(defn read-n-lines [n reader] 
+  (loop [lines [] i 0]
+    (if (< i n)
+      (if-let [line (.readLine reader)]
+            (recur (cons line lines) (inc i))
             )
-      ))
-
-
-
+      )
+    )
+  )
+              
