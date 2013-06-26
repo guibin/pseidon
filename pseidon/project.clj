@@ -8,6 +8,7 @@
                  [org.clojure/clojure "1.5.1"]
                  [commons-net "3.2"]
                  [commons-lang "2.6"]
+                 [commons-io "2.4"]
                  [org.apache.commons/commons-vfs2 "2.0"]
                  [org.apache.sshd/sshd-core "0.8.0"]  
                  [com.jcraft/jsch "0.1.50"]

@@ -3,6 +3,7 @@ package pseidon.util;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 
 /**
@@ -18,7 +19,17 @@ public final class Bytes {
 		return v;
 	}
 
-
+    private static final long getI(char[] ch, long i){
+      return (i < ch.length) ? i : ch.length;
+    }
+    
+	public static final void skip(Reader reader, long chars) throws IOException{
+		char[] ch = new char[1024];
+	    int read = 0	;
+	    int total = 0;
+		while( (read = reader.read(ch, 0, (int)getI(ch, chars-total) )) > 0 &&  (total+=read) < chars );
+	}
+	
 	public static final long size(File file){
 		return file.length();
 	}

@@ -131,12 +131,13 @@
       (pseidon.util.Bytes/inc bts (long val))
   )
 
-(defn inc-data! [ns id inc-val]
+(defn inc-data! [^String ns ^String id inc-val]
   "Increments the data value by the inc-val, the value must be numeric long or int"
     (let [bts (get-data ns id)
           cnt (count bts)
           v (if (or (= cnt 4) (= cnt 8)) bts pseidon.util.Bytes/ZERO)
           ]
+      (prn "inc bytes " ns " " id " "  v " " inc-val  " = " (pseidon.util.Bytes/toLong (inc-bytes v inc-val)))
     (set-data! ns id (inc-bytes v inc-val))))
 
 
