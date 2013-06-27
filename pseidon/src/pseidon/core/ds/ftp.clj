@@ -174,7 +174,7 @@
   ))
  
 
-(defn file-line-seq [conn ns file reader]
+(defn file-line-seq [conn ns file reader buff-len]
      (def lf 0xA)
      (def cr 0xD)
 
@@ -229,7 +229,7 @@
        )
      
      (defn read-batched [lines]
-       (when-let [ l2 (if (empty? lines) (read-lines-save-data 10) lines) ]
+       (when-let [ l2 (if (empty? lines) (read-lines-save-data buff-len) lines) ]
           (lazy-seq (cons (first l2) (read-batched (next l2))))
           )
        )
@@ -238,7 +238,7 @@
           
        )
   
-(defn get-line-seq [conn ns file]
+(defn get-line-seq [conn ns file buff-len]
   "Helper method for ftp data sources, returns a reader that will save the number of characters read on each readLine call
    The method will also read the file data and skip the characters already read
   "
@@ -246,7 +246,7 @@
     (let [pos (:sent-size (get-file-data ns file))
           reader  (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.)]
           (if (> pos 0) (org.apache.commons.io.IOUtils/skip reader pos)) ;skip n characters
-          (file-line-seq conn ns file reader)
+          (file-line-seq conn ns file reader buff-len)
           )
     )
                  
