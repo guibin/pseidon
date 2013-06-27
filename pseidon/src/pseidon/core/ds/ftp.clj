@@ -144,9 +144,11 @@
 
 
 
-(defn save-file-data [ns file & lines]
+(defn save-file-data [ns file total-char-count]
   "Increments the file data by (.length line)  the argument line can be a single line or a sequence of lines"
-   (inc-data! ns file (reduce + (map #(+ 1 (.length %)) lines) ))
+   (if (> total-char-count 0)   
+     (inc-data! ns file  total-char-count)
+     )
   )
 
 (defn get-file-data [ns file]
@@ -173,22 +175,55 @@
  
 
 (defn file-line-seq [conn ns file reader]
-  
+     (def lf 0xA)
+     (def cr 0xD)
+
+     
+		(defn n-read-line [rdr]
+		  (loop [buff (java.lang.StringBuilder.)
+		         ch (.read rdr)
+		         total 0
+		         ]
+		    
+		    (if (or (= ch -1) (= ch lf))
+		      (let [ s (.toString buff) ]
+		        (if (> (.length s) 0)
+		          [s (inc total)] ;we inc for the new line char
+		          [nil 0]
+		          )
+		        )
+		      (do
+		        
+		        (if (complement (= ch cr)) 
+		          (.append buff (char ch))
+		          )
+		        
+		        (recur buff (.read rdr) (inc total))
+		        
+		        )
+		      )
+		    )
+		  )
+
+
      (defn read-lines [n]
-       (loop [i n lines nil]
-         (let [line (try (.readLine reader) (catch Exception e nil ))]
+       (loop [i n lines nil total-char-count 0]
+         (let [[line char-count] (try (n-read-line reader) (catch Exception e [nil 0]) )]
            (if (nil? line) (.close reader))
-           (if (or (zero? i) (nil? line))
-               lines
-               (recur (dec i) (cons line (if (nil? lines) [] lines)  ))
-               )
-           )
-         )
-       )
+
+           (let [chars (+ total-char-count char-count) ]
+	           (if (or (zero? i) (nil? line))
+	                [lines chars] 
+	                (recur (dec i) (cons line (if (nil? lines) [] lines))  chars)   
+	             )
+            )
+          )
+        )
+      )
       
      (defn read-lines-save-data [n]
-       (when-let [lines (read-lines n) ]
-         (apply save-file-data ns file lines)
+       (when-let [[lines total-char-count] (read-lines n) ]
+         (save-file-data ns file total-char-count)
          lines
         )
        )
@@ -210,8 +245,7 @@
     
     (let [pos (:sent-size (get-file-data ns file))
           reader  (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.)]
-          (prn "skipping  " pos " do skip? " (> pos 0))
-          (if (> pos 0) (.skip reader pos)) ;skip n characters
+          (if (> pos 0) (org.apache.commons.io.IOUtils/skip reader pos)) ;skip n characters
           (file-line-seq conn ns file reader)
           )
     )
