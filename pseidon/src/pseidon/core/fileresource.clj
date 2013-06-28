@@ -87,7 +87,10 @@
        (.createNewFile file)
        (if (.exists file) (info "Created " file) (throw (java.io.IOException. (str "Failed to create " file)))  )
        (let [ fileout (java.io.FileOutputStream. file)
-              output fileout ; (.create compressor fileout 1000 java.util.concurrent.TimeUnit/MILLISECONDS)
+              output  
+                (do (prn "create-file compressor !!!!!!!!! " compressor  " codec " codec " file " file )
+                  (.create compressor fileout 1000 java.util.concurrent.TimeUnit/MILLISECONDS)
+                  )
              ]
          output
         
@@ -138,7 +141,7 @@
      (if renamed 
        (do 
          (info "File " new-file " created") 
-         (-> :walfile frs close-destroy)
+          (close-destroy (:walfile frs))
          )
        (throw Exception "Unable to roll file from " file " to " new-file) ) 
   )))
@@ -147,8 +150,7 @@
 
 (defn close-agent [k ^clojure.lang.Agent agnt]
   (dosync
-    (prn "Closing agent " agnt)
-    (send agnt (watch-critical-error close-roll-agent) ) 
+   (send agnt (watch-critical-error close-roll-agent) ) 
    (alter fileMap (fn [p] (dissoc p k))) )
   )
 
@@ -184,13 +186,13 @@
   )
 
 (defn close-all [] 
-  (comment
-   (.shutdown @file-resource-exec-service)
+  (dosync (if @file-resource-exec-service
+    (.shutdown @file-resource-exec-service)
+   ))
    (doseq [[k agnt]  @fileMap]
       (close-agent k agnt)
       (await-for 10000 agnt)      
       )
    (info "Closed all file agents")  
-  )
 )
 

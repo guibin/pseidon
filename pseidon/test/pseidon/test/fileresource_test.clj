@@ -3,6 +3,9 @@
 (use '[pseidon.core.fileresource])
 (use '[pseidon.core.conf])
 
+
+;(def compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 nil))
+
 (facts "Test internals of the file resource"
        (fact "get default codec test"
              
@@ -21,7 +24,7 @@
        (fact "Create File"
          (let [fileName "target/testdir/mytestfile.txt"]
            ;open and close the file
-          (with-open [out (create-file (java.io.File. fileName) gzip-codec (org.apache.hadoop.io.compress.CodecPool/getCompressor gzip-codec) )])
+          (with-open [out (create-file (java.io.File. fileName) gzip-codec (-> compressor-pool-factory (.get gzip-codec) ) )])
           (.exists (java.io.File. fileName)) => true
           (clojure.java.io/delete-file fileName)
           
@@ -44,6 +47,7 @@
              ;remove files
              (delete-test-files)
              (write "test" "test-2013-05-28" (fn [output] (prn "output " output) ) )
+             (prn "Calling close-all method " close-all)
              (close-all)
              (await-for 10000) => true
              (Thread/sleep 1000)
