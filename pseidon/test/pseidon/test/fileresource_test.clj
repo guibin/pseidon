@@ -21,7 +21,7 @@
        (fact "Create File"
          (let [fileName "target/testdir/mytestfile.txt"]
            ;open and close the file
-          (with-open [out (create-file fileName gzip-codec (org.apache.hadoop.io.compress.CodecPool/getCompressor gzip-codec) )])
+          (with-open [out (create-file (java.io.File. fileName) gzip-codec (org.apache.hadoop.io.compress.CodecPool/getCompressor gzip-codec) )])
           (.exists (java.io.File. fileName)) => true
           (clojure.java.io/delete-file fileName)
           

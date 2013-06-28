@@ -121,7 +121,7 @@
                   (let [files (get-files conn "test" "/a/b/testgetfiles" (fn [x] true) )]
                      (count files) => 1
                      (doseq [file files]
-                        (doseq [line (get-line-seq conn "test" file)]
+                        (doseq [line (get-line-seq conn "test" file 10)]
                            (println "!!!! line " line)
                           )
                        )

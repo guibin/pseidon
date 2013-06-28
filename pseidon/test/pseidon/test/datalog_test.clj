@@ -4,15 +4,20 @@
 (use '[pseidon.core.datalog])
 
 
-(defn create-file []
-  (let [ f (java.io.File. "target/datalog_test.wal")]
-   (.createNewFile f)
-   f
+(defn write-testdata [n file-name]
+  (let [wal-file (create-walfile file-name)]
+   (doseq [m (range n)]
+     (wal-write wal-file (byte-array (map #(byte %) (range 10))) )
+     )
+   (close wal-file)
   ))
 
 (facts "Test writing and replaying a WAL file"
-       
-       (def file (create-file))
-       
-
-)       
+   (fact "test write and replay"  
+    (let  [file-name (str "target/myfile." (System/currentTimeMillis) ".bin-wal")
+                ]
+          (write-testdata 100 file-name)
+          (count (wal-seq file-name)) => 100
+          (destroy file-name)
+        )
+   ))       

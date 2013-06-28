@@ -94,10 +94,9 @@
    (.close  wal-out)
   )
 
-(defn destroy [{file :file :as walfile}]
+(defn destroy [file-name]
   "First closes then deletes the walfile"
-   (close walfile)
-   (.delete file)
+   (.delete (java.io.File. file-name))
   )
 
 
