@@ -1,7 +1,7 @@
-(ns pseidon.test.datalog_test)
+(ns pseidon.test.wal_test)
 (use '[midje.sweet])
 (use '[pseidon.core.conf])
-(use '[pseidon.core.datalog])
+(use '[pseidon.core.wal])
 
 
 (defn write-testdata [n file-name]

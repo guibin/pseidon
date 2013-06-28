@@ -1,4 +1,4 @@
-(ns pseidon.core.datalog
+(ns pseidon.core.wal
   
   (:import (org.apache.commons.io FileUtils)
            (java.io RandomAccessFile)
@@ -99,6 +99,10 @@
    (.delete (java.io.File. file-name))
   )
 
+(defn close-destroy [^WALFile walfile]
+   (close walfile)
+   (destroy (-> :file walfile .getAbsolutePath ) )
+  )
 
 (defn wal-seq [^String file-name]
   "Returns a lazy sequence of byte arrays, each byte array represents a record that was written to the 
@@ -124,4 +128,13 @@
   (.flip w-buf)
   (.compact w-buf)
   (.force w-buf)
+  )
+
+
+(comment 
+  
+  Functions for writing compressed rolled log files that can be imported into 
+  hadoop or any other storage system. Having files split into N MB chunks make them more manageable
+  e.g split lzo files directly on the hadoop blocksize.
+  
   )

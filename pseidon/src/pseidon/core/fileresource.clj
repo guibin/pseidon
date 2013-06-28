@@ -1,14 +1,15 @@
 (ns pseidon.core.fileresource
    (:use clojure.tools.logging 
          pseidon.core.watchdog
-         pseidon.core.conf)
+         pseidon.core.conf
+         pseidon.core.wal)
   )
 
 (import '(org.streams.commons.compression CompressionPool CompressionPoolFactory))
 (import '(org.streams.commons.compression.impl CompressionPoolFactoryImpl))
 
 
-(defrecord FileRS [name output codec compressor file])
+(defrecord FileRS [name output codec compressor file walfile])
 (defrecord TopicConf [key codec])
 
 
@@ -58,7 +59,18 @@
   (let [codec (get-codec topic) 
         compressor (-> compressor-pool-factory (.get codec) )
         file-name (create-file-name (clojure.string/join "/" [(get-topic-basedir topic) key]) codec)
-        agnt (agent (->FileRS file-name nil codec compressor (java.io.File. file-name) ))]
+        agnt 
+           (agent 
+             (->FileRS 
+               file-name 
+               nil 
+               codec 
+               compressor 
+               (java.io.File. file-name) 
+               (create-walfile (clojure.string/join "-" [file-name "-wal"] )) 
+               )
+             )
+           ]
         (set-error-handler! agnt agent-error-handler)
         (alter fileMap (fn [p] (assoc p key agnt )))
         agnt
@@ -84,7 +96,24 @@
 
 (defn write-to-frs [^clojure.lang.IFn writer ^FileRS frs]
   (let [codec (:codec frs) 
-        frs-t (if (not (nil? (:output frs))) frs (->FileRS (:name frs) (create-file (:file frs) codec (:compressor frs) )  codec (:compressor frs) (:file frs) ))
+        frs-t 
+             (if 
+               (not 
+                 (nil? (:output frs))
+                 ) 
+               frs 
+               (->FileRS (:name frs) 
+                         (create-file 
+                           (:file frs) 
+                           codec 
+                           (:compressor frs) 
+                           )  
+                         codec 
+                         (:compressor frs) 
+                         (:file frs) 
+                         (:walfile frs)
+                         )
+               )
         ]
       (writer (:output frs-t))
       ;we always return a FileRS instance
@@ -106,7 +135,12 @@
         new-file  (java.io.File. (create-rolled-file-name (:name frs) ))
         renamed (.renameTo file new-file)
         ]
-     (if renamed (info "File " new-file " created") (throw Exception "Unable to roll file from " file " to " new-file) ) 
+     (if renamed 
+       (do 
+         (info "File " new-file " created") 
+         (-> :walfile frs close-destroy)
+         )
+       (throw Exception "Unable to roll file from " file " to " new-file) ) 
   )))
   )
 
