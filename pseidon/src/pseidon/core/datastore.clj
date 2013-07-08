@@ -22,7 +22,7 @@
       )]
      
        
-       (while (not (= (.getState client) org.apache.curator.framework.imps.CuratorFrameworkState/STARTED)) (do (Thread/sleep 1000)))  
+       (while (not= (.getState client) org.apache.curator.framework.imps.CuratorFrameworkState/STARTED) (Thread/sleep 1000))  
        client
      )
   
@@ -53,7 +53,7 @@
 
 (defn ensure-path [client ns path]
   (let [p   (join-path ns path) ]
-  (if (not (-> client .checkExists (.forPath p)))
+  (when (not (-> client .checkExists (.forPath p)))
      (do 
        (def create (fn  [dirs dir]
                        

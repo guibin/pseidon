@@ -14,7 +14,7 @@
   Ideally a WALFile is created and deleted shortly after creation when the intended file of writing has been committed.
   
   (def w (create-walfile "target/myfile123.txt-wal"))
-  (wal-write w (byte-array (map #(byte %) (range 10))) )
+  (wal-write w (byte-array (map byte (range 10))) )
   (close w)
   read
   (def w2 (open-walfile "target/myfile123.txt-wal"))
@@ -76,7 +76,7 @@
    Returns nil if no more data is available
   "
 	  (let [size (.getInt w-buf) ]
-	    (if (> size 0) 
+	    (when (pos? size) 
 	      (let[ arr (byte-array size)
 	            ]
             (.get w-buf arr) 

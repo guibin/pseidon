@@ -48,7 +48,7 @@
         s-count (count s)
         ]
   
-     (clojure.string/join "." (assoc s (- s-count 1) (last-nth s 2) (- s-count 2) (last-nth s 1) ) )
+     (clojure.string/join "." (assoc s (dec s-count) (last-nth s 2) (- s-count 2) (last-nth s 1) ) )
      
   ))
 
@@ -97,10 +97,9 @@
 (defn write-to-frs [^clojure.lang.IFn writer ^FileRS frs]
   (let [codec (:codec frs) 
         frs-t 
-             (if 
-               (not 
+             (if-not 
                  (nil? (:output frs))
-                 ) 
+                  
                frs 
                (->FileRS (:name frs) 
                          (create-file 
@@ -127,8 +126,7 @@
   )
 
 (defn close-roll-agent [^FileRS frs]
-  (if (and (not (nil? frs)) (not (nil? (:output frs) ) ) ) 
-  (do
+  (when (and (not (nil? frs)) (not (nil? (:output frs) ) ) ) 
   (.closeAndRelease (:compressor frs) (:output frs) ) 
   ;find rename the file by removing the last \.([a-zA-Z0-9])+_([0-9]+) piece of the filename and appending (group2).(group1)
   (let [file (:file frs)  
@@ -142,7 +140,7 @@
          )
        (throw Exception "Unable to roll file from " file " to " new-file) ) 
   )))
-  )
+  
 
 
 (defn close-agent [k ^clojure.lang.Agent agnt]
@@ -155,7 +153,7 @@
 (defn check-roll[^clojure.lang.IFn f-check]
   "Receives a function f-check parameter FileRS that should return true or false"
    (doseq [[k agnt]  @fileMap]
-      (send agnt (watch-critical-error  (fn [frs] (if (not (nil? frs)) (do (if (f-check frs) (close-agent k agnt)))  )  frs )))
+      (send agnt (watch-critical-error  (fn [frs] (when (not (nil? frs)) (if (f-check frs) (close-agent k agnt))  )  frs )))
       ))
 
 

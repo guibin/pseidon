@@ -4,7 +4,7 @@
   )
 
 (defn handle-critical-error [ t & msg]
-  (error t (apply str msg))
+  (error t (clojure.string/join msg))
   ;any shutdown logic should be handled by JVM shutdown hooks
   (java.lang.System/exit -1)
   )
@@ -27,7 +27,7 @@
 
 
 (defn handle-normal-error [^Throwable e & msg]
-  (error e (apply str msg)))
+  (error e (clojure.string/join msg)))
 
 
 (defn watch-agent-error [f & arg1]

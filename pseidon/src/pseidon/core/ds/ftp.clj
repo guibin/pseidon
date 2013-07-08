@@ -146,7 +146,7 @@
 
 (defn save-file-data [ns file total-char-count]
   "Increments the file data by (.length line)  the argument line can be a single line or a sequence of lines"
-   (if (> total-char-count 0)   
+   (if (pos? total-char-count)   
      (inc-data! ns file  total-char-count)
      )
   )
@@ -159,7 +159,7 @@
 
 (defn filter-done [{:keys [size sent-size] }]
   "Returns false if the size and sent-size are equal"
-  (not (= size sent-size)
+  (not= size sent-size
        ))
 
 
@@ -187,7 +187,7 @@
 		    
 		    (if (or (= ch -1) (= ch lf))
 		      (let [ s (.toString buff) ]
-		        (if (> (.length s) 0)
+		        (if (pos? (.length s) )
 		          [s (inc total)] ;we inc for the new line char
 		          [nil 0]
 		          )
@@ -245,7 +245,7 @@
     
     (let [pos (:sent-size (get-file-data ns file))
           reader  (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.)]
-          (if (> pos 0) (org.apache.commons.io.IOUtils/skip reader pos)) ;skip n characters
+          (if (pos? pos) (org.apache.commons.io.IOUtils/skip reader pos)) ;skip n characters
           (file-line-seq conn ns file reader buff-len)
           )
     )
