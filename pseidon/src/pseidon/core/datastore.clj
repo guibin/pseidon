@@ -116,16 +116,16 @@
   (pseidon.util.Bytes/toString (get-data ns id))
   )
 
-(defn get-data-int [ns id]
-  "Gets the value of a data as a 4 byte integer"
-   (pseidon.util.Bytes/toInt (get-data ns id)))
-
-
-(defn get-data-long [ns id]
-  "Gets the value of a data as a 8 byte long value"
-  (pseidon.util.Bytes/toLong (get-data ns id))
-  )
-
+(defn get-data-number [ns id] 
+   (let [bts (get-data ns id)
+         len (count bts)]
+     (cond (= len 4) 
+           (pseidon.util.Bytes/toInt bts)
+           (= len 8)
+           (pseidon.util.Bytes/toLong bts)
+           :else 0
+     )
+  ))
 
 (defn inc-bytes[^bytes bts val]
       (pseidon.util.Bytes/inc bts (long val))

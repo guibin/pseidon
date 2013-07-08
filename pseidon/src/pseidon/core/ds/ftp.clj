@@ -1,7 +1,7 @@
 (ns pseidon.core.ds.ftp
   
   (:require   [pseidon.core.conf :refer [get-conf get-conf2] ]
-              [pseidon.core.datastore :refer [inc-data! get-data-long] ]
+              [pseidon.core.datastore :refer [inc-data! get-data-number] ]
               
   )
   (:use clojure.tools.logging
@@ -153,7 +153,7 @@
 
 (defn get-file-data [ns file]
   "Returns a map with :sent-size and :file"
-  {:sent-size (get-data-long ns (str file)) :file file }
+  {:sent-size (get-data-number ns (str file)) :file file }
   )
 
 
@@ -174,7 +174,7 @@
   ))
  
 
-(defn file-line-seq [conn ns file reader buff-len]
+(defn file-line-seq [conn ns file reader line-buff]
      (def lf 0xA)
      (def cr 0xD)
 
@@ -205,7 +205,6 @@
 		    )
 		  )
 
-
      (defn read-lines [n]
        (loop [i n lines nil total-char-count 0]
          (let [[line char-count] (try (n-read-line reader) (catch Exception e [nil 0]) )]
@@ -224,12 +223,13 @@
      (defn read-lines-save-data [n]
        (when-let [[lines total-char-count] (read-lines n) ]
          (save-file-data ns file total-char-count)
+         (info "!!!!!read-lines-save-data lines " (count lines))
          lines
         )
        )
      
      (defn read-batched [lines]
-       (when-let [ l2 (if (empty? lines) (read-lines-save-data buff-len) lines) ]
+       (when-let [ l2 (if (empty? lines) (read-lines-save-data line-buff) lines) ]
           (lazy-seq (cons (first l2) (read-batched (next l2))))
           )
        )
@@ -238,15 +238,15 @@
           
        )
   
-(defn get-line-seq [conn ns file buff-len]
+(defn get-line-seq [conn ns file line-buff]
   "Helper method for ftp data sources, returns a reader that will save the number of characters read on each readLine call
    The method will also read the file data and skip the characters already read
   "
     
     (let [pos (:sent-size (get-file-data ns file))
           reader  (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.)]
-          (if (pos? pos) (org.apache.commons.io.IOUtils/skip reader pos)) ;skip n characters
-          (file-line-seq conn ns file reader buff-len)
+          (if (pos? pos) (pseidon.util.Bytes/skip reader pos)) ;skip n characters
+          (file-line-seq conn ns file reader line-buff)
           )
     )
-                 
+   

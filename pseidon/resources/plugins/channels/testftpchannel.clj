@@ -1,13 +1,13 @@
 (ns plugins.channels.testftpchannel
   
   (:require 
-      [pseidon.core.datastore :refer [get-data-long]]
+      [pseidon.core.datastore :refer [get-data-number]]
       [pseidon.core.conf :refer [get-conf2]]
       [pseidon.core.queue :refer [publish]]
       [pseidon.core.app :refer [data-queue]]
       [pseidon.core.conf :refer [set-conf!]]
       [pseidon.core.watchdog :refer [watch-critical-error]]
-      [pseidon.core.message :refer [create-message]]
+      [pseidon.core.message :refer [create-message batched-seq]]
       [clojure.tools.logging :refer [info error]]
     )
     
@@ -29,14 +29,13 @@
    (if (nil? m) (throw (Exception. "The message cannot be nil here")))
    (if-let [files (list-files)]
     (do
-      
-    (info "Reading files " files)
 	  (doseq [file files]
 	    (.submit service 
 	       (watch-critical-error 
 	          (fn [] 
-	             (doseq [line (reader-seq file)]
-	                  (if line (publish data-queue (create-message (.getBytes line) topic true (System/currentTimeMillis) 1) ) )
+	             (doseq [lines (-> file reader-seq (batched-seq 100))]
+                    (info "Sending " file " line batch: " (count lines))
+	                  (if-not (empty? lines) (publish data-queue (create-message (map #(.getBytes %) lines) topic true (System/currentTimeMillis) 1) ) )
 	              )
 	            )
 	          )
@@ -52,7 +51,7 @@
 (defn run [] 
  ;start is called in its own thread and does not need to return  
       (let [ftp (reg-get-wait "testftp" 10000)]
-         (while true (do (read-ftp ftp) (Thread/sleep 1000) ))        
+         (while true (do (read-ftp ftp) (Thread/sleep 10000) ))        
         )
   )
 

@@ -24,3 +24,11 @@
    "
   (if (instance? clojure.lang.IFn) (bytes-f) bytes-f)
   )
+
+(defn batched-seq [rdr size] 
+  "
+     Reads a batch of len=size records from rdr, if rdr returns nil the batch size may be smaller than size.
+    "
+    (partition-all size (take-while (complement nil?) rdr))
+     )
+

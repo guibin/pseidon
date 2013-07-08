@@ -14,7 +14,8 @@ import java.io.UnsupportedEncodingException;
 public final class Bytes {
 
 	public static final byte[] ZERO = toBytes(0);
-
+	public static final byte[] NEW_LINE = "\n".getBytes();
+	
 	public static final byte[] toBytes(final byte[] v) {
 		return v;
 	}
@@ -38,6 +39,12 @@ public final class Bytes {
 	    out.write(bts, 0, bts.length);
 	}
 
+	public static final void writeln(OutputStream out, byte[] bts) throws IOException {
+	    out.write(bts, 0, bts.length);
+	    out.write(NEW_LINE);
+	}
+
+	
 	public static final byte[] toBytes(final String v)
 			throws UnsupportedEncodingException {
 		return v.getBytes("utf-8");

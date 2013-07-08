@@ -5,7 +5,7 @@
      [clj-time.coerce :refer [from-long]]
      [clj-time.format :refer [unparse formatter]]
      [pseidon.core.message :refer [get-bytes]]
-     [clojure.tools.logging :refer [info]]
+     [clojure.tools.logging :refer [info error]]
      )
    )
 
@@ -18,13 +18,20 @@
 
 ;this method will be called when a new message for topic test arrives at the queue
 (defn exec [ {:keys [topic ts] :as msg } ]
-  (let [ bts (get-bytes msg)]
-  (write topic 
+  (defn exec-write [out bts]
+       (if (or (nil? bts) (< (count bts) 1) )
+             (error "Receiving null byte messages from " topic " ts " ts)
+             (pseidon.util.Bytes/writeln out bts)  
+             )
+       )
+  
+  (let [ bts-seq (get-bytes msg)]
+    (write topic 
          (unparse dateformat (from-long ts))
-         (fn [out] (pseidon.util.Bytes/write out bts))
+         (fn [out] (doseq [bts bts-seq] (exec-write out bts)))
          )
+    )
   )
- )
          
 (defn stop []
   (prn "Stop processing")

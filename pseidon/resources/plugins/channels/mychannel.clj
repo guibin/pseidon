@@ -6,12 +6,14 @@
 (use '[pseidon.core.message :as m])
 
 
-(prn "hi")
 (defn send-file [file]
-        (doseq [line ((:reader-seq (r/reg-get "ds-test")) file)]
+(comment
+  (doseq [line ((:reader-seq (r/reg-get "ds-test")) file)]
            (prn "Sending " line) ;/prefixdir/topic-/dateparition
           (q/publish data-queue (m/->Message (.getBytes line) "test" true (System/currentTimeMillis) 1) )
-       ))
+       )
+  )
+  )
    
 
 (defn run [] 
@@ -27,7 +29,6 @@
 
 
 (r/register (r/->Channel "ch-test" run stop))
-
          
         
 

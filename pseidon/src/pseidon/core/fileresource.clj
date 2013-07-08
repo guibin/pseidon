@@ -162,8 +162,16 @@
 (defn default-roll-check [{:keys [file output]} ]
     "Checks the file size and roll on size"
     (.flush output)
-    ;(info "Checking " file " size " (.length file) " last modified " (.lastModified file)  " abs " (.getAbsolutePath file) " bytes size " (pseidon.util.Bytes/size file))
-    (>= (.length file) (get-conf2 :roll-size 10485760))
+    (or 
+      (>= (.length file) (get-conf2 :roll-size 10485760))
+      (let [ file-last-modified (.lastModified file) 
+             now-ms (System/currentTimeMillis) 
+             roll-timeout (get-conf2 :roll-timeout 30000)
+             diff-ms (- now-ms file-last-modified)
+             ]
+           (>= diff-ms roll-timeout)
+        )
+    )
   )
 
 (defn start-services [] 
@@ -173,7 +181,7 @@
     (alter file-resource-exec-service (fn [p] 
                           (if (nil? p) 
                              (let [service  (java.util.concurrent.Executors/newScheduledThreadPool 1)]
-                               (.scheduleWithFixedDelay service #(check-roll default-roll-check) 10000 10000 java.util.concurrent.TimeUnit/MILLISECONDS)
+                               (.scheduleWithFixedDelay service #(check-roll default-roll-check) 1000 1000 java.util.concurrent.TimeUnit/MILLISECONDS)
                                service
                                )
                               p
