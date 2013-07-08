@@ -101,8 +101,8 @@
 
 (defn close-destroy [^WALFile walfile]
    (close walfile)
-   (destroy (-> :file walfile .getAbsolutePath ) )
-  )
+   (destroy (-> walfile :file .getAbsolutePath ) )
+   )
 
 (defn wal-seq [^String file-name]
   "Returns a lazy sequence of byte arrays, each byte array represents a record that was written to the 
