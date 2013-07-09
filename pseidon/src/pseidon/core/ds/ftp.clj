@@ -205,25 +205,31 @@
 		    )
 		  )
 
+     (defn safe-add-lines [line lines]
+       (if (nil? lines) [line] (conj lines line)))
+     
      (defn read-lines [n]
        (loop [i n lines nil total-char-count 0]
          (let [[line char-count] (try (n-read-line reader) (catch Exception e [nil 0]) )]
            (if (nil? line) (.close reader))
-
+           
            (let [chars (+ total-char-count char-count) ]
-	           (if (or (zero? i) (nil? line))
-	                [lines chars] 
-	                (recur (dec i) (cons line (if (nil? lines) [] lines))  chars)   
-	             )
-            )
-          )
-        )
-      )
+	           
+             (if (nil? line)
+	                [lines chars]
+                 (if (zero? i)
+                   [(safe-add-lines line lines) chars] ;we must add the last line
+	                (recur (dec i) (safe-add-lines line lines)  chars) ;get more lines   
+                   )
+                 )
+             )
+           )
+         )
+       )
       
      (defn read-lines-save-data [n]
        (when-let [[lines total-char-count] (read-lines n) ]
          (save-file-data ns file total-char-count)
-         (info "!!!!!read-lines-save-data lines " (count lines))
          lines
         )
        )
