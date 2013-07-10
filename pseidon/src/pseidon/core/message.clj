@@ -2,7 +2,9 @@
 
 ;bytes-f returns a byte array Do not create this record directly 
 ;rather use the methods provided in the ns, you'll be shielded from future changes.
-(defrecord Message [^clojure.lang.IFn bytes-f ^String topic  accept ^long ts ^long priority] 
+; ids is a sequence of ids as read by the datasource. The datasource should produce the id and also save the ids to the tracking service
+; note the ids passed to the Channels from where the Channel creates a message instance.
+(defrecord Message [^clojure.lang.IFn bytes-f ^String ds ids ^String topic  accept ^long ts ^long priority] 
   
   java.lang.Comparable
      (compareTo [this m] 
@@ -10,11 +12,15 @@
   )
 
 (defn change-bytes [^Message m ^clojure.lang.IFn bytes-f]
-  (->Message  bytes-f (:topic m) (:accept m) (:ts m) (:priority m))
+  (->Message  bytes-f (:ds m) (:ids m) (:topic m) (:accept m) (:ts m) (:priority m))
   )
 
-(defn create-message [^clojure.lang.IFn bytes-f topic accept ts priority]
-  (->Message bytes-f topic accept ts priority)
+(defn get-ids [{:keys [ids]}] 
+  (if (instance? clojure.lang.ISeq) ids [ids])  
+  )
+
+(defn create-message [^clojure.lang.IFn bytes-f ds ids topic accept ts priority]
+  (->Message bytes-f ds ids topic accept ts priority)
   )
 
 (defn get-bytes [{:keys [bytes-f] }]

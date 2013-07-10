@@ -1,6 +1,6 @@
 (ns plugins.datasources.testsftp
   (:require
-      [pseidon.core.ds.ftp :refer [ftp-connect get-files get-line-seq]]
+      [pseidon.core.ds.ftp :refer [ftp-connect get-files get-line-seq!]]
       [pseidon.core.conf :refer [get-conf2]]
     )
     (:use pseidon.core.registry)
@@ -23,7 +23,7 @@
                          #(.close (:fs conn) )
                          #(get-files conn name-space "/" 
                               (fn [file] (.endsWith file ".txt" ) ))
-                         #(get-line-seq conn name-space % 50 )  
+                         #(get-line-seq! conn name-space % 50 )  
                          ))
              
 

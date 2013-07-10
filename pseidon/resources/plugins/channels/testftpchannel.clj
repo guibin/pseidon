@@ -7,7 +7,8 @@
       [pseidon.core.app :refer [data-queue]]
       [pseidon.core.conf :refer [set-conf!]]
       [pseidon.core.watchdog :refer [watch-critical-error]]
-      [pseidon.core.message :refer [create-message batched-seq]]
+      [pseidon.core.message :refer [create-message batched-seq get-ids]]
+      [pseidon.core.ds.ftp :refer [ftp-record-id]]
       [clojure.tools.logging :refer [info error]]
     )
     
@@ -25,6 +26,7 @@
 
 (defn read-ftp [{:keys [list-files reader-seq] :as m}]
   "For each file reads each line and sends as a message"
+  
   (let [service (java.util.concurrent.Executors/newFixedThreadPool 1) ]
    (if (nil? m) (throw (Exception. "The message cannot be nil here")))
    (if-let [files (list-files)]
@@ -33,16 +35,28 @@
 	    (.submit service 
 	       (watch-critical-error 
 	          (fn [] 
-	             (doseq [lines (-> file reader-seq (batched-seq 100))]
-                    (info "Sending " file " line batch: " (count lines))
-	                  (if-not (empty? lines) (publish data-queue (create-message (map #(.getBytes %) lines) topic true (System/currentTimeMillis) 1) ) )
-	              )
-	            )
-	          )
-	       )
-	    )
+               (info "Looking at file " file)
+	             (doseq [ [start-pos end-pos lines] (reader-seq file)]
+                    ;each line-record will contain [start-pos end-pos lines] 
+                    (info "Sending " file " line batch: " (count lines)  " start-pos " start-pos " end-pos " end-pos)
+	                  (if-not (empty? lines) 
+                     ;(defrecord Message [^clojure.lang.IFn bytes-f ^String ds ids ^String topic  accept ^long ts ^long priority] 
+                     (publish data-queue (create-message (map #(.getBytes %) lines)
+                                                         "testftpchannel/testftp"
+                                                         (ftp-record-id "testftp" file start-pos end-pos)
+                                                         topic 
+                                                         true 
+                                                         (System/currentTimeMillis) 1)
+                              )
+                     )
+                   )
+              (info "Looking at file -END " file)
+              )
+           )
+        )
+     )
    )
-   )
+    )
     (doto service .shutdown (.awaitTermination Long/MAX_VALUE java.util.concurrent.TimeUnit/MILLISECONDS))
     ;(while true (Thread/sleep 10000))
   )

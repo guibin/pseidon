@@ -1,13 +1,13 @@
 (ns pseidon.core.datastore
   (:use clojure.tools.logging
         pseidon.core.conf
-        
         ))
 
 (def client (ref nil))
 
 (defn get-client ^org.apache.curator.framework.CuratorFramework []; CuratorFramework    client = CuratorFrameworkFactory.builder().namespace("MyApp") ... build();
-   (let [ client (if (nil? @client)
+  (if (nil? (get-conf :zk-url)) (throw (Exception. "The configuration property zk-url cannot be nil")))
+  (let [ client (if (nil? @client)
       (dosync (alter client 
                      (fn [p]
                        (let [retry-policy (org.apache.curator.retry.ExponentialBackoffRetry. 1000 10)
@@ -116,16 +116,18 @@
   (pseidon.util.Bytes/toString (get-data ns id))
   )
 
-(defn get-data-number [ns id] 
+(defn get-data-number [ns id]
    (let [bts (get-data ns id)
          len (count bts)]
-     (cond (= len 4) 
+     (cond 
+           (= len 4) 
            (pseidon.util.Bytes/toInt bts)
            (= len 8)
            (pseidon.util.Bytes/toLong bts)
            :else 0
+           )
      )
-  ))
+   )
 
 (defn inc-bytes[^bytes bts val]
       (pseidon.util.Bytes/inc bts (long val))
