@@ -46,7 +46,9 @@
        (fact "Write to file"
              ;remove files
              (delete-test-files)
-             (write "test" "test-2013-05-28" (fn [output] (prn "output " output) ) )
+             (write "test" "test-2013-05-28" (fn [output] (prn "output " output) ) (fn [] (prn "apply post roll1 ")))
+             (write "test" "test-2013-05-28" (fn [output] (prn "output " output) ) (fn [] (prn "apply post roll2 ")))
+             
              (prn "Calling close-all method " close-all)
              (close-all)
              (await-for 10000) => true
@@ -55,4 +57,23 @@
              (>  (count (filter #(-> %1 .getName (.endsWith ".gz")  ) (file-seq (clojure.java.io/file (get-writer-basedir) )))) 0) => true
              
        ))
+
+(facts "Test Post Apply Functions"
+       (fact "All functions should be run"
+              ;remove files
+             (delete-test-files)
+             (let [f-a (java.util.concurrent.atomic.AtomicBoolean. false)
+                   f-b (java.util.concurrent.atomic.AtomicBoolean. false)
+                   ]
+		             (write "test" "test-2013-05-28" (fn [output] (prn "output " output) ) (fn [] (.set f-a true) ))
+		             (write "test" "test-2013-05-28" (fn [output] (prn "output " output) ) (fn [] (.set f-b true) ))
+		             
+		             (prn "Calling close-all method " close-all)
+		             (close-all)
+		             (.get f-a) => true
+                 (.get f-b) => true
+               )
+             )
+       )
+
 
