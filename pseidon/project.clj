@@ -29,8 +29,9 @@
                  [org.apache.curator/curator-framework "2.0.1-incubating"]
    		           [org.apache.curator/curator-test "2.0.1-incubating" :scope "test"]
                  [midje "1.6-alpha2" :scope "test"]
-                
+                 [cupboard "1.0beta1"]
                  [criterium "0.4.1"] ;benchmarking
+                 [spyscope "0.1.3" :scope "test"]
                 
                  ]
   :aot [pseidon.core]
@@ -42,7 +43,10 @@
   
   :java-source-paths ["java"]
   
-  :plugins [[lein-tar "1.1.2"] [lein-midje "3.0.1"] [lein-marginalia "0.7.1"] ]
+  :plugins [
+         [lein-rpm "0.0.5"] [lein-midje "3.0.1"] [lein-marginalia "0.7.1"] 
+         [lein-kibit "0.0.8"]
+           ]
 
   :rpm {:name "pseidon"
         :summary "pseidon streaming imports"

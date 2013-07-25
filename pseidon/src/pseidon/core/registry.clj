@@ -28,9 +28,9 @@
    "Gets a service by name and if its nil waits for timeout milliseconds"
    (let [start (System/currentTimeMillis)]
      (loop [diff 0 service (reg-get name)]
-       (if (not (and (nil? service)
+       (if-not (and (nil? service)
                (> timeout diff)
-            ))
+            )
             service
             (do (Thread/sleep 500) (recur (Math/abs (- start (System/currentTimeMillis)))  (reg-get name) ))
        )

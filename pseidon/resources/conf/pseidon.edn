@@ -13,10 +13,13 @@
  
  :worker-queue java.util.concurrent.PriorityBlockingQueue
  
- :repl-port 7111
+ :repl-port 7112
  
- :zk-url "localhost:7111"
+ :zk-url "192.168.56.101:2181"
  :zk-ns "pseidon"
  :roll-size 10485760
+ :roll-timeout 30000
+ 
+ :tracking-db-dir "/tmp/pseidontracking"
  
  }

@@ -14,7 +14,7 @@
 
        (fact "Set/Get"
              (set-data! "/package" "testfile" 123) => 123
-             (do (set-data! "/package" "testfile" 123)  (get-data-int "/package" "testfile")) => 123)
+             (do (set-data! "/package" "testfile" 123)  (get-data-number "/package" "testfile")) => 123)
        (comment
        (fact "Inc/Get"
              (set-data! :package :testfile2 (long 123) ) => 123

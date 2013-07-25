@@ -1,8 +1,9 @@
 (ns pseidon.core.ds.ftp
   
   (:require   [pseidon.core.conf :refer [get-conf get-conf2] ]
-              [pseidon.core.datastore :refer [inc-data! get-data-long] ]
-              
+              [pseidon.core.datastore :refer [inc-data! get-data-number] ]
+              [pseidon.core.tracking :refer [mark-run!]]
+              [spyscope.core]
   )
   (:use clojure.tools.logging
   ))
@@ -146,20 +147,20 @@
 
 (defn save-file-data [ns file total-char-count]
   "Increments the file data by (.length line)  the argument line can be a single line or a sequence of lines"
-   (if (> total-char-count 0)   
+   (if (pos? total-char-count)   
      (inc-data! ns file  total-char-count)
      )
   )
 
 (defn get-file-data [ns file]
   "Returns a map with :sent-size and :file"
-  {:sent-size (get-data-long ns (str file)) :file file }
+  {:sent-size (get-data-number ns (str file)) :file file }
   )
 
 
 (defn filter-done [{:keys [size sent-size] }]
   "Returns false if the size and sent-size are equal"
-  (not (= size sent-size)
+  (not= size sent-size
        ))
 
 
@@ -173,12 +174,24 @@
     names
   ))
  
+(defn ftp-record-id [ns file start-pos end-pos]
+  (clojure.string/join \u0001 [ns file start-pos end-pos])
+  )
 
-(defn file-line-seq [conn ns file reader buff-len]
+(defn file-line-seq! [conn ns file reader pos line-buff]
+  "
+    This methods does have side affects because it needs to keep track of which lines have been read already.
+    pos is the starting point from where the file is read.
+    For each line we return  [start_position end_position lines] ; the start and end position defines where in the file the lines were read from.
+   
+    For each batch of lines read the mark-run! function is called with (mark-run! ns (clojure.string/join \u0001 [file start-pos end-pos]))
+    The id for each record is file\u0001start_position\u0001end_position, this function will use the named convention to save records to the tracking service.
+   
+
+  "
      (def lf 0xA)
      (def cr 0xD)
 
-     
 		(defn n-read-line [rdr]
 		  (loop [buff (java.lang.StringBuilder.)
 		         ch (.read rdr)
@@ -187,7 +200,7 @@
 		    
 		    (if (or (= ch -1) (= ch lf))
 		      (let [ s (.toString buff) ]
-		        (if (> (.length s) 0)
+		        (if (pos? (.length s) )
 		          [s (inc total)] ;we inc for the new line char
 		          [nil 0]
 		          )
@@ -205,48 +218,72 @@
 		    )
 		  )
 
-
+     (defn safe-add-lines [line lines]
+       (if (nil? lines) [line] (conj lines line)))
+     
      (defn read-lines [n]
        (loop [i n lines nil total-char-count 0]
          (let [[line char-count] (try (n-read-line reader) (catch Exception e [nil 0]) )]
            (if (nil? line) (.close reader))
-
            (let [chars (+ total-char-count char-count) ]
-	           (if (or (zero? i) (nil? line))
-	                [lines chars] 
-	                (recur (dec i) (cons line (if (nil? lines) [] lines))  chars)   
-	             )
-            )
-          )
-        )
-      )
+	           
+             (if (nil? line)
+	                [lines chars]
+                 (if (zero? i)
+                   [(safe-add-lines line lines) chars] ;we must add the last line
+	                (recur (dec i) (safe-add-lines line lines)  chars) ;get more lines   
+                   )
+                 )
+             )
+           )
+         )
+       )
       
-     (defn read-lines-save-data [n]
-       (when-let [[lines total-char-count] (read-lines n) ]
-         (save-file-data ns file total-char-count)
-         lines
-        )
+     (defn read-lines-save-data [start-pos n]
+       "
+        Returns [start-pos end-pos lines]
+       "
+       (let [[lines total-char-count] (read-lines n) ]
+       (if (not (nil? lines))
+         (let [end-pos (+ start-pos total-char-count)]
+           (mark-run! ns (ftp-record-id ns file start-pos end-pos) ) ;mark in the tracing api
+                                                                 ;event if the zookeeper pointer save fails the recovery service now has the information to recover these lines if needed.
+           (save-file-data ns file total-char-count) ; we save the pointer to zookeeper
+           [start-pos end-pos lines] ; returns [start end lines]
+           )
+         )
+       )
+       )
+      
+     
+     (defn read-batched [start-pos]
+       " 
+         Returns [start-pos end-pos lines]
+       "
+       (let [ [start-pos2 end-pos2 lines :as record] (read-lines-save-data start-pos line-buff) ]
+         (if (not (nil? lines))
+            (do
+              (prn "read-batched " record)
+              (lazy-seq (cons record (read-batched end-pos2)) )
+              )
+           )
+         )
        )
      
-     (defn read-batched [lines]
-       (when-let [ l2 (if (empty? lines) (read-lines-save-data buff-len) lines) ]
-          (lazy-seq (cons (first l2) (read-batched (next l2))))
-          )
-       )
-     
-       (read-batched nil)
+       (read-batched pos)
           
        )
   
-(defn get-line-seq [conn ns file buff-len]
+(defn get-line-seq! [conn ns file line-buff]
   "Helper method for ftp data sources, returns a reader that will save the number of characters read on each readLine call
-   The method will also read the file data and skip the characters already read
+   The method will also read the file data and skip the characters already read.
+   Items in the sequence have format [start-pos end-pos lines]
   "
-    
-    (let [pos (:sent-size (get-file-data ns file))
+    (let [pos (:sent-size (get-file-data ns file) )
           reader  (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.)]
-          (if (> pos 0) (org.apache.commons.io.IOUtils/skip reader pos)) ;skip n characters
-          (file-line-seq conn ns file reader buff-len)
+          (if (pos? pos) (pseidon.util.Bytes/skip reader pos)) ;skip n characters
+          (file-line-seq! conn ns file reader pos line-buff)
+          
           )
     )
-                 
+   

@@ -13,29 +13,41 @@ import java.io.UnsupportedEncodingException;
  */
 public final class Bytes {
 
+	public static final char BYTE1 = (char) 0x001;
+
 	public static final byte[] ZERO = toBytes(0);
+	public static final byte[] NEW_LINE = "\n".getBytes();
 
 	public static final byte[] toBytes(final byte[] v) {
 		return v;
 	}
 
-    private static final long getI(char[] ch, long i){
-      return (i < ch.length) ? i : ch.length;
-    }
-    
-	public static final void skip(Reader reader, long chars) throws IOException{
-		char[] ch = new char[1024];
-	    int read = 0	;
-	    int total = 0;
-		while( (read = reader.read(ch, 0, (int)getI(ch, chars-total) )) > 0 &&  (total+=read) < chars );
+	private static final long getI(char[] ch, long i) {
+		return (i < ch.length) ? i : ch.length;
 	}
-	
-	public static final long size(File file){
+
+	public static final void skip(Reader reader, long chars) throws IOException {
+		char[] ch = new char[1024];
+		int read = 0;
+		int total = 0;
+		while ((read = reader.read(ch, 0, (int) getI(ch, chars - total))) > 0
+				&& (total += read) < chars)
+			;
+	}
+
+	public static final long size(File file) {
 		return file.length();
 	}
-	
-	public static final void write(OutputStream out, byte[] bts) throws IOException {
-	    out.write(bts, 0, bts.length);
+
+	public static final void write(OutputStream out, byte[] bts)
+			throws IOException {
+		out.write(bts, 0, bts.length);
+	}
+
+	public static final void writeln(OutputStream out, byte[] bts)
+			throws IOException {
+		out.write(bts, 0, bts.length);
+		out.write(NEW_LINE);
 	}
 
 	public static final byte[] toBytes(final String v)

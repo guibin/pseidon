@@ -7,6 +7,7 @@
 (use '[pseidon.core.fileresource :as frs])
 (use '[pseidon.core.conf :as c])
 (use '[pseidon.core.datastore :as ds])
+(use '[pseidon.core.tracking :rename  {start tracking-start shutdown tracking-shutdown recover tracking-recover}])
 
 (set! *warn-on-reflection* true)
 
@@ -30,10 +31,12 @@
    (await-for 10000)
    (shutdown-agents)
    (ds/shutdown)
+   (tracking-shutdown)
    (info "Stopped")
   )
 
 (defn start-app []
+  (tracking-start)
   (refresh-plugins)
   (Thread/sleep 1000)
   (r/start-all)
@@ -42,7 +45,7 @@
   (frs/start-services)
   (info "Started")
   (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (stop-app) )) )))
-  
+  (tracking-recover)
   )
 
 
