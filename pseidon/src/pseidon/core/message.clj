@@ -4,7 +4,8 @@
 ;rather use the methods provided in the ns, you'll be shielded from future changes.
 ; ids is a sequence of ids as read by the datasource. The datasource should produce the id and also save the ids to the tracking service
 ; note the ids passed to the Channels from where the Channel creates a message instance.
-(defrecord Message [^clojure.lang.IFn bytes-f ^String ds ids ^String topic  accept ^long ts ^long priority] 
+;bytes-seq is a sequence of byte array items.
+(defrecord Message [bytes-seq ^String ds ids ^String topic  accept ^long ts ^long priority] 
   
   java.lang.Comparable
      (compareTo [this m] 
@@ -23,12 +24,14 @@
   (->Message bytes-f ds ids topic accept ts priority)
   )
 
-(defn get-bytes [{:keys [bytes-f] }]
+(defn get-bytes-seq [{:keys [bytes-seq] }]
   "
    Bytes can be a function or the direct byte array,
    This makes reading bytes at the correct moment more flexible
    "
-  (if (instance? clojure.lang.IFn) (bytes-f) bytes-f)
+   (cond (instance? clojure.lang.IFn bytes-seq) (get-bytes-seq (bytes-seq))
+         (or (seq? bytes-seq) (vector? bytes-seq)) bytes-seq
+         :else [bytes-seq])
   )
 
 (defn batched-seq [rdr size] 

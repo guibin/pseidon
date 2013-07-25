@@ -3,7 +3,6 @@
   (:require   [pseidon.core.conf :refer [get-conf get-conf2] ]
               [pseidon.core.datastore :refer [inc-data! get-data-number] ]
               [pseidon.core.tracking :refer [mark-run!]]
-              [spyscope.core]
   )
   (:use clojure.tools.logging
   ))
@@ -263,7 +262,6 @@
        (let [ [start-pos2 end-pos2 lines :as record] (read-lines-save-data start-pos line-buff) ]
          (if (not (nil? lines))
             (do
-              (prn "read-batched " record)
               (lazy-seq (cons record (read-batched end-pos2)) )
               )
            )

@@ -8,6 +8,7 @@
 (use '[pseidon.core.conf :as c])
 (use '[pseidon.core.datastore :as ds])
 (use '[pseidon.core.tracking :rename  {start tracking-start shutdown tracking-shutdown recover tracking-recover}])
+(use '[pseidon.core.watchdog :as e])
 
 (set! *warn-on-reflection* true)
 
@@ -19,9 +20,11 @@
   "Reads the plugin-dirs list and if no such files are found uses the default test locations"
    (info (c/get-conf2 :plugin-dirs "NO PLUGIN CONFIG"))
    (apply set-refresh-dirs (c/get-conf2 :plugin-dirs []))
-   (binding [*ns* *ns*]
-   (refresh))
-  )
+   (binding [*ns* *ns*  clojure.core/*e nil]
+	   (refresh)
+	   (if clojure.core/*e 
+         (e/handle-critical-error clojure.core/*e (str clojure.core/*e) ))
+   ))
 
 
 (defn stop-app []

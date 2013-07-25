@@ -4,7 +4,7 @@
      [pseidon.core.fileresource :refer [write]]
      [clj-time.coerce :refer [from-long]]
      [clj-time.format :refer [unparse formatter]]
-     [pseidon.core.message :refer [get-bytes get-ids]]
+     [pseidon.core.message :refer [get-bytes-seq get-ids]]
      [clojure.tools.logging :refer [info error]]
      [pseidon.core.tracking :refer [mark-done!]]
      )
@@ -30,8 +30,8 @@
   ;if any error the mark-done will roll back any status flags set.
   (write topic 
                (unparse dateformat (from-long ts))
-               (fn [out] (doseq [bts bts-seq] (exec-write out bts)))
-               #(mark-done! ds (get-ids msg)) ;this function is applied only when the file has been rolled
+               (fn [out] (doseq [bts (get-bytes-seq msg) ] (exec-write out bts)))
+               #(mark-done! ds (get-ids msg) (fn [] ) ) ;this function is applied only when the file has been rolled
                            )
   )
 
