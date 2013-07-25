@@ -44,7 +44,7 @@
 						<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 						<distribution>pseidon</distribution>
 						<group>utilties</group>
-						<release>1</release>
+						<release>2</release>
 						<packager>http://code.google.com/p/</packager>
 						<provides>
 							<provide>pseidon</provide>
@@ -209,6 +209,31 @@ exit
       <version>3.2</version>
     </dependency>
     <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <version>2.6</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-vfs2</artifactId>
+      <version>2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.sshd</groupId>
+      <artifactId>sshd-core</artifactId>
+      <version>0.8.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.jcraft</groupId>
+      <artifactId>jsch</artifactId>
+      <version>0.1.50</version>
+    </dependency>
+     <dependency>
       <groupId>org.streams</groupId>
       <artifactId>streams-log</artifactId>
       <version>0.5.1</version>
@@ -217,6 +242,11 @@ exit
       <groupId>org.clojure</groupId>
       <artifactId>tools.namespace</artifactId>
       <version>0.2.4-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>clj-time</groupId>
+      <artifactId>clj-time</artifactId>
+      <version>0.5.1</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
@@ -262,14 +292,15 @@ exit
       <version>0.2.3</version>
     </dependency>
     <dependency>
-      <groupId>criterium</groupId>
-      <artifactId>criterium</artifactId>
-      <version>0.4.1</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.curator</groupId>
       <artifactId>curator-framework</artifactId>
       <version>2.0.1-incubating</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.curator</groupId>
+      <artifactId>curator-test</artifactId>
+      <version>2.0.1-incubating</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>midje</groupId>
@@ -278,11 +309,28 @@ exit
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>cupboard</groupId>
+      <artifactId>cupboard</artifactId>
+      <version>1.0beta1</version>
+    </dependency>
+  <dependency>
+      <groupId>criterium</groupId>
+      <artifactId>criterium</artifactId>
+      <version>0.4.1</version>
+    </dependency>
+    <dependency>
+      <groupId>spyscope</groupId>
+      <artifactId>spyscope</artifactId>
+      <version>0.1.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>clojure-complete</groupId>
       <artifactId>clojure-complete</artifactId>
       <version>0.2.3</version>
       <scope>test</scope>
     </dependency>
+
   </dependencies>
   
 </project>
