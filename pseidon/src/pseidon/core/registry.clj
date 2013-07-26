@@ -12,6 +12,8 @@
 
 (def exec-service (ref {}))
 
+(defn reg-list-all []  @reg-state)
+
 (defn register [{name :name :as item}]
   "Register a service "
    (info "Regiser service " name  (class item))
