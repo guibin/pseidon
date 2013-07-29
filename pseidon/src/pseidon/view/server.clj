@@ -19,6 +19,7 @@
 
 (defroutes all-routes
   (GET "/registry" [] registry-index)
+  (GET "/tracking" {params :params} (fn [] (tracking-index params) )
   )
 
 (defn start []
