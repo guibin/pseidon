@@ -13,12 +13,25 @@
 
 (def dbspec)
 
-(defn with-txn [f]
- (clojure.java.jdbc/with-connection
+(defmacro with-txn [& body]
+  "Runs body inside a db transaction and connection"
+ `(clojure.java.jdbc/with-connection
    dbspec
-   (clojure.java.jdbc/transaction (f))))
+   (clojure.java.jdbc/transaction ~@body)))
+
+(defn as-str [& s] (apply str s))
+
+(defn create-query-paging [{:keys [tbl properties predicate from max] :or {max 100} }]
+  "Creates a SQL query using paging and ROWNUM()"
+  (str "SELECT * from (select " (clojure.string/join "," (map #(str "a." %) properties)) 
+                        ", ROWNUM() rnum from (select " (clojure.string/join "/" properties) 
+                        " from " tbl (if-not predicate "" (as-str " where " predicate))
+                        " order by ts, dsid, status ) a "
+                        " WHERE ROWNUM() <= " max
+                        ") WHERE rnum >= " from))
 
 (defn create-table[]
+    "Creates the message table, if it already exists the method silently fails."
 		(defn create-tables
 		  "Create a factoid table"
 		  []
@@ -34,13 +47,22 @@
 	    (try (f) 
 	        (catch java.sql.BatchUpdateException e 
 	               (if-not (re-find #"name already exists" (.toString e)) (throw e)))))
-     (with-txn #(wrap-table-exist-exception create-tables)))
+    
+     (with-txn (wrap-table-exist-exception create-tables)))
 
-(defn query [q]
- (sql/with-connection dbspec
-   (sql/with-query-results rs [q] rs)))
+(defn query [q max]
+ (sql/with-connection pseidon.core.tracking/dbspec
+   (sql/with-query-results rs [q] (vec (take max rs)))))
 
+(defn get-message [dsid]
+  (first (query (str "select * from messagetracking where dsid=" dsid) 1)))
+  
 
+(defn delete-message [dsid]
+  (sql/with-connection dbspec
+    (sql/delete-rows :messagetracking ["dsid=?" dsid])))
+  
+  
 (defn insert-message! [{:keys [dsid status ts]}]
   "Insert data into the table"
   [dsid status ts]
@@ -51,16 +73,14 @@
 
 
 (defn start []
-  (cb/open-cupboard! (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking"))
-  (def dbspec 
+  (def pseidon.core.tracking/dbspec 
     {:classname "org.hsqldb.jdbcDriver" 
      :subprotocol "hsqldb" 
-     :subname "file:" (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking") ";create=true"
+     :subname (str "file:"  (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking4") ";create=true")
      :user "sa"
      :password "sa"
     })
    (create-table)
-  
   )
 
 (defn ensure-started []
@@ -82,22 +102,19 @@
   "
   (ensure-started)
   (let [ds-id (clojure.string/join \u0001 [ds id] )]
-      (insert-message! {:dsid ds-id :status status-run :ts now})    
+      (insert-message! {:dsid ds-id :status status-run :ts (now)})    
 	    ;(cb/make-instance messagetracking [(System/currentTimeMillis) ds-id status-run])
     )
   )
 
-(defn ls-tracking [from to]  
-  )
-
-(defn apply-in-txn [fn-seq]  
-  " Sequence of functions to be applied in a single transaction
-  "
-  (ensure-started)
-  (with-txn [:no-sync false]
-    (doseq [f fn-seq] (f) )
-    ))
- 
+;(defn create-query-paging [{:keys [tbl properties predicate from max]}]
+  
+(defn select-messages  
+  "Returns a vector of messages from to max"
+  ([from max]
+  (query (create-query-paging {:tbl "messagetracking" :properties ["*"] :from from :max max} ) (+ from max)))
+  ([where from max]
+    (query (create-query-paging {:tbl "messagetracking" :predicate where :properties ["*"] :from from :max max} ) (+ from max))))
 
 (defn update-message! [dsid params]
   "This method updates a blog entry"

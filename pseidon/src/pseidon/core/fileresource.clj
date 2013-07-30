@@ -1,5 +1,5 @@
 (ns pseidon.core.fileresource
-   (:require [pseidon.core.tracking :refer [apply-in-txn]])
+   (:require [pseidon.core.tracking :refer [with-txn]])
    (:use clojure.tools.logging 
          pseidon.core.watchdog
          pseidon.core.conf
@@ -155,7 +155,7 @@
 	         (info "File " new-file " created") 
 	         (close-destroy (:walfile frs))
 	           (try 
-	             (apply-in-txn post-roll)
+	             (with-txn (doseq [prf post-roll] (prf)))
 	             (catch Exception e (do 
                                     ;if the post-roll messages could not be run, the file is deleted
 	                                  (.delete new-file)
