@@ -11,6 +11,37 @@ Big Data Imports
 
 https://sourceforge.net/projects/pseidon/files
 
+## Doc
+
+### Tracking
+
+Each message send from a datasource is tracked through the system with two states
+['running', 'done'].
+
+'running' is when the message has leaved the datasource
+
+'done' is when the message has be fully processed and can be dicarded
+
+Open in a browser:
+
+http://<host>:8282/tracking?max=10&from=0
+
+or to apply a query clause
+
+http://<host>:8282/tracking?q="dsid='myid' and status='running'"&max=10&from=0
+
+There are three columns you can query:
+  * dsid String
+  * status String
+  * ts TimeStamp format
+
+### Registry
+
+Open in a browser:
+
+http://<host>:8282/registry
+
+
 ## License
 
 Apache License, Version 2.0
