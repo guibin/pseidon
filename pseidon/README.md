@@ -30,7 +30,9 @@ Open in a browser:
 or to apply a query clause
 
 [http://localhost:8282/tracking?q="dsid='myid' and status='running'"&max=10&from=0](http://localhost:8282/tracking?q="dsid='myid' and status='running'"&max=10&from=0)
+
 There are three columns you can query:
+
   * dsid String
   * status String
   * ts TimeStamp format
@@ -39,7 +41,7 @@ There are three columns you can query:
 
 Open in a browser:
 
-http://<host>:8282/registry
+[http://localhost:8282/registry](http://localhost:8282/registry)
 
 
 ## License
