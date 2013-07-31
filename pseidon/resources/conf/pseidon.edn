@@ -1,6 +1,6 @@
 ;edn configuration file
 ;see https://github.com/edn-format/edn
-
+{
  :name "server1"
  :topic-codecs {}
  :writer-basedir "target"
@@ -23,4 +23,4 @@
  :tracking-db-dir "/tmp/pseidontracking"
  
  :view-port 8080
- 
+}

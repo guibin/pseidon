@@ -177,7 +177,7 @@
   (clojure.string/join \u0001 [ns file start-pos end-pos])
   )
 
-(defn file-line-seq! [conn ns file reader pos line-buff]
+(defn file-line-seq! [conn ns file reader pos line-buff & {:keys [db] }]
   "
     This methods does have side affects because it needs to keep track of which lines have been read already.
     pos is the starting point from where the file is read.
@@ -245,7 +245,7 @@
        (let [[lines total-char-count] (read-lines n) ]
        (if (not (nil? lines))
          (let [end-pos (+ start-pos total-char-count)]
-           (mark-run! ns (ftp-record-id ns file start-pos end-pos) ) ;mark in the tracing api
+           (mark-run! ns (ftp-record-id ns file start-pos end-pos) :db db) ;mark in the tracing api
                                                                  ;event if the zookeeper pointer save fails the recovery service now has the information to recover these lines if needed.
            (save-file-data ns file total-char-count) ; we save the pointer to zookeeper
            [start-pos end-pos lines] ; returns [start end lines]
@@ -272,7 +272,7 @@
           
        )
   
-(defn get-line-seq! [conn ns file line-buff]
+(defn get-line-seq! [conn ns file line-buff & {:keys [db]}]
   "Helper method for ftp data sources, returns a reader that will save the number of characters read on each readLine call
    The method will also read the file data and skip the characters already read.
    Items in the sequence have format [start-pos end-pos lines]
@@ -280,7 +280,7 @@
     (let [pos (:sent-size (get-file-data ns file) )
           reader  (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.)]
           (if (pos? pos) (pseidon.util.Bytes/skip reader pos)) ;skip n characters
-          (file-line-seq! conn ns file reader pos line-buff)
+          (file-line-seq! conn ns file reader pos line-buff :db db)
           
           )
     )

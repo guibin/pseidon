@@ -3,6 +3,7 @@
   (:use midje.sweet
         pseidon.core.conf
         pseidon.core.ds.ftp
+        pseidon.core.tracking
          ))
 
 (import '(org.apache.sshd SshServer)
@@ -15,6 +16,7 @@
         '(org.apache.commons.io FileUtils)
         )
  
+(def test-db (create-spec (str "target/fpt_test/" (System/currentTimeMillis)) ))
 
 (def uid "test")
 (def pwd "test")
@@ -48,7 +50,7 @@
        (load-default-config!)
        (set-conf! :zk-url zk-url)
 
-      (try
+       (try
         (do
        (fact "Test put/get files"
              ;put multiple files
@@ -121,7 +123,7 @@
                   (let [files (get-files conn "test" "/a/b/testgetfiles" (fn [x] true) )]
                      (count files) => 1
                      (doseq [file files]
-                        (doseq [line (get-line-seq conn "test" file 10)]
+                        (doseq [line (get-line-seq! conn "test" file 10 :db test-db)]
                            (println "!!!! line " line)
                           )
                        )

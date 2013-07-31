@@ -6,6 +6,7 @@
     [compojure.handler :refer [site]]
     [compojure.core :refer [defroutes GET context]]
     [pseidon.view.registry :refer [registry-index]]
+    [pseidon.view.tracking :refer [tracking-index]]
     [cheshire.generate :refer [add-encoder]]
     )
   
@@ -19,7 +20,7 @@
 
 (defroutes all-routes
   (GET "/registry" [] registry-index)
-  (GET "/tracking" {params :params} (fn [] (tracking-index params) )
+  (GET "/tracking" [] (fn [req] (tracking-index req) ))
   )
 
 (defn start []

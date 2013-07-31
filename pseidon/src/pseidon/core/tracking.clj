@@ -7,17 +7,27 @@
 (def status-run "run")
 (def status-done "done")
 
-(def started? (java.util.concurrent.atomic.AtomicBoolean.))
-
 (defn now [] (java.util.Date.))
 
-(def dbspec)
 
-(defmacro with-txn [& body]
-  "Runs body inside a db transaction and connection"
- `(clojure.java.jdbc/with-connection
-   dbspec
-   (clojure.java.jdbc/transaction ~@body)))
+(defn tracking-start [] )
+
+(def ^:Dynamic dbspec)
+
+(defn ^:Dynamic ensure-started [] )
+
+(defmacro txn-helper [spec & body]
+	      `(clojure.java.jdbc/with-connection
+	         ~spec
+           (clojure.java.jdbc/transaction ~@body
+	         )))
+
+(defmacro with-txn 
+  ([body]
+    "Runs body inside a db transaction and connection"
+   `(txn-helper dbspec ~body))
+  ([spec body]
+    `(txn-helper ~(if-not spec dbspec spec) ~body)))
 
 (defn as-str [& s] (apply str s))
 
@@ -25,15 +35,14 @@
   "Creates a SQL query using paging and ROWNUM()"
   (str "SELECT * from (select " (clojure.string/join "," (map #(str "a." %) properties)) 
                         ", ROWNUM() rnum from (select " (clojure.string/join "/" properties) 
-                        " from " tbl (if-not predicate "" (as-str " where " predicate))
-                        " order by ts, dsid, status ) a "
-                        " WHERE ROWNUM() <= " max
-                        ") WHERE rnum >= " from))
+                        " from " tbl
+                        " order by dsid,ts,status) a "
+                        " WHERE ROWNUM() <= " (+ from max)
+                        ") WHERE " (if-not predicate "" (str predicate " and ")) " rnum >= " from))
 
 (defn create-table[]
     "Creates the message table, if it already exists the method silently fails."
 		(defn create-tables
-		  "Create a factoid table"
 		  []
 		  (do 
 		    (sql/create-table
@@ -48,20 +57,34 @@
 	        (catch java.sql.BatchUpdateException e 
 	               (if-not (re-find #"name already exists" (.toString e)) (throw e)))))
     
-     (with-txn (wrap-table-exist-exception create-tables)))
+      (wrap-table-exist-exception create-tables))
+
+(defn create-spec [path]
+   (let [spec  {:classname "org.hsqldb.jdbcDriver" 
+     :subprotocol "hsqldb" 
+     :subname (str "file:"  path ";create=true")
+     :user "sa"
+     :password "sa"
+     }]
+     (with-txn spec (create-table))
+     spec
+     ))
+
+
+(def dbspec (create-spec (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking4")))
 
 (defn query [q max]
- (sql/with-connection pseidon.core.tracking/dbspec
-   (sql/with-query-results rs [q] (vec (take max rs)))))
+   (sql/with-query-results rs [q] 
+     (let [dsid (:dsid (first rs) )]
+       (vec (take max rs))))
+   )
 
 (defn get-message [dsid]
-  (first (query (str "select * from messagetracking where dsid=" dsid) 1)))
+  (first (query (str "select * from messagetracking where dsid='" dsid "'") 1)))
   
 
-(defn delete-message [dsid]
-  (sql/with-connection dbspec
-    (sql/delete-rows :messagetracking ["dsid=?" dsid])))
-  
+(defn delete-message! [dsid]
+    (sql/delete-rows :messagetracking ["dsid=?" dsid]))
   
 (defn insert-message! [{:keys [dsid status ts]}]
   "Insert data into the table"
@@ -72,40 +95,18 @@
    [dsid status ts]))
 
 
-(defn start []
-  (def pseidon.core.tracking/dbspec 
-    {:classname "org.hsqldb.jdbcDriver" 
-     :subprotocol "hsqldb" 
-     :subname (str "file:"  (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking4") ";create=true")
-     :user "sa"
-     :password "sa"
-    })
-   (create-table)
-  )
 
-(defn ensure-started []
-  "
-   Ensures that the db is started
-  "
-  (if (not (.get started?) ) 
-    (if (.compareAndSet started? false true)
-      (start) 
-      )
-    )
-  )
 
-(defn mark-run! [^String ds ^String id]
+(defn mark-run! [^String ds ^String id & {:keys [db]}]
   " The ds and id values cannot hold any byte 1 characters, the key formed is ds byte1 id and must be unique, 
     if the object already exists in the database a unique constraint exception will be thrown.
 
     This method saves the message tracking metadata with status==run
   "
-  (ensure-started)
-  (let [ds-id (clojure.string/join \u0001 [ds id] )]
-      (insert-message! {:dsid ds-id :status status-run :ts (now)})    
-	    ;(cb/make-instance messagetracking [(System/currentTimeMillis) ds-id status-run])
-    )
-  )
+  (with-txn db
+	  (let [ds-id (clojure.string/join \u0001 [ds id] )]
+	      (insert-message! {:dsid ds-id :status status-run :ts (now)})    
+	    )))
 
 ;(defn create-query-paging [{:keys [tbl properties predicate from max]}]
   
@@ -124,14 +125,13 @@
    ["dsid=?" dsid]
    params))
 
-(defn mark-done! [^String ds ids ^clojure.lang.IFn f]
+(defn mark-done! [^String ds ids ^clojure.lang.IFn f & {:keys [db]}]
   "
     Applies the function f inside a transaction together with the set status to done
     If f fails the status will be rolled back.
     The status is set first to ensure that if there is any failure with the emebedded db the function f is never applied.
   "
-  (ensure-started)
-    (with-txn [:no-sync false] 
+    (with-txn db
       ;if ids is a sequence update every id and then apply f
       (doseq [id (if (sequential? ids) ids [ids])
               ds-id (clojure.string/join \u0001 [ds id] )
@@ -141,6 +141,8 @@
 					          {:status status-done}))
           )
 				  (f))
+
+
     
 (defn recover []
   )
