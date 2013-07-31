@@ -24,12 +24,12 @@ Each message send from a datasource is tracked through the system with two state
 
 Open in a browser:
 
-[http://<host>:8282/tracking?max=10&from=0](http://<host>:8282/tracking?max=10&from=0)
+[http://localhost:8282/tracking?max=10&from=0](http://localhost:8282/tracking?max=10&from=0)
 
 
 or to apply a query clause
 
-[http://<host>:8282/tracking?q="dsid='myid' and status='running'"&max=10&from=0](http://<host>:8282/tracking?q="dsid='myid' and status='running'"&max=10&from=0)
+[http://localhost:8282/tracking?q="dsid='myid' and status='running'"&max=10&from=0](http://localhost:8282/tracking?q="dsid='myid' and status='running'"&max=10&from=0)
 There are three columns you can query:
   * dsid String
   * status String
