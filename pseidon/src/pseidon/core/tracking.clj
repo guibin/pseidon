@@ -1,6 +1,7 @@
 (ns pseidon.core.tracking
  (:require [clojure.java.jdbc :as sql]
            [pseidon.core.conf :refer [get-conf2] ]
+           [pseidon.core.utils :refer [buffered-select]]
            )
   )
 
@@ -144,8 +145,10 @@
 
 
     
-(defn recover []
-  )
+(defn select-run-messages [^String ds & {:keys [max] :or {:max 100} } ]
+  "Creates a lazy sequence of messages for this datasource"
+  (letfn [ (m-select [from] (select-messages (str "dsid like '" ds \u0001 "'") from max)) ]
+    (buffered-select m-select 0)))
 
 (defn shutdown []
   )
