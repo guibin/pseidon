@@ -284,4 +284,39 @@
           
           )
     )
-   
+
+
+(defn recover [conn file pos-vect-seq f-send]
+  "For every position vector (start, stop) the function f-send accepts arguments [reader start records-to-read]"
+		  (letfn [(get-rdr [] (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.) )
+              
+              (send-file-data [reader start max]
+                               (f-send reader start max))
+              
+              (send-file [[reader prev-x prev-n] [x n]]  
+                         (let [diff (- x (+ prev-x prev-n))
+                                   (prn "Diff " diff)
+                                   rdr (cond (> 1 diff) ;skip the gap and return the same reader
+			                                 (do 
+                                          (pseidon.util.Bytes/skip reader diff) 
+                                          reader
+                                          )
+			                                 (< 0 diff)
+			                                 (do (.close reader)  ;close the reader and reopen a new one
+                                           (let [reader2 (get-rdr)] 
+                                             (pseidon.util.Bytes/skip reader2 (- x 1) )
+                                             reader2
+                                             )
+                                           )
+			                                 :else reader
+			                                 )
+                                 ]
+                               (send-file-data reader x n)
+                               [rdr x n]
+                               ))]
+         
+       (let [[reader x n] (reduce send-file [(get-rdr) 0 0] (sort-by first pos-vect-seq))]
+          (.close reader) ;close the last reader
+         )
+       )
+    )

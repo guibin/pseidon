@@ -130,7 +130,21 @@
                     )
                     
                 )
-          )   
+          )
+          
+          (fact "Test recover messages in dis-order"
+                (let [vec-pos-seq [ [0 10] [15 16]  [13 14] [11 12]  ]
+                      counter (java.util.concurrent.atomic.AtomicInteger.)
+                      local-file "resources/conf/log4j.properties" 
+                      remote-file "/a/b/ctestinputstream/log4j.properties"
+                      ]
+                      (ftp-put conn local-file remote-file)
+                      (recover conn remote-file vec-pos-seq (fn [rdr x n]
+                                                         (.getAndIncrement counter)
+                                                         )
+                        )
+                      (.get counter ) => 4
+                  ))
        )
         
        (finally (.stop sshd-server))

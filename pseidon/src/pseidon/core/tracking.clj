@@ -118,6 +118,20 @@
   ([where from max]
     (query (create-query-paging {:tbl "messagetracking" :predicate where :properties ["*"] :from from :max max} ) (+ from max))))
 
+
+(defn update-check-message! [dsid f-check params]
+  "This method updates a blog entry, but before updating and checks the current message first"
+  [dsid params]
+   (let [msg (get-message dsid)]
+	   (if (f-check msg)
+		  (clojure.java.jdbc/update-values
+		   :messagetracking
+		   ["dsid=?" dsid]
+		   params)
+	     (throw (RuntimeException. (str "The message tracking state is not valid dsid: " dsid  " msg: " msg)))
+		  )
+   ))
+
 (defn update-message! [dsid params]
   "This method updates a blog entry"
   [dsid params]
@@ -137,18 +151,19 @@
       (doseq [id (if (sequential? ids) ids [ids])
               ds-id (clojure.string/join \u0001 [ds id] )
               ]
-				      (update-message!  
+				      (update-check-message!  
 				            ds-id
+                    (fn [msg] (= (:status msg) status-run))
 					          {:status status-done}))
           )
 				  (f))
 
+  
+(defn select-ds-messages  
+  "Returns a vector of messages from to max"
+  ([^String ds & {:keys [max status] :or { max 100 status status-run} } ]
+    (select-messages (str "dsid like '" ds \u0001 "%' and status='" status "'") 0 max)))
 
-    
-(defn select-run-messages [^String ds & {:keys [max] :or {:max 100} } ]
-  "Creates a lazy sequence of messages for this datasource"
-  (letfn [ (m-select [from] (select-messages (str "dsid like '" ds \u0001 "'") from max)) ]
-    (buffered-select m-select 0)))
 
 (defn shutdown []
   )
