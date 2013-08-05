@@ -293,9 +293,9 @@
               (send-file-data [reader start max]
                                (f-send reader start max))
               
-              (send-file [[reader prev-x prev-n] [x n]]  
+              (send-file [[reader prev-x prev-n] [x n]]
                          (let [diff (- x (+ prev-x prev-n))
-                                   (prn "Diff " diff )
+                                   
                                    rdr (cond (> 1 diff) ;skip the gap and return the same reader
 			                                 (do 
                                           (pseidon.util.Bytes/skip reader diff) 
