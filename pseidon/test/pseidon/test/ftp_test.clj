@@ -133,7 +133,7 @@
           )
           
           (fact "Test recover messages in dis-order"
-                (let [vec-pos-seq [ [0 10] [15 16]  [13 14] [11 12]  ]
+                (let [vec-pos-seq [ [0 10] [15 1]  [13 1] [11 1]  ]
                       counter (java.util.concurrent.atomic.AtomicInteger.)
                       local-file "resources/conf/log4j.properties" 
                       remote-file "/a/b/ctestinputstream/log4j.properties"
