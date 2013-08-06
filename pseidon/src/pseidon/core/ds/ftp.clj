@@ -16,6 +16,24 @@
    '(org.apache.commons.lang StringUtils)
   )
 
+
+;contains the messages on tartup from the tracking api marked as "run" 
+;from a previous run, these are messages that have not been sent or completely processed
+;the map keys messages on its filename key=fileName value=messages
+(def recover-message-map (ref {}))
+
+(def file-name-extract)
+
+(defn get-recover-messages [file-name]
+  (dosync 
+    (get @recover-message-map file-name)))
+
+(defn load-recover-messages! [ns & {:keys [db]}]
+  "Groups the recover messages by the ftp filename and sets the resultant map to the recover-message-map"
+  (let [messages (group-by file-name-extract (with-txn db (select-ds-messages ns)))]
+    (dosync
+      (ref-set recover-message-map messages))))	  
+
 (defn ftp-connect [^String host ^String uid ^String pwd]
   "save this connection to a global value.
    returns a map with :fs file-manager :host host-string :auth StatusUserAuthenticator :opts FileSystemOptions
@@ -176,6 +194,11 @@
      ))
  
  
+(defn file-name-extract [m]
+ "Extracts the ftp file name from the tracking message"
+  (-> m :dsid destruct-dsid second destruct-ftp-record-id second))
+
+ 
  (defn get-files [conn ns dir pred-filter & {:keys [db] :as org} ]
    "Get only files that have not been sent yet
     the pred-filter is applied using filter
@@ -183,7 +206,7 @@
  (let [
        ; ([^String ds & {:keys [max status] :or { max 100 status status-run} } ]
       ;we get {:dsid id} -> destructure to [ns id] -> second id -> destructure [ns id start stop] -> second id
-      recover-files (map (fn [m] (-> m :dsid destruct-dsid second destruct-ftp-record-id second)) (with-txn db (select-ds-messages ns))) 
+      recover-files (map file-name-extract (with-txn db (select-ds-messages ns))) 
       files  (ftp-ls conn dir)
       names (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
       ]

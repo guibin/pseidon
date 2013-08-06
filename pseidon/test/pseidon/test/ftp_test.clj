@@ -170,7 +170,6 @@
                   ))
           
           (fact "Test List files with tracked files"
-                (FileUtils/deleteDirectory (java.io.File. "target/mytesttrackedfilesdb/mydb"))
                 
                 (let [local-file "resources/conf/log4j.properties" 
                    remote-file "/listtrackers/testgetfiles/log4j.properties"
@@ -185,6 +184,27 @@
                      (count files) => 2
                      (sort files) => [remote-file remote-file2]
                      )))
+          (fact "Test Recover messages from tracked files"
+                
+                (let [local-file "resources/conf/log4j.properties" 
+                   remote-files  #{"/listtrackers/testgetfiles/log4j.properties" 
+                                  "/listtrackers/testgetfiles/log4j2.properties"
+                                  "/listtrackers/testgetfiles/log4j3.properties"}
+                   
+                   db (get-dbspec "target/mytesttrackedfilesdb2/mydb")
+                   ]
+                  ;mark file as ready
+                  ;(defn mark-run! [^String ds ^String id & {:keys [db]}]
+                  (doseq [file remote-files]
+                    (mark-run! "test" (ftp-record-id "test" file 0 10) :db db)
+                    (mark-run! "test" (ftp-record-id "test" file 11 20) :db db)
+                    )
+                  (let [recover-message-map (load-recover-messages! "test" :db db)]
+                    (doseq [[k msg-seq] recover-message-map]
+                      (count msg-seq) => 2
+                      (contains? remote-files k) => true
+                      )
+                    )))
                  
        )
         
