@@ -4,6 +4,7 @@
               [pseidon.core.datastore :refer [inc-data! get-data-number] ]
               [pseidon.core.tracking :refer [mark-run!]]
               [pseidon.core.tracking :refer [select-ds-messages with-txn]]
+              [pseidon.core.utils :refer [merge-distinct-vects]]
   )
   (:use clojure.tools.logging
   ))
@@ -174,17 +175,18 @@
      [ns file (Long/parseLong start-pos) (Long/parseLong end-pos)]
      ))
  
+ 
  (defn get-files [conn ns dir pred-filter]
    "Get only files that have not been sent yet
     the pred-filter is applied using filter
    "
  (let [
        ; ([^String ds & {:keys [max status] :or { max 100 status status-run} } ]
-      recover-files (with-txn (select-ds-messages ns)) 
+      recover-files (map second (with-txn (select-ds-messages ns))) 
       files  (ftp-ls conn dir)
       names (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
       ]
-    names
+    (merge-distinct-vects names recover-files)
   ))
  
 
