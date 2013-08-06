@@ -3,6 +3,7 @@
            [pseidon.core.conf :refer [get-conf2] ]
            [pseidon.core.utils :refer [buffered-select]]
            )
+ (:import [org.apache.commons.lang StringUtils])
   )
 
 (def status-run "run")
@@ -97,6 +98,11 @@
 
 
 
+(defn destruct-dsid [ds-id]
+  "Destructs the ds-id into [ns id]"
+  (let [ [ns & ids] (StringUtils/split ds-id \u0001)]
+    [ns (clojure.string/join \u0001 ids)]
+    ))
 
 (defn mark-run! [^String ds ^String id & {:keys [db]}]
   " The ds and id values cannot hold any byte 1 characters, the key formed is ds byte1 id and must be unique, 
@@ -106,16 +112,16 @@
   "
   (with-txn db
 	  (let [ds-id (clojure.string/join \u0001 [ds id] )]
-	      (insert-message! {:dsid ds-id :status status-run :ts (now)})    
+        (insert-message! {:dsid ds-id :status status-run :ts (now)})    
 	    )))
 
 ;(defn create-query-paging [{:keys [tbl properties predicate from max]}]
   
 (defn select-messages  
   "Returns a vector of messages from to max"
-  ([from max]
+  ([^long from ^long max]
   (query (create-query-paging {:tbl "messagetracking" :properties ["*"] :from from :max max} ) (+ from max)))
-  ([where from max]
+  ([^String where ^long from ^long max]
     (query (create-query-paging {:tbl "messagetracking" :predicate where :properties ["*"] :from from :max max} ) (+ from max))))
 
 
@@ -161,8 +167,8 @@
   
 (defn select-ds-messages  
   "Returns a vector of messages from to max"
-  ([^String ds & {:keys [max status] :or { max 100 status status-run} } ]
-    (select-messages (str "dsid like '" ds \u0001 "%' and status='" status "'") 0 max)))
+  [^String ds & {:keys [max status] :or { max 100 status status-run} } ]
+  (select-messages (str "dsid like '" ds \u0001 "%' and status='" status "'") 0 max))
 
 
 (defn shutdown []

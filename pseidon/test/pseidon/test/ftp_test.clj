@@ -38,6 +38,13 @@
     
     ))
 
+(defn get-dbspec [p]
+  (let [p1 (str p "/" (System/currentTimeMillis))
+        file (java.io.File. p1)]
+    (.mkdirs file)
+    (create-spec (str p1 "/mydb"))
+    ))
+
 (def conn (ftp-connect host uid pwd))
 
 (facts "Test Util mehods"
@@ -133,9 +140,10 @@
           (fact "Test get-files and get-reader"
                 (let [local-file "resources/conf/log4j.properties" 
                    remote-file "/a/b/testgetfiles/log4j.properties"
+                   db (create-spec "target/test-getfiles123")
                    ]
                   (ftp-put conn local-file remote-file )
-                  (let [files (get-files conn "test" "/a/b/testgetfiles" (fn [x] true) )]
+                  (let [files (get-files conn "test" "/a/b/testgetfiles" (fn [x] true) :db db)]
                      (count files) => 1
                      (doseq [file files]
                         (doseq [line (get-line-seq! conn "test" file 10 :db test-db)]
@@ -160,6 +168,24 @@
                         )
                       (.get counter ) => 4
                   ))
+          
+          (fact "Test List files with tracked files"
+                (FileUtils/deleteDirectory (java.io.File. "target/mytesttrackedfilesdb/mydb"))
+                
+                (let [local-file "resources/conf/log4j.properties" 
+                   remote-file "/listtrackers/testgetfiles/log4j.properties"
+                   remote-file2 "/listtrackers/testgetfiles/log4j2.properties"
+                   db (get-dbspec "target/mytesttrackedfilesdb/mydb")
+                   ]
+                  (ftp-put conn local-file remote-file )
+                  ;mark file as ready
+                  ;(defn mark-run! [^String ds ^String id & {:keys [db]}]
+                  (mark-run! "test" (ftp-record-id "test" remote-file2 0 10) :db db)
+                  (let [files (get-files conn "test" "/listtrackers/testgetfiles" (fn [x] true) :db db)]
+                     (count files) => 2
+                     (sort files) => [remote-file remote-file2]
+                     )))
+                 
        )
         
        (finally (.stop sshd-server))

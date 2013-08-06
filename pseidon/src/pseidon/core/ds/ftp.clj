@@ -3,7 +3,7 @@
   (:require   [pseidon.core.conf :refer [get-conf get-conf2] ]
               [pseidon.core.datastore :refer [inc-data! get-data-number] ]
               [pseidon.core.tracking :refer [mark-run!]]
-              [pseidon.core.tracking :refer [select-ds-messages with-txn]]
+              [pseidon.core.tracking :refer [select-ds-messages with-txn destruct-dsid]]
               [pseidon.core.utils :refer [merge-distinct-vects]]
   )
   (:use clojure.tools.logging
@@ -176,13 +176,14 @@
      ))
  
  
- (defn get-files [conn ns dir pred-filter]
+ (defn get-files [conn ns dir pred-filter & {:keys [db] :as org} ]
    "Get only files that have not been sent yet
     the pred-filter is applied using filter
    "
  (let [
        ; ([^String ds & {:keys [max status] :or { max 100 status status-run} } ]
-      recover-files (map second (with-txn (select-ds-messages ns))) 
+      ;we get {:dsid id} -> destructure to [ns id] -> second id -> destructure [ns id start stop] -> second id
+      recover-files (map (comp second (comp (comp destruct-ftp-record-id second) (comp destruct-dsid :dsid))) (with-txn db (select-ds-messages ns))) 
       files  (ftp-ls conn dir)
       names (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
       ]
@@ -198,7 +199,6 @@
    
     For each batch of lines read the mark-run! function is called with (mark-run! ns (clojure.string/join \u0001 [file start-pos end-pos]))
     The id for each record is file\u0001start_position\u0001end_position, this function will use the named convention to save records to the tracking service.
-   
 
   "
      (def lf 0xA)
