@@ -183,7 +183,7 @@
  (let [
        ; ([^String ds & {:keys [max status] :or { max 100 status status-run} } ]
       ;we get {:dsid id} -> destructure to [ns id] -> second id -> destructure [ns id start stop] -> second id
-      recover-files (map (comp second (comp (comp destruct-ftp-record-id second) (comp destruct-dsid :dsid))) (with-txn db (select-ds-messages ns))) 
+      recover-files (map (fn [m] (-> m :dsid destruct-dsid second destruct-ftp-record-id second)) (with-txn db (select-ds-messages ns))) 
       files  (ftp-ls conn dir)
       names (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
       ]
