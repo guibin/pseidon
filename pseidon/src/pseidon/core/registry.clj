@@ -3,7 +3,7 @@
         pseidon.core.watchdog)
   )
 
-(defrecord DataSource [name run stop list-files reader-seq])
+(defrecord DataSource [name run stop list-files reader-seq ])
 (defrecord Channel [name run stop])
 (defrecord DataSink [name run stop writer])
 (defrecord Processor [name run stop exec])

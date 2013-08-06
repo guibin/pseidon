@@ -40,6 +40,21 @@
 
 (def conn (ftp-connect host uid pwd))
 
+(facts "Test Util mehods"
+       (fact "Test structure and destructure ftp id"
+ ;(defn ftp-record-id [ns file start-pos end-pos]
+  
+             (let [ns "abc" file "123" start-pos 1 end-pos 100
+                   [ns2 file2 start-pos2 end-pos2] (destruct-ftp-record-id 
+                                                     (ftp-record-id ns file start-pos end-pos))
+                   ]
+               ns => ns2
+               file => file2
+               start-pos => start-pos2
+               end-pos => end-pos2
+               )
+             )
+       )
 
 (facts "Test ftp list get and put"
     (let [sshd-server (setup)

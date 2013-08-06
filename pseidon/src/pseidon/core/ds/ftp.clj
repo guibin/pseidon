@@ -3,6 +3,7 @@
   (:require   [pseidon.core.conf :refer [get-conf get-conf2] ]
               [pseidon.core.datastore :refer [inc-data! get-data-number] ]
               [pseidon.core.tracking :refer [mark-run!]]
+              [pseidon.core.tracking :refer [select-ds-messages with-txn]]
   )
   (:use clojure.tools.logging
   ))
@@ -11,6 +12,7 @@
    '(org.apache.commons.vfs2 FileContent FileObject FileSystemManager FileSystemOptions VFS Selectors)
    '(org.apache.commons.vfs2.auth StaticUserAuthenticator)
    '(org.apache.commons.vfs2.impl DefaultFileSystemConfigBuilder)
+   '(org.apache.commons.lang StringUtils)
   )
 
 (defn ftp-connect [^String host ^String uid ^String pwd]
@@ -162,20 +164,29 @@
   (not= size sent-size
        ))
 
+(defn ftp-record-id [ns file start-pos end-pos]
+  (clojure.string/join \u0001 [ns file start-pos end-pos])
+  )
 
+ (defn destruct-ftp-record-id [id]
+   "returs a vector with ns file start-pos end-pos"
+   (let [[ns file start-pos end-pos] (StringUtils/split id \u0001)]
+     [ns file (Long/parseLong start-pos) (Long/parseLong end-pos)]
+     ))
+ 
  (defn get-files [conn ns dir pred-filter]
    "Get only files that have not been sent yet
     the pred-filter is applied using filter
    "
- (let [files  (ftp-ls conn dir)
+ (let [
+       ; ([^String ds & {:keys [max status] :or { max 100 status status-run} } ]
+      recover-files (with-txn (select-ds-messages ns)) 
+      files  (ftp-ls conn dir)
       names (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
       ]
     names
   ))
  
-(defn ftp-record-id [ns file start-pos end-pos]
-  (clojure.string/join \u0001 [ns file start-pos end-pos])
-  )
 
 (defn file-line-seq! [conn ns file reader pos line-buff & {:keys [db] }]
   "
@@ -285,15 +296,28 @@
           )
     )
 
+(defn limited-line-seq [rdr n]
+  "Returns a line sequence only for n character length, this function is not entirely accurate
+   because it reads lines and checks if the total line character count have exceeded n. 
+  "
+  (let [line (.readLine rdr)]
+    (when (> 0 n)
+      (cons line 
+            (lazy-seq 
+              (limited-line-seq rdr (- n (inc (count line))))
+              )
+            )
+      )))
 
 (defn recover [conn file pos-vect-seq f-send]
-  "For every position vector (start, stop) the function f-send accepts arguments [reader start records-to-read]"
+  "For every position vector (start, stop) the function f-send accepts arguments [line-seq start records-to-read]
+   "
 		  (letfn [(get-rdr [] (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.) )
               
-              (send-file-data [reader start max]
-                               (f-send reader start max))
+              (send-file-data [reader start n]
+                               (f-send (limited-line-seq reader n) start n))
               
-              (send-file [[reader prev-x prev-n] [x n]]
+              (send-file [[reader prev-x prev-n ] [x n]]
                          (let [diff (- x (+ prev-x prev-n))
                                    
                                    rdr (cond (> 1 diff) ;skip the gap and return the same reader
@@ -301,17 +325,18 @@
                                           (pseidon.util.Bytes/skip reader diff) 
                                           reader
                                           )
-			                                 (< 0 diff)
-			                                 (do (.close reader)  ;close the reader and reopen a new one
+			                                 (< diff 0)
+			                                 (do 
+                                           (.close reader)  ;close the reader and reopen a new one
                                            (let [reader2 (get-rdr)] 
                                              (pseidon.util.Bytes/skip reader2 (- x 1) )
                                              reader2
                                              )
                                            )
-			                                 :else reader
+			                                 :else (do reader)
 			                                 )
                                  ]
-                               (send-file-data reader x n)
+                               (send-file-data rdr x n)
                                [rdr x n]
                                ))]
          
