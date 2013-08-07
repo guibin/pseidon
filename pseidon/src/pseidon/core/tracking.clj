@@ -15,21 +15,17 @@
 (defn tracking-start [] )
 
 (def ^:Dynamic dbspec)
-
 (defn ^:Dynamic ensure-started [] )
 
 (defmacro txn-helper [spec & body]
 	      `(clojure.java.jdbc/with-connection
-	         ~spec
-           (clojure.java.jdbc/transaction ~@body
+          ~spec
+          (clojure.java.jdbc/transaction ~@body
 	         )))
 
 (defmacro with-txn 
-  ([body]
-    "Runs body inside a db transaction and connection"
-   `(txn-helper dbspec ~body))
-  ([spec body]
-    `(txn-helper ~(if-not spec dbspec spec) ~body)))
+ [spec body]
+    `(txn-helper ~(if spec spec dbspec )  ~body))
 
 (defn as-str [& s] (apply str s))
 
@@ -42,24 +38,27 @@
                         " WHERE ROWNUM() <= " (+ from max)
                         ") WHERE " (if-not predicate "" (str predicate " and ")) " rnum >= " from))
 
-(defn create-table[]
+(defn create-table[db]
     "Creates the message table, if it already exists the method silently fails."
 		(defn create-tables
 		  []
 		  (do 
-		    (sql/create-table
-		      "messagetracking"
-		      [:dsid "VARCHAR(255)" "NOT NULL" "PRIMARY KEY"]
-		      [:status "VARCHAR(20)" "NOT NULL"]
-		      [:ts "TIMESTAMP" "NOT NULL"])
-		   (sql/do-commands "CREATE INDEX messagetraking_index1 ON messagetracking(dsid, status, ts)")))
+        (clojure.java.jdbc/with-connection db
+          (clojure.java.jdbc/transaction
+				    (sql/create-table
+				      "messagetracking"
+				      [:dsid "VARCHAR(255)" "NOT NULL" "PRIMARY KEY"]
+				      [:status "VARCHAR(20)" "NOT NULL"]
+				      [:ts "TIMESTAMP" "NOT NULL"])
+				   (sql/do-commands "CREATE INDEX messagetraking_index1 ON messagetracking(dsid, status, ts)")))))
 		
 	   (defn wrap-table-exist-exception [f]
 	    (try (f) 
 	        (catch java.sql.BatchUpdateException e 
 	               (if-not (re-find #"name already exists" (.toString e)) (throw e)))))
-    
-      (wrap-table-exist-exception create-tables))
+      (prn "Create table db " db)
+      (wrap-table-exist-exception
+           create-tables))
 
 (defn create-spec [path]
    (let [spec  {:classname "org.hsqldb.jdbcDriver" 
@@ -68,11 +67,12 @@
      :user "sa"
      :password "sa"
      }]
-     (with-txn spec (create-table))
+     (create-table spec)
      spec
      ))
 
 (def dbspec (create-spec (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking4")))
+
 
 (defn query [q max]
    (sql/with-query-results rs [q] 
@@ -103,7 +103,7 @@
     [ns (clojure.string/join \u0001 ids)]
     ))
 
-(defn mark-run! [^String ds ^String id & {:keys [db]}]
+(defn mark-run! [^String ds ^String id & {:keys [db] :or {db dbspec}}]
   " The ds and id values cannot hold any byte 1 characters, the key formed is ds byte1 id and must be unique, 
     if the object already exists in the database a unique constraint exception will be thrown.
 
@@ -112,7 +112,7 @@
   (with-txn db
 	  (let [ds-id (clojure.string/join \u0001 [ds id] )]
         (insert-message! {:dsid ds-id :status status-run :ts (now)})    
-	    )))
+        )))
 
 ;(defn create-query-paging [{:keys [tbl properties predicate from max]}]
   
@@ -145,7 +145,7 @@
    ["dsid=?" dsid]
    params))
 
-(defn mark-done! [^String ds ids ^clojure.lang.IFn f & {:keys [db]}]
+(defn mark-done! [^String ds ids ^clojure.lang.IFn f & {:keys [db] :or {db dbspec}}]
   "
     Applies the function f inside a transaction together with the set status to done
     If f fails the status will be rolled back.
