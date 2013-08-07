@@ -24,9 +24,14 @@
 
 (def file-name-extract)
 
-(defn get-recover-messages [file-name]
+(defn get-recover-messages! [file-name]
   (dosync 
-    (get @recover-message-map file-name)))
+    (let[m (get @recover-message-map file-name)]
+      (if m
+      (ref-set recover-message-map 
+               (dissoc @recover-message-map file-name)
+               ))
+      m)))
 
 (defn load-recover-messages! [ns & {:keys [db]}]
   "Groups the recover messages by the ftp filename and sets the resultant map to the recover-message-map
@@ -320,19 +325,6 @@
           
        )
 
-(defn get-line-seq! [conn ns file line-buff & {:keys [db]}]
-  "Helper method for ftp data sources, returns a reader that will save the number of characters read on each readLine call
-   The method will also read the file data and skip the characters already read.
-   Items in the sequence have format [start-pos end-pos lines]
-  "
-    (let [pos (:sent-size (get-file-data ns file) )
-          reader  (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.)]
-          (if (pos? pos) (pseidon.util.Bytes/skip reader pos)) ;skip n characters
-          (file-line-seq! conn ns file reader pos line-buff :db db)
-          
-          )
-    )
-
 (defn limited-line-seq [rdr n]
   "Returns a line sequence only for n character length, this function is not entirely accurate
    because it reads lines and checks if the total line character count have exceeded n. 
@@ -383,10 +375,6 @@
                                  (dec i)
                                  )
                                buff)))
-                                 
-                               
-                             
-                           
                            
                (get-seq [[reader prev-x prev-n :as prev] vec-seq]
                  (if (empty? vec-seq)
@@ -405,3 +393,24 @@
                   
                 
       ))
+
+
+(defn get-line-seq! [conn ns file line-buff & {:keys [db]}]
+  "Helper method for ftp data sources, returns a reader that will save the number of characters read on each readLine call
+   The method will also read the file data and skip the characters already read.
+   Items in the sequence have format [start-pos end-pos lines]
+  "
+     (let [f-line-seq (fn []
+                      (let [pos (:sent-size (get-file-data ns file))
+                            reader  (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.)]
+                            (if (pos? pos) (pseidon.util.Bytes/skip reader pos)) ;skip n characters
+                            (file-line-seq! conn ns file reader pos line-buff :db db)
+                            ))
+            recover-msg-seq (get-recover-messages! file) ]
+            (if (empty? recover-msg-seq)
+              (f-line-seq)
+              (concat (recover-line-seq conn file (map pos-vec-extract recover-msg-seq))
+                      (lazy-seq (line-seq)))
+              )))
+            
+            
