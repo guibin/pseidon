@@ -155,20 +155,6 @@
                 )
           )
           
-          (fact "Test recover messages in dis-order"
-                (let [vec-pos-seq [ [0 10] [15 1]  [13 1] [11 1]  ]
-                      counter (java.util.concurrent.atomic.AtomicInteger.)
-                      local-file "resources/conf/log4j.properties" 
-                      remote-file "/a/b/ctestinputstream/log4j.properties"
-                      ]
-                      (ftp-put conn local-file remote-file)
-                      (recover conn remote-file vec-pos-seq (fn [rdr x n]
-                                                         (.getAndIncrement counter)
-                                                         )
-                        )
-                      (.get counter ) => 4
-                  ))
-          
           (fact "Test List files with tracked files"
                 
                 (let [local-file "resources/conf/log4j.properties" 
@@ -193,8 +179,6 @@
                    
                    db (get-dbspec "target/mytesttrackedfilesdb2/mydb")
                    ]
-                  ;mark file as ready
-                  ;(defn mark-run! [^String ds ^String id & {:keys [db]}]
                   (doseq [file remote-files]
                     (mark-run! "test" (ftp-record-id "test" file 0 10) :db db)
                     (mark-run! "test" (ftp-record-id "test" file 11 20) :db db)
@@ -205,6 +189,37 @@
                       (contains? remote-files k) => true
                       )
                     )))
+          
+          (fact "Test recover message read files"
+                ;recover-line-seq
+                (let [local-file "resources/conf/log4j.properties" 
+                      file1 "/listtrackers2/testgetfiles/log4j.properties"
+                      remote-files  #{file1}
+                      db (get-dbspec "target/mytesttrackedfilesdb3/mydb")
+                   ]
+                  (ftp-put conn local-file file1 )
+                  (doseq [file remote-files]
+                    (mark-run! "test" (ftp-record-id "test" file 0 1) :db db)
+                    (mark-run! "test" (ftp-record-id "test" file 2 3) :db db)
+                    )
+                 
+                  (let [recover-message-map (load-recover-messages! "test" :db db)
+                       
+                        ]
+                     (doseq [[file v] recover-message-map]
+                       (let [
+                             recover-seq (recover-line-seq conn file (map pos-vec-extract v))
+                             ]
+                         
+                           (doseq [m recover-seq] 
+                             m => ["# Just one of those things" "datestamp=yyyy-MM-dd/HH:mm:ss.SSS/zzz" ""]
+                             )
+                         ))
+                         
+                         
+                                          
+                    )
+                ))
                  
        )
         

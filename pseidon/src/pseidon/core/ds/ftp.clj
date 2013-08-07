@@ -29,7 +29,9 @@
     (get @recover-message-map file-name)))
 
 (defn load-recover-messages! [ns & {:keys [db]}]
-  "Groups the recover messages by the ftp filename and sets the resultant map to the recover-message-map"
+  "Groups the recover messages by the ftp filename and sets the resultant map to the recover-message-map
+   This method should only be called once on startup to recover messaes that have not been sent
+  "
   (let [messages (group-by file-name-extract (with-txn db (select-ds-messages ns)))]
     (dosync
       (ref-set recover-message-map messages))))	  
@@ -177,7 +179,6 @@
   {:sent-size (get-data-number ns (str file)) :file file }
   )
 
-
 (defn filter-done [{:keys [size sent-size] }]
   "Returns false if the size and sent-size are equal"
   (not= size sent-size
@@ -198,7 +199,18 @@
  "Extracts the ftp file name from the tracking message"
   (-> m :dsid destruct-dsid second destruct-ftp-record-id second))
 
- 
+(defn ftp-id-extract [m]
+ "Extracts the ftp id and returns [filename, posx, n]"
+  (-> m :dsid destruct-dsid second destruct-ftp-record-id))
+
+
+(defn pos-vec-extract [message]
+  "Takes a tracking message and extracts the position vector from the ds-id field"
+  ((comp
+    (fn [[ns f x n]]
+      [x n])
+    ftp-id-extract) message))
+
  (defn get-files [conn ns dir pred-filter & {:keys [db] :as org} ]
    "Get only files that have not been sent yet
     the pred-filter is applied using filter
@@ -307,7 +319,7 @@
        (read-batched pos)
           
        )
-  
+
 (defn get-line-seq! [conn ns file line-buff & {:keys [db]}]
   "Helper method for ftp data sources, returns a reader that will save the number of characters read on each readLine call
    The method will also read the file data and skip the characters already read.
@@ -334,39 +346,62 @@
             )
       )))
 
-(defn recover [conn file pos-vect-seq f-send]
-  "For every position vector (start, stop) the function f-send accepts arguments [line-seq start records-to-read]
+
+(defn recover-line-seq [conn file pos-vect-seq]
+  "For every position vector (start, stop) return a sequence of arrays of lines e.g. [ [line line line ...] [line line line ... ] ... ]
    "
 		  (letfn [(get-rdr [] (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.) )
               
-              (send-file-data [reader start n]
-                               (f-send (limited-line-seq reader n) start n))
-              
-              (send-file [[reader prev-x prev-n ] [x n]]
-                         (let [diff (- x (+ prev-x prev-n))
-                                   
-                                   rdr (cond (> 1 diff) ;skip the gap and return the same reader
-			                                 (do 
-                                          (pseidon.util.Bytes/skip reader diff) 
-                                          reader
-                                          )
-			                                 (< diff 0)
-			                                 (do 
-                                           (.close reader)  ;close the reader and reopen a new one
-                                           (let [reader2 (get-rdr)] 
-                                             (pseidon.util.Bytes/skip reader2 (- x 1) )
-                                             reader2
-                                             )
-                                           )
-			                                 :else (do reader)
-			                                 )
-                                 ]
-                               (send-file-data rdr x n)
-                               [rdr x n]
-                               ))]
-         
-       (let [[reader x n] (reduce send-file [(get-rdr) 0 0] (sort-by first pos-vect-seq))]
-          (.close reader) ;close the last reader
-         )
-       )
-    )
+              (prepare-reader [[reader prev-x prev-n ] [x n]]
+                         (if (nil? reader) 
+                           (get-rdr)
+	                         (let [diff (- x (+ prev-x prev-n))
+	                                   
+	                                   rdr (cond (> 1 diff) ;skip the gap and return the same reader
+				                                 (do 
+	                                          (pseidon.util.Bytes/skip reader diff) 
+	                                          reader
+	                                          )
+				                                 (< diff 0)
+				                                 (do 
+	                                           (.close reader)  ;close the reader and reopen a new one
+	                                           (let [reader2 (get-rdr)] 
+	                                             (pseidon.util.Bytes/skip reader2 (- x 1) )
+	                                             reader2
+	                                             )
+	                                           )
+				                                 :else (do reader)
+				                                 )
+	                                 ]
+	                               rdr
+	                               )))
+               (read-lines [reader n]
+                           (loop [buff [] i n]
+                             (if (> i 0)
+                               (recur 
+                                 (conj buff (.readLine reader))
+                                 (dec i)
+                                 )
+                               buff)))
+                                 
+                               
+                             
+                           
+                           
+               (get-seq [[reader prev-x prev-n :as prev] vec-seq]
+                 (if (empty? vec-seq)
+                   (if-not (nil? reader) (.close reader))
+                   (let [[x n :as pos] (first vec-seq)
+                         rdr (prepare-reader prev pos)
+                         lines (read-lines rdr n)
+                         ]
+                     (cons lines 
+                           (lazy-seq (get-seq [rdr x n]  (next vec-seq)))
+                           ))))
+                   
+              ]
+             
+              (get-seq [nil 0 0] (rest pos-vect-seq))
+                  
+                
+      ))

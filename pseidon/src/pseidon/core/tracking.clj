@@ -72,7 +72,6 @@
      spec
      ))
 
-
 (def dbspec (create-spec (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking4")))
 
 (defn query [q max]
