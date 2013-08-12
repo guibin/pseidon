@@ -212,8 +212,8 @@
 (defn pos-vec-extract [message]
   "Takes a tracking message and extracts the position vector from the ds-id field"
   ((comp
-    (fn [[ns f x n]]
-      [x n])
+    (fn [[ns f x y]]
+      [x y])
     ftp-id-extract) message))
 
  (defn get-files [conn ns dir pred-filter & {:keys [db] :as org} ]
@@ -243,7 +243,8 @@
   "
      (def lf 0xA)
      (def cr 0xD)
-
+     (def cr-ch (char cr))
+     
 		(defn n-read-line [rdr]
 		  (loop [buff (java.lang.StringBuilder.)
 		         ch (.read rdr)
@@ -259,7 +260,7 @@
 		        )
 		      (do
 		        
-		        (if (complement (= ch cr)) 
+		        (if (not= ch cr) 
 		          (.append buff (char ch))
 		          )
 		        
@@ -344,11 +345,11 @@
    "
 		  (letfn [(get-rdr [] (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.) )
               
-              (prepare-reader [[reader prev-x prev-n ] [x n]]
+              (prepare-reader [[reader prev-x prev-y ] [x y]]
                          (if (nil? reader) 
                            (get-rdr)
-	                         (let [diff (- x (+ prev-x prev-n))
-	                                   
+	                         (let [diff (- x prev-y)
+                                
 	                                   rdr (cond (> 1 diff) ;skip the gap and return the same reader
 				                                 (do 
 	                                          (pseidon.util.Bytes/skip reader diff) 
@@ -358,7 +359,7 @@
 				                                 (do 
 	                                           (.close reader)  ;close the reader and reopen a new one
 	                                           (let [reader2 (get-rdr)] 
-	                                             (pseidon.util.Bytes/skip reader2 (- x 1) )
+	                                             (pseidon.util.Bytes/skip reader2 x)
 	                                             reader2
 	                                             )
 	                                           )
@@ -368,28 +369,29 @@
 	                               rdr
 	                               )))
                (read-lines [reader n]
-                           (loop [buff [] i n]
+                           (loop [buff (StringBuilder.) i n]
                              (if (> i 0)
-                               (recur 
-                                 (conj buff (.readLine reader))
-                                 (dec i)
-                                 )
-                               buff)))
+		                             (recur  (->> reader .read char (.append buff ) ) (dec i))
+                                (clojure.string/split (.toString buff) #"\n")
+                               )))
+                               
                            
                (get-seq [[reader prev-x prev-n :as prev] vec-seq]
                  (if (empty? vec-seq)
                    (if-not (nil? reader) (.close reader))
-                   (let [[x n :as pos] (first vec-seq)
+                   (let [[x y :as pos] (first vec-seq)
                          rdr (prepare-reader prev pos)
-                         lines (read-lines rdr n)
+                         lines (read-lines rdr (- y x))
                          ]
-                     (cons lines 
-                           (lazy-seq (get-seq [rdr x n]  (next vec-seq)))
+                     (prn "!!! reading lines2 " (map str lines))
+                     (cons [x y lines] 
+                           (lazy-seq (get-seq [rdr x y]  (next vec-seq)))
                            ))))
                    
               ]
-             
-              (get-seq [nil 0 0] (rest pos-vect-seq))
+              
+              (prn "!!!!!!! ftp-recover : pos-vect-seq " pos-vect-seq)
+              (get-seq [nil 0 0] pos-vect-seq)
                   
                 
       ))

@@ -199,8 +199,9 @@
                    ]
                   (ftp-put conn local-file file1 )
                   (doseq [file remote-files]
-                    (mark-run! "test" (ftp-record-id "test" file 0 1) :db db)
-                    (mark-run! "test" (ftp-record-id "test" file 2 3) :db db)
+                    (mark-run! "test" (ftp-record-id "test" file 0 27) :db db)
+                    (mark-run! "test" (ftp-record-id "test" file 27 (+ 27 38)) :db db)
+                    
                     )
                  
                   (let [recover-message-map (load-recover-messages! "test" :db db)
@@ -210,10 +211,8 @@
                        (let [
                              recover-seq (recover-line-seq conn file (map pos-vec-extract v))
                              ]
-                         
-                           (doseq [m recover-seq] 
-                             m => ["# Just one of those things" "datestamp=yyyy-MM-dd/HH:mm:ss.SSS/zzz" ""]
-                             )
+                          (first recover-seq) => [0, 27 ["# Just one of those things"]]
+                          (second recover-seq) => [27, (+ 27 38) ["datestamp=yyyy-MM-dd/HH:mm:ss.SSS/zzz"]]
                          ))
                          
                          
