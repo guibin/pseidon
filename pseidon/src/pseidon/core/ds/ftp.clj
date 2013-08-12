@@ -326,22 +326,9 @@
           
        )
 
-(defn limited-line-seq [rdr n]
-  "Returns a line sequence only for n character length, this function is not entirely accurate
-   because it reads lines and checks if the total line character count have exceeded n. 
-  "
-  (let [line (.readLine rdr)]
-    (when (> 0 n)
-      (cons line 
-            (lazy-seq 
-              (limited-line-seq rdr (- n (inc (count line))))
-              )
-            )
-      )))
-
 
 (defn recover-line-seq [conn file pos-vect-seq]
-  "For every position vector (start, stop) return a sequence of arrays of lines e.g. [ [line line line ...] [line line line ... ] ... ]
+  "For every position vector (start, stop) return a sequence of arrays of [ [x y [line line ..]] [x y [line line ...]] ... ]
    "
 		  (letfn [(get-rdr [] (-> (ftp-inputstream conn file) java.io.InputStreamReader. java.io.BufferedReader.) )
               
@@ -383,14 +370,12 @@
                          rdr (prepare-reader prev pos)
                          lines (read-lines rdr (- y x))
                          ]
-                     (prn "!!! reading lines2 " (map str lines))
                      (cons [x y lines] 
                            (lazy-seq (get-seq [rdr x y]  (next vec-seq)))
                            ))))
                    
               ]
               
-              (prn "!!!!!!! ftp-recover : pos-vect-seq " pos-vect-seq)
               (get-seq [nil 0 0] pos-vect-seq)
                   
                 

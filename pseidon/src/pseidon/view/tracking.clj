@@ -16,5 +16,5 @@
 
 (defn tracking-index [{{:keys [q from max] :or {:from 0 :max 100}} :params}]
    (generate-string 
-        (with-txn (select-messages (clean-str q) (str->int from) (str->int max))))
+        (with-txn pseidon.core.tracking/dbspec (select-messages (clean-str q) (str->int from) (str->int max))))
    )

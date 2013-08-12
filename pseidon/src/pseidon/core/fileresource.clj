@@ -155,7 +155,7 @@
 	         (info "File " new-file " created") 
 	         (close-destroy (:walfile frs))
 	           (try 
-	             (with-txn (doseq [prf post-roll] (prf)))
+	             (with-txn pseidon.core.tracking/dbspec (doseq [prf post-roll] (prf)))
 	             (catch Exception e (do 
                                     ;if the post-roll messages could not be run, the file is deleted
 	                                  (.delete new-file)
