@@ -74,7 +74,7 @@
              (load-config! (clojure.string/join "/" [ (:config opts) "pseidon.edn"] )) 
              (start-repl (get-conf2 :repl-port 7111))
              (start-app)
-           
+             
              ))
         )
        ))

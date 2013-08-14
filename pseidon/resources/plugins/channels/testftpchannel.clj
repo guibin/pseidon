@@ -38,11 +38,11 @@
                (info "Looking at file " file)
 	             (doseq [ [start-pos end-pos lines] (reader-seq file)]
                     ;each line-record will contain [start-pos end-pos lines] 
-                    (info "Sending " file " line batch: " (count lines)  " start-pos " start-pos " end-pos " end-pos)
+                    ;(info "Sending " file " line batch: " (count lines)  " start-pos " start-pos " end-pos " end-pos)
 	                  (if-not (empty? lines) 
                      ;(defrecord Message [^clojure.lang.IFn bytes-f ^String ds ids ^String topic  accept ^long ts ^long priority] 
                      (publish data-queue (create-message (map #(.getBytes %) lines)
-                                                         "testftpchannel/testftp"
+                                                         "testftp"
                                                          (ftp-record-id "testftp" file start-pos end-pos)
                                                          topic 
                                                          true 

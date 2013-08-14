@@ -7,8 +7,9 @@
 (use '[pseidon.core.fileresource :as frs])
 (use '[pseidon.core.conf :as c])
 (use '[pseidon.core.datastore :as ds])
-(use '[pseidon.core.tracking :rename  {start tracking-start shutdown tracking-shutdown recover tracking-recover}])
+(use '[pseidon.core.tracking :rename  {start tracking-start shutdown tracking-shutdown}])
 (use '[pseidon.core.watchdog :as e])
+(use '[pseidon.view.server :as view])
 
 (set! *warn-on-reflection* true)
 
@@ -48,7 +49,8 @@
   (frs/start-services)
   (info "Started")
   (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (stop-app) )) )))
-  (tracking-recover)
+  (view/start)
+  (info "View started")
   )
 
 

@@ -2,6 +2,7 @@
  (:require [clojure.java.jdbc :as sql]
            [pseidon.core.conf :refer [get-conf2] ]
            [pseidon.core.utils :refer [buffered-select]]
+           [clojure.tools.logging :refer [info error]]
            )
  (:import [org.apache.commons.lang StringUtils])
   )
@@ -56,7 +57,6 @@
 	    (try (f) 
 	        (catch java.sql.BatchUpdateException e 
 	               (if-not (re-find #"name already exists" (.toString e)) (throw e)))))
-      (prn "Create table db " db)
       (wrap-table-exist-exception
            create-tables))
 
@@ -128,11 +128,14 @@
   "This method updates a blog entry, but before updating and checks the current message first"
   [dsid params]
    (let [msg (get-message dsid)]
+     
 	   (if (f-check msg)
-		  (clojure.java.jdbc/update-values
+		  (do 
+      (clojure.java.jdbc/update-values
 		   :messagetracking
 		   ["dsid=?" dsid]
 		   params)
+      )
 	     (throw (RuntimeException. (str "The message tracking state is not valid dsid: " dsid  " msg: " msg)))
 		  )
    ))
@@ -153,15 +156,15 @@
   "
     (with-txn db
       ;if ids is a sequence update every id and then apply f
-      (doseq [id (if (sequential? ids) ids [ids])
-              ds-id (clojure.string/join \u0001 [ds id] )
-              ]
+      (doseq [id (if (sequential? ids) ids [ids])]
+              
 				      (update-check-message!  
-				            ds-id
+				            (StringUtils/join [ds id] \u0001)
                     (fn [msg] (= (:status msg) status-run))
 					          {:status status-done}))
           )
-				  (f))
+    (f)
+      )
 
   
 (defn select-ds-messages  

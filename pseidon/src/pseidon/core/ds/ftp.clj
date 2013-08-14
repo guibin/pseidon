@@ -3,7 +3,7 @@
   (:require   [pseidon.core.conf :refer [get-conf get-conf2] ]
               [pseidon.core.datastore :refer [inc-data! get-data-number] ]
               [pseidon.core.tracking :refer [mark-run!]]
-              [pseidon.core.tracking :refer [select-ds-messages with-txn destruct-dsid]]
+              [pseidon.core.tracking :refer [select-ds-messages with-txn destruct-dsid dbspec]]
               [pseidon.core.utils :refer [merge-distinct-vects]]
   )
   (:use clojure.tools.logging
@@ -33,7 +33,7 @@
                ))
       m)))
 
-(defn load-recover-messages! [ns & {:keys [db]}]
+(defn load-recover-messages! [ns & {:keys [db] :or {db dbspec}}]
   "Groups the recover messages by the ftp filename and sets the resultant map to the recover-message-map
    This method should only be called once on startup to recover messaes that have not been sent
   "
@@ -216,7 +216,7 @@
       [x y])
     ftp-id-extract) message))
 
- (defn get-files [conn ns dir pred-filter & {:keys [db] :as org} ]
+ (defn get-files [conn ns dir pred-filter & {:keys [db] :or {db dbspec} :as org} ]
    "Get only files that have not been sent yet
     the pred-filter is applied using filter
    "
@@ -231,7 +231,7 @@
   ))
  
 
-(defn file-line-seq! [conn ns file reader pos line-buff & {:keys [db] }]
+(defn file-line-seq! [conn ns file reader pos line-buff & {:keys [db] :or {db dbspec} }]
   "
     This methods does have side affects because it needs to keep track of which lines have been read already.
     pos is the starting point from where the file is read.
@@ -337,7 +337,7 @@
                            (get-rdr)
 	                         (let [diff (- x prev-y)
                                 
-	                                   rdr (cond (> 1 diff) ;skip the gap and return the same reader
+	                                   rdr (cond (> diff 1) ;skip the gap and return the same reader
 				                                 (do 
 	                                          (pseidon.util.Bytes/skip reader diff) 
 	                                          reader
@@ -382,7 +382,7 @@
       ))
 
 
-(defn get-line-seq! [conn ns file line-buff & {:keys [db]}]
+(defn get-line-seq! [conn ns file line-buff & {:keys [db] :or {db dbspec}}]
   "Helper method for ftp data sources, returns a reader that will save the number of characters read on each readLine call
    The method will also read the file data and skip the characters already read.
    Items in the sequence have format [start-pos end-pos lines]
@@ -397,7 +397,7 @@
             (if (empty? recover-msg-seq)
               (f-line-seq)
               (concat (recover-line-seq conn file (map pos-vec-extract recover-msg-seq))
-                      (lazy-seq (line-seq)))
+                      (lazy-seq (f-line-seq)))
               )))
             
             

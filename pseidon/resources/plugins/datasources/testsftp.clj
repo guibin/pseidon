@@ -1,6 +1,6 @@
 (ns plugins.datasources.testsftp
   (:require
-      [pseidon.core.ds.ftp :refer [ftp-connect get-files get-line-seq!]]
+      [pseidon.core.ds.ftp :refer [ftp-connect get-files get-line-seq! load-recover-messages!]]
       [pseidon.core.conf :refer [get-conf2]]
     )
     (:use pseidon.core.registry)
@@ -19,7 +19,7 @@
 
 ;register the testftp datasource
 (register (->DataSource "testftp" 
-                         #() 
+                         #(load-recover-messages! name-space) 
                          #(.close (:fs conn) )
                          #(get-files conn name-space "/" 
                               (fn [file] (.endsWith file ".txt" ) ))

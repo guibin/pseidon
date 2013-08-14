@@ -28,6 +28,7 @@
   
   ;we call mark-done! and pass it a clojure that will write all of the bytes for the message.
   ;if any error the mark-done will roll back any status flags set.
+  (info "Writing " topic " ids " (get-ids msg))
   (write topic 
                (unparse dateformat (from-long ts))
                (fn [out] (doseq [bts (get-bytes-seq msg) ] (exec-write out bts)))

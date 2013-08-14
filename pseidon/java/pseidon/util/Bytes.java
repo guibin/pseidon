@@ -30,9 +30,10 @@ public final class Bytes {
 		char[] ch = new char[1024];
 		int read = 0;
 		int total = 0;
+		System.out.println("Bytes.skip: " + chars);
 		while ((read = reader.read(ch, 0, (int) getI(ch, chars - total))) > 0
 				&& (total += read) < chars)
-			;
+			System.out.println("Bytes.skip-222: total " + total + " read " + read);
 	}
 
 	public static final long size(File file) {
