@@ -139,7 +139,6 @@
           cnt (count bts)
           v (if (or (= cnt 4) (= cnt 8)) bts pseidon.util.Bytes/ZERO)
           ]
-      (prn "inc bytes " ns " " id " "  v " " inc-val  " = " (pseidon.util.Bytes/toLong (inc-bytes v inc-val)))
     (set-data! ns id (inc-bytes v inc-val))))
 
 

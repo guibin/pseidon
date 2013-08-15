@@ -3,7 +3,7 @@
   (:require   [pseidon.core.conf :refer [get-conf get-conf2] ]
               [pseidon.core.datastore :refer [inc-data! get-data-number] ]
               [pseidon.core.tracking :refer [mark-run!]]
-              [pseidon.core.tracking :refer [select-ds-messages with-txn destruct-dsid dbspec]]
+              [pseidon.core.tracking :refer [select-ds-messages with-txn destruct-dsid dbspec status-done message-statuscount]]
               [pseidon.core.utils :refer [merge-distinct-vects]]
   )
   (:use clojure.tools.logging
@@ -400,4 +400,27 @@
                       (lazy-seq (f-line-seq)))
               )))
             
-            
+          
+(defn delete-done-file [conn ns file-name & {:keys [db] :or {db dbspec}} ]
+  "Files are only deleted if they have been sent from the datasource and all messages
+   from the tracking system are marked as done processing
+  "
+  ;(message-statuscount "where dsid" :db db) => [{:n 2, :status "ready"} {:n 1, :status "done"}]
+   (letfn [ (tracking-done? [ns file-name] 
+                            ;we duplicate ns in the join because the data-source plus ns is the same in this ftp namespace
+                            ;see where we call mark-message-run!
+                            (-> (clojure.string/join \u0001 [ns ns file-name])
+                                (message-statuscount :db db)
+                                 first :status (= status-done)))
+            (file-sent? [file-name]
+                        ;returns filter-done's value which is true only if the file was sent
+                        (->> file-name (ftp-details conn) filter-done))
+         
+            (delete? [file-name]
+                            (and (file-sent? file-name) (tracking-done? ns file-name)))
+           ]
+;       (do (ftp-rm conn file-name) true)
+         (let [del (delete? file-name)]
+           (if del (ftp-rm conn file-name))
+           del)
+       ))

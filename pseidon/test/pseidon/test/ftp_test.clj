@@ -219,6 +219,40 @@
                                           
                     )
                 ))
+          (fact "Test deleting done files"
+                (let [local-file "resources/conf/log4j.properties" 
+                   remote-file1 "/a/b/testdeletingdonefiles/log4j-1.properties"
+                   remote-file2 "/a/b/testdeletingdonefiles/log4j-2.properties"
+                   remote-file3 "/a/b/testdeletingdonefiles/log4j-3.properties"
+                   db (create-spec "target/test-deletedonefiles123")
+                   ns (str "test-" (System/currentTimeMillis))
+                   slurp-file (fn [file]
+                                ;reads in the whole file and marks every message as done
+                                (with-txn db
+                                (dorun
+                                  (let [[[x y lines]] (get-line-seq! conn ns file 100 :db db)]
+                                    (mark-done! ns (ftp-record-id ns file x y) #() :db db)
+                                    ))))
+                                
+                   ]
+                  (ftp-put conn local-file remote-file1 )
+                  (ftp-put conn local-file remote-file2 )
+                  (ftp-put conn local-file remote-file3 )
+                  
+                  ;consume file1
+                  (slurp-file remote-file1)
+                  
+                  ; delete-done-file [conn ns file-name & {:keys [db] :or {db dbspec}} ]
+                  (delete-done-file conn ns remote-file1 :db db) => true
+                  (delete-done-file conn ns remote-file2 :db db) => false
+                  (delete-done-file conn ns remote-file3 :db db) => false
+                  
+                  (ftp-exists? conn remote-file1) => false
+                  (ftp-exists? conn remote-file2) => true
+                  (ftp-exists? conn remote-file3) => true
+                  
+                
+                ))
                  
        )
         

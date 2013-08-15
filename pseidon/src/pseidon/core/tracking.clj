@@ -179,12 +179,12 @@
     (sql/delete-rows "messagetracking" ["ts <= ?" ts])))
 
 
-(defn message-statuscount [where & {:keys [db max] :or {db dbspec max 100}}]
+(defn message-statuscount [dsid & {:keys [db max] :or {db dbspec max 100}}]
   "Returns the messages filtered by where and grouped by status as 
    [{:status \"status\" :n count-value} , ... ] 
   "
   (with-txn db
-    (query "select status, count(*) as n from messagetracking group by status" max)))
+    (query (str "select status, count(*) as n from messagetracking where dsid like '" dsid \u0001 "%' group by status") max)))
 
 (defn shutdown []
   )
