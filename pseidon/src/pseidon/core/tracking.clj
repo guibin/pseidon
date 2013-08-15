@@ -173,6 +173,19 @@
   (select-messages (str "dsid like '" ds \u0001 "%' and status='" status "'") 0 max))
 
 
+(defn expire-old-messages [^Long ts & {:keys [db] :or {db dbspec}}]
+  "Runs a delete query on the current db to remove records older than ts"
+  (with-txn db
+    (sql/delete-rows "messagetracking" ["ts <= ?" ts])))
+
+
+(defn message-statuscount [where & {:keys [db max] :or {db dbspec max 100}}]
+  "Returns the messages filtered by where and grouped by status as 
+   [{:status \"status\" :n count-value} , ... ] 
+  "
+  (with-txn db
+    (query "select status, count(*) as n from messagetracking group by status" max)))
+
 (defn shutdown []
   )
 
@@ -180,14 +193,7 @@
   ;we need a way to cleanout records older than n this cleanout needs to run periodically
   ;this method will run every 6 hours (i.e. 4 times a day)
   (fixdelay 21600000 (expire-old-messages (get-conf2 "tracking.expirems" 2419200000))
-  
-  )
-
-(defn expire-old-messages [^Long ts & {:keys [db] :or {db dbspec}}]
-  "Runs a delete query on the current db to remove records older than ts"
-  (with-txn db
-    (sql/delete-rows "messagetracking" ["ts <= ?" ts])))
-
+  ))
 
 
 

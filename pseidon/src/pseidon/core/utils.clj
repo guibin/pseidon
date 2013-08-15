@@ -1,4 +1,6 @@
 (ns pseidon.core.utils
+  (require [clojure.core.async :refer [go timeout <!]]
+           )
   )
 
 (defn merge-distinct-vects[v1 v2]
