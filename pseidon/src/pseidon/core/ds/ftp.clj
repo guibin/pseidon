@@ -1,7 +1,7 @@
 (ns pseidon.core.ds.ftp
   
   (:require   [pseidon.core.conf :refer [get-conf get-conf2] ]
-              [pseidon.core.datastore :refer [inc-data! get-data-number] ]
+              [pseidon.core.datastore :refer [inc-data! get-data-number set-data!] ]
               [pseidon.core.tracking :refer [mark-run!]]
               [pseidon.core.tracking :refer [select-ds-messages with-txn destruct-dsid dbspec status-done message-statuscount]]
               [pseidon.core.utils :refer [merge-distinct-vects]]
@@ -187,7 +187,6 @@
 
 (defn filter-done [{:keys [size sent-size] }]
   "Returns false if the size and sent-size are equal"
-  (prn "filter-done sent-size " sent-size " size " size)
   (>= sent-size size
        ))
 
@@ -285,7 +284,11 @@
      (defn read-lines [n]
        (loop [i n lines nil total-char-count 0]
          (let [[line char-count] (try (n-read-line reader) (catch Exception e [nil 0]) )]
-           (if (nil? line) (.close reader))
+           (if (nil? line) (do 
+                             (.close reader)
+                             ;save data so that its equal to the filesize
+                             (set-data! ns file (:size (ftp-details conn file)))
+                             ))
            (let [chars (+ total-char-count char-count) ]
 	           
              (if (nil? line)
