@@ -21,6 +21,7 @@
                  [cheshire "5.2.0"]
                  ;[prismatic/plumbing "0.1.0"]
                  ;[org.clojure/core.logic "0.8.3"]
+                 [org.clojure/core.async "0.1.0-SNAPSHOT"]
                  [org.clojure/tools.cli "0.2.2"]
                  
                  [log4j/log4j "1.2.16" :exclusions [javax.mail/mail

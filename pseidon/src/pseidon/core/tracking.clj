@@ -1,7 +1,7 @@
 (ns pseidon.core.tracking
  (:require [clojure.java.jdbc :as sql]
            [pseidon.core.conf :refer [get-conf2] ]
-           [pseidon.core.utils :refer [buffered-select]]
+           [pseidon.core.utils :refer [buffered-select fixdelay]]
            [clojure.tools.logging :refer [info error]]
            )
  (:import [org.apache.commons.lang StringUtils])
@@ -13,7 +13,6 @@
 (defn now [] (java.util.Date.))
 
 
-(defn tracking-start [] )
 
 (def ^:Dynamic dbspec)
 (defn ^:Dynamic ensure-started [] )
@@ -51,7 +50,8 @@
 				      [:dsid "VARCHAR(255)" "NOT NULL" "PRIMARY KEY"]
 				      [:status "VARCHAR(20)" "NOT NULL"]
 				      [:ts "TIMESTAMP" "NOT NULL"])
-				   (sql/do-commands "CREATE INDEX messagetraking_index1 ON messagetracking(dsid, status, ts)")))))
+				   (sql/do-commands "CREATE INDEX messagetraking_index1 ON messagetracking(dsid, status, ts)")
+           (sql/do-commands "CREATE INDEX messagetraking_index2 ON messagetracking(ts, status)")))))
 		
 	   (defn wrap-table-exist-exception [f]
 	    (try (f) 
@@ -176,6 +176,17 @@
 (defn shutdown []
   )
 
+(defn tracking-start [] 
+  ;we need a way to cleanout records older than n this cleanout needs to run periodically
+  ;this method will run every 6 hours (i.e. 4 times a day)
+  (fixdelay 21600000 (expire-old-messages (get-conf2 "tracking.expirems" 2419200000))
+  
+  )
+
+(defn expire-old-messages [^Long ts & {:keys [db] :or {db dbspec}}]
+  "Runs a delete query on the current db to remove records older than ts"
+  (with-txn db
+    (sql/delete-rows "messagetracking" ["ts <= ?" ts])))
 
 
 

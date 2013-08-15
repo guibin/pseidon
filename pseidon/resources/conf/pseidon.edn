@@ -23,4 +23,8 @@
  :tracking-db-dir "/tmp/pseidontracking"
  
  :view-port 8080
+ 
+ ;messages in the tracking system older than this value are deleted there status are ignored
+ :tracking.expire 2419200000 ; 4 weeks
+ 
 }
