@@ -184,7 +184,14 @@
   {:sent-size (get-data-number ns (str file)) :file file }
   )
 
+
 (defn filter-done [{:keys [size sent-size] }]
+  "Returns false if the size and sent-size are equal"
+  (prn "filter-done sent-size " sent-size " size " size)
+  (>= sent-size size
+       ))
+
+(defn filter-not-done [{:keys [size sent-size] }]
   "Returns false if the size and sent-size are equal"
   (not= size sent-size
        ))
@@ -216,6 +223,7 @@
       [x y])
     ftp-id-extract) message))
 
+
  (defn get-files [conn ns dir pred-filter & {:keys [db] :or {db dbspec} :as org} ]
    "Get only files that have not been sent yet
     the pred-filter is applied using filter
@@ -225,7 +233,7 @@
       ;we get {:dsid id} -> destructure to [ns id] -> second id -> destructure [ns id start stop] -> second id
       recover-files (map file-name-extract (with-txn db (select-ds-messages ns))) 
       files  (ftp-ls conn dir)
-      names (map :file (filter filter-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
+      names (map :file (filter filter-not-done (map #(conj (ftp-details conn %)  (get-file-data ns %) ) (filter pred-filter files)) ) )
       ]
     (merge-distinct-vects names recover-files)
   ))
@@ -414,8 +422,8 @@
                                  first :status (= status-done)))
             (file-sent? [file-name]
                         ;returns filter-done's value which is true only if the file was sent
-                        (->> file-name (ftp-details conn) filter-done))
-         
+                        (let [details (conj (ftp-details conn file-name)  (get-file-data ns file-name))]
+                        (filter-done details)))
             (delete? [file-name]
                             (and (file-sent? file-name) (tracking-done? ns file-name)))
            ]

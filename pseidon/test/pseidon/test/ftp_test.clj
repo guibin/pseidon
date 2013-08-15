@@ -230,8 +230,12 @@
                                 ;reads in the whole file and marks every message as done
                                 (with-txn db
                                 (dorun
-                                  (let [[[x y lines]] (get-line-seq! conn ns file 100 :db db)]
-                                    (mark-done! ns (ftp-record-id ns file x y) #() :db db)
+                                  (map 
+                                    (fn [[x y lines]]
+                                      (mark-done! ns (ftp-record-id ns file x y) #() :db db)
+                                      )
+                                      (get-line-seq! conn ns file 100 :db db)
+                                    
                                     ))))
                                 
                    ]

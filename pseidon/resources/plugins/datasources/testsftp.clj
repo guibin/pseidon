@@ -1,7 +1,8 @@
 (ns plugins.datasources.testsftp
   (:require
-      [pseidon.core.ds.ftp :refer [ftp-connect get-files get-line-seq! load-recover-messages!]]
+      [pseidon.core.ds.ftp :refer [ftp-connect get-files get-line-seq! load-recover-messages! delete-done-file]]
       [pseidon.core.conf :refer [get-conf2]]
+      [pseidon.core.util :refer [fixdelay]]
     )
     (:use pseidon.core.registry)
   )
@@ -16,6 +17,15 @@
 (def ^:dynamic conn (ftp-connect url uid pwd))
 (def ^:dynamic name-space "testftp")
 ; (defn get-files [conn dir pred-filter]
+
+(defn ^dynamic delete-donefiles [] 
+   
+  (fixdelay 600000 
+            (doseq [ file files]
+              (delete-done-file conn name-space file)
+              )
+            )
+  )
 
 ;register the testftp datasource
 (register (->DataSource "testftp" 
