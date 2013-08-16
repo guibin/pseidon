@@ -110,6 +110,11 @@
      (f (get-client))
   ))
 
+(defn delete! [ns path]
+  "Deletes from the datastore an absolute path starting with the name-space ns"
+  (-> (get-client) .delete .guaranteed (.forPath (join-path ns path)) )
+  true
+  )
 
 (defn get-data-str [ns id]
   "Gets the value of a data as a string encoded in utf-8"

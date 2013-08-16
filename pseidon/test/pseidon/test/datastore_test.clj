@@ -24,6 +24,15 @@
        
        ))
 
+(facts "Test deletions"
+       
+       (fact "Delete file"
+             
+             (set-data! "/deltest" "testfile1" 123)
+             (delete! "/deltest" "testfile1") => true
+             
+             )
+       )
 
 (facts "Test directory listing"
        (fact "List children"
