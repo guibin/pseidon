@@ -28,4 +28,9 @@
  :tracking.expire 2419200000 ; 4 weeks
  
  :hdfs-url "hdfs://localhost:8020" 
+ 
+ ;use this property to include new plugins' jars on the classpath
+ :classpath [
+             "/opt/pseidon/lib/"
+             ] 
 }

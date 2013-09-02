@@ -97,7 +97,7 @@
 
 
 
-(defn destruct-dsid [ds-id]
+(defn destruct-dsid [^String ds-id]
   "Destructs the ds-id into [ns id]"
   (let [ [ns & ids] (StringUtils/split ds-id \u0001)]
     [ns (clojure.string/join \u0001 ids)]

@@ -17,7 +17,7 @@
     
     )
   
-(set-conf! :zk-url "192.168.56.101")
+;(set-conf! :zk-url "192.168.56.101")
 
 (def ^:dynamic topic "abctopics")
 

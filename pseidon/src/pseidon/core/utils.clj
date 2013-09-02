@@ -1,6 +1,7 @@
 (ns pseidon.core.utils
-  (require [clojure.core.async :refer [go timeout <!]]
+  (:require [clojure.core.async :refer [go timeout <!]]
            )
+  (:import (clojure.lang ArityException))
   )
 
 (defn merge-distinct-vects[v1 v2]
@@ -29,3 +30,9 @@
   "Runs the body every ms after the last appication of body completed"
           `(go (loop [] (<! (timeout ~ms)) ~@body (recur))))
   
+
+(defn apply-f [f arg]
+  "Helper function that applies first (f arg) and if an ArityException was thrown, applies (f)"
+  (try (f arg)
+    (catch ArityException e (f)))
+  )

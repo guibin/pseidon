@@ -16,10 +16,23 @@
   (cli args
     ["-c" "--config" "Configuration directory that must contain a pseidon.edn file" :parse-fn #(java.io.File. %) :default (java.io.File. "/opt/pseidon/conf")]
     ["-stop" "--stop" "Shutdown the application" :flag true]
-    ["-r" "--refresh-plugins" "Refresh all edited plugins" :flag true] 
+    ["-r" "--refresh-plugins" "Refresh all edited plugins" :flag true]
+    ["-get-cp" "--get-cp" "Returns classpath string from the pseidon.edn classpath setting"]
   ))
 
 
+
+(defn parse-cp-item [item]
+  (if (and  
+         (-> (clojure.java.io/file item) .exists)
+         (not (.endsWith item "*"))
+       )
+    (str item "/*")
+    item    
+    ))
+
+(defn get-classpath [] 
+   (clojure.string/join ":" (map parse-cp-item (get-conf2 :classpath ["/opt/pseidon/lib/*"]))))
 
 (defn check-opts2 [opts]
  "Check that all the options required are defined, else print the usage"
@@ -66,17 +79,16 @@
 (defn -main [& args]
      
      (if-let [opts (check-opts (cmd args) ) ]
-      (if (:refresh-plugins opts)
-        (send-refresh)
-        (if (:stop opts) 
-         (send-shutdown)
-         (do 
-             (load-config! (clojure.string/join "/" [ (:config opts) "pseidon.edn"] )) 
-             (start-repl (get-conf2 :repl-port 7111))
-             (start-app)
-             
-             ))
-        )
-       ))
-
+       (do
+          (load-config! (clojure.string/join "/" [ (:config opts) "pseidon.edn"] )) 
+     
+		      (cond
+		              (:refresh-plugins opts) (send-refresh)
+		             (:stop opts) (send-shutdown)
+		             (contains? opts :get-cp) (.println System/out (get-classpath))
+		              :else
+		               (do 
+				             (start-repl (get-conf2 :repl-port 7111))
+				             (start-app))             
+		          ))))
 

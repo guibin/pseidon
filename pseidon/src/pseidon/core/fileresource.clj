@@ -1,9 +1,13 @@
 (ns pseidon.core.fileresource
-   (:require [pseidon.core.tracking :refer [with-txn]])
+   (:require [pseidon.core.tracking :refer [with-txn]]
+             [pseidon.core.utils :refer [apply-f]])
    (:use clojure.tools.logging 
          pseidon.core.watchdog
          pseidon.core.conf
          pseidon.core.wal)
+   
+   (:import (clojure.lang ArityException)
+            (org.apache.hadoop.io.compress CompressionCodec))
   )
 
 (import '(org.streams.commons.compression CompressionPool CompressionPoolFactory))
@@ -23,7 +27,7 @@
 (def gzip-codec (org.apache.hadoop.io.compress.GzipCodec.))
 
 ;find codec from codec map otherwise return the GzipCodec
-(defn get-codec [topic]
+(defn ^CompressionCodec get-codec [topic]
    (get  (get-conf2 :topic-codecs {}) topic  gzip-codec)
   )
 (defn get-writer-basedir [] 
@@ -37,11 +41,11 @@
 
 
 ;returns the complete file name with extension adding an extra '_' suffix
-(defn create-file-name [key, codec]
+(defn ^String create-file-name [key, codec]
    (str key (.getDefaultExtension codec) "_" (System/nanoTime)))
 
 
-(defn create-rolled-file-name [^String file-name]
+(defn ^String create-rolled-file-name [^String file-name]
   "Split the filename by . and _, then swap the last two values and joint the list with ."
   (def last-nth (fn [xs n] (xs (- (count xs) n))))
 
@@ -147,7 +151,7 @@
 	  (let [
 	        post-roll (:post-roll frs)
 	        file (:file frs)  
-	        new-file  (java.io.File. (create-rolled-file-name (:name frs) ))
+	        ^java.io.File new-file  (java.io.File. (create-rolled-file-name (:name frs) ))
 	        renamed (.renameTo file new-file)
 	        ]
 	     (if renamed 
@@ -155,7 +159,7 @@
 	         (info "File " new-file " created") 
 	         (close-destroy (:walfile frs))
 	           (try 
-	             (with-txn pseidon.core.tracking/dbspec (doseq [prf post-roll] (prf)))
+	             (with-txn pseidon.core.tracking/dbspec (doseq [prf post-roll] (apply-f prf new-file)))
 	             (catch Exception e (do 
                                     ;if the post-roll messages could not be run, the file is deleted
 	                                  (.delete new-file)
@@ -186,7 +190,7 @@
       ))
 
 
-(defn default-roll-check [{:keys [file output]} ]
+(defn default-roll-check [{:keys [^java.io.File file ^java.io.OutputStream output]} ]
     "Checks the file size and roll on size"
     (.flush output)
     (or 

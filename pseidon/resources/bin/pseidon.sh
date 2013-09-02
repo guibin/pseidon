@@ -43,7 +43,15 @@ CLASSPATH=${CLASSPATH}:$f;
 done
 
 CLIENT_CLASS="pseidon.core"
-
 CLASSPATH=$CONF_DIR:$CONF_DIR/META-INF:$CLASSPATH
 
+cp=$($JAVA -classpath "$CLASSPATH" $CLIENT_CLASS --get-cp | tail -n 1)
+
+if [ -z $cp ]; then
+cp="/opt/pseidon/lib/*"
+fi
+
+CLASSPATH="$CONF_DIR:$CONF_DIR/META_INF:$cp"
+
+echo $CLASSPATH
 $JAVA -XX:MaxDirectMemorySize=2048M -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:SurvivorRatio=6 -XX:NewRatio=3 -XX:+DisableExplicitGC $JAVA_HEAP $JAVA_OPTS -Djava.library.path="$STREAMS_HOME/lib/native/Linux-amd64-64/" -classpath "$CLASSPATH" $CLIENT_CLASS $@

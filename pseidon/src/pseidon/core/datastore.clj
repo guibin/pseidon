@@ -91,13 +91,17 @@
         (ensure-path bclient ns p)
         ))
 
-(defn list-dirs [ & dirs]
+(defn list-dirs [name-space & dirs]
   "Takes directories as a b c .. and joins then by '/'
    The children of that directory is called, note that the first argument must always begin with '/'
    incase of an exception an empty vector is returned
    Directories are always returned in lexical sorted order
   "
-  (try (let [dir (clojure.string/join "/" dirs)
+  (try (let [dir 
+             (join-path 
+               name-space (reduce join-path dirs))
+             
+             
         f #(-> %1 .getChildren (.forPath dir) sort)]
    (f (get-client))  
   )

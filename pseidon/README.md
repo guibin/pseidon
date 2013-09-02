@@ -13,6 +13,15 @@ https://sourceforge.net/projects/pseidon/files
 
 ## Doc
 
+### Classpath setup and including new plugins
+
+The classpath for pseidon is set using the classpath property in the pseidon.edn file
+
+The default property value is /opt/pseidon/lib
+
+To add in a new plugin with its own jars and files edit this property.
+
+
 ### Tracking
 
 Each message send from a datasource is tracked through the system with two states

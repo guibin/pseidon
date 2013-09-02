@@ -2,7 +2,7 @@
   (:require
       [pseidon.core.ds.ftp :refer [ftp-connect get-files get-line-seq! load-recover-messages! delete-done-file]]
       [pseidon.core.conf :refer [get-conf2]]
-      [pseidon.core.util :refer [fixdelay]]
+      [pseidon.core.utils :refer [fixdelay]]
     )
     (:use pseidon.core.registry)
   )
@@ -10,7 +10,7 @@
 
 ;(defrecord DataSource [name start stop list-files reader])
 
-(def ^:dynamic url (get-conf2 "testftp-url" "sftp://192.168.56.101"))
+(def ^:dynamic url (get-conf2 "testftp-url" "sftp://localhost"))
 (def ^:dynamic uid (get-conf2 "testftp-uid" "ftptest"))
 (def ^:dynamic pwd (get-conf2 "testftp-pwd" "tech!sw78"))
 
@@ -18,13 +18,14 @@
 (def ^:dynamic name-space "testftp")
 ; (defn get-files [conn dir pred-filter]
 
-(defn ^dynamic delete-donefiles [] 
-   
+(defn ^:dynamic delete-donefiles [] 
+  (comment 
   (fixdelay 600000 
-            (doseq [ file files]
+            (doseq [file files]
               (delete-done-file conn name-space file)
               )
             )
+)
   )
 
 ;register the testftp datasource

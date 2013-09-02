@@ -38,5 +38,9 @@
        (fact "List children"
              (do (mkdirs "/a" "b" "c") (mkdirs "/a" "b" "d") (mkdirs "/a" "b" "e") (list-dirs "/a" "b")) => ["c" "d" "e"]
              )
+       (fact "List children of non-existent directory "
+             (list-dirs "/non-existendir" "a") => []
+             
+             )
        )
        
