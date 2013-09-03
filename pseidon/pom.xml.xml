@@ -126,7 +126,7 @@
 								<groupname>pseidon</groupname>
 								<sources>
 									<source>
-										<location>resources/plugins</location>
+										<location>plugins</location>
 									</source>
 								</sources>
 							</mapping>
@@ -252,11 +252,6 @@ exit
       <groupId>com.jcraft</groupId>
       <artifactId>jsch</artifactId>
       <version>0.1.50</version>
-    </dependency>
-    <dependency>
-      <groupId>org.streams</groupId>
-      <artifactId>streams-log</artifactId>
-      <version>0.5.1</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>

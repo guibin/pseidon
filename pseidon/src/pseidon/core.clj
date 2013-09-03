@@ -23,13 +23,15 @@
 
 
 (defn parse-cp-item [item]
-  (if (and  
-         (-> (clojure.java.io/file item) .exists)
-         (not (.endsWith item "*"))
-       )
-    (str item "/*:" item)
-    item    
-    ))
+  (let [file (clojure.java.io/file item)]
+	  (if (and  
+	         (.exists file)
+           (.isDirectory file)
+	         (not (.endsWith item "*"))
+	       )
+	       (str item "/*:" item)
+	       item    
+	    )))
 
 (defn get-classpath [] 
    (clojure.string/join ":" (map parse-cp-item (get-conf2 :classpath ["/opt/pseidon/lib/*"]))))
