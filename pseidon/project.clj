@@ -1,4 +1,4 @@
-(defproject pseidon "0.3.0-SNAPSHOT"
+(defproject pseidon "0.3.1-SNAPSHOT"
   :description "BigData Import Framework"
   :url "https://github.com/gerritjvv/pseidon"
   :license {:name "Eclipse Public License"
