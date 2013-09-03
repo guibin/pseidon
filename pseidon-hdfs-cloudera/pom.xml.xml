@@ -77,18 +77,6 @@
 								<filemode>775</filemode>
 								<username>pseidon</username>
 								<groupname>pseidon</groupname>
-								<sources>
-									<source>
-										<location>target/pseidon-hdfs-cloudera-${project.version}.jar</location>
-									</source>
-								</sources>
-							</mapping>
-							
-							<mapping>
-								<directory>/opt/pseidon-hdfs/lib</directory>
-								<filemode>775</filemode>
-								<username>pseidon</username>
-								<groupname>pseidon</groupname>
 							</mapping>
 
 							<mapping>

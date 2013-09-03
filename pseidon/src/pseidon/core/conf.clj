@@ -32,9 +32,9 @@
 
 
 (defn get-conf [n]
-  (get @conf n)  
+  (get @conf (keyword n))  
   )
 
 (defn get-conf2 [n default-v]
-  (get @conf n default-v)  
+  (get @conf (keyword n) default-v)  
   )

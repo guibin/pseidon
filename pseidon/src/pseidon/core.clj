@@ -27,7 +27,7 @@
          (-> (clojure.java.io/file item) .exists)
          (not (.endsWith item "*"))
        )
-    (str item "/*")
+    (str item "/*:" item)
     item    
     ))
 
@@ -81,7 +81,7 @@
      (if-let [opts (check-opts (cmd args) ) ]
        (do
           (load-config! (clojure.string/join "/" [ (:config opts) "pseidon.edn"] )) 
-     
+          
 		      (cond
 		              (:refresh-plugins opts) (send-refresh)
 		             (:stop opts) (send-shutdown)

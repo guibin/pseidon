@@ -23,7 +23,7 @@
    (if-let [f# (get model-map model-key)]
    `(~f# ~@args)))
 
-(def ^:dynamic number-format [^Int n]
+(defn ^:dynamic number-format [^Integer n]
   (if (< n 10) (str "0" n) (str n)))
   
 (def ^:dynamic dt-formatter (formatter "yyyyMMdd"))
