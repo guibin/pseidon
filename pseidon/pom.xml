@@ -123,7 +123,7 @@
 						<mapping>
 							<directory>/opt/pseidon/lib-hadoop</directory>
 							<filemode>775</filemode>
-							<username>glue</username>
+							<username>pseidon</username>
 							<groupname>hadoop</groupname>
 							<dependency>
 								<includes>
@@ -178,13 +178,9 @@
 							type getent || exit 0
 
 							getent group pseidon >/dev/null || groupadd -r pseidon
-							getent
-							passwd pseidon >/dev/null || \
-							useradd -r -g pseidon -d
-							/home/pseidon -s /sbin/nologin \
-							-c "pseidon runs under the
-							pseidon user and group" pseidon
-							exit
+							
+							useradd -r -g pseidon -d /home/pseidon -s /sbin/nologin pseidon 2> /dev/null
+							exit 0
 						</script>
 					</preinstallScriptlet>
 				</configuration>

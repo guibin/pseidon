@@ -41,5 +41,7 @@
  ;use this property to include new plugins' jars on the classpath
  :classpath [
              "/opt/pseidon/lib/"
+             "/opt/pseidon/lib-hadoop"
+             "/opt/pseidon/resources"
              ] 
 }
