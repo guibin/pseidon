@@ -11,15 +11,11 @@
                  [org.apache.commons/commons-vfs2 "2.0"]
                  [org.apache.sshd/sshd-core "0.8.0"]  
                  [com.jcraft/jsch "0.1.50"]
-                 [org.streams/streams-log "0.5.1"]
                  [org.clojure/tools.namespace "0.2.4-SNAPSHOT"]
                  [clj-time "0.5.1"]
                  [http-kit "2.1.8"]
                  [compojure "1.1.5"]
-                 ;[hiccup "1.0.4"]
                  [cheshire "5.2.0"]
-                 ;[prismatic/plumbing "0.1.0"]
-                 ;[org.clojure/core.logic "0.8.3"]
                  [org.clojure/core.async "0.1.0-SNAPSHOT"]
                  [org.clojure/tools.cli "0.2.2"]
                  
@@ -31,15 +27,16 @@
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.apache.curator/curator-framework "2.0.1-incubating"]
-   		           [org.apache.curator/curator-test "2.0.1-incubating" :scope "test"]
+   		 [org.apache.curator/curator-test "2.0.1-incubating" :scope "test"]
+                 
                  [midje "1.6-alpha2" :scope "test"]
                  
                  [org.hsqldb/hsqldb "2.3.0"]
-                 [korma "0.3.0-RC5"]
-                 ;deprecate
-                 [cupboard "1.0beta1"]
-                 
-                 [criterium "0.4.1"] ;benchmarking
+                 [org.clojure/java.jdbc "0.3.0-alpha4"]
+  
+                 [org.streams/streams-log "0.5.0" :exclusions [hsqldb org.apache.hadoop/hadoop-core]]
+                 [org.apache.hadoop/hadoop-core "0.20.2" :scope "provided" :exclusions [hsqldb]]
+                 [criterium "0.4.1" :scope "test"] ;benchmarking
                  [spyscope "0.1.3" :scope "test"]
                 
                  ]

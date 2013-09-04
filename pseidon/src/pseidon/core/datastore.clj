@@ -51,7 +51,7 @@
      p2
    ))
 
-(defn ensure-path [client ns path]
+(defn ensure-path [^org.apache.curator.framework.CuratorFramework client ns path]
   (let [p   (join-path ns path) ]
   (when (not (-> client .checkExists (.forPath p)))
      (do 

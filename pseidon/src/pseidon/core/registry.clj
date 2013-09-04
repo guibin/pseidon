@@ -47,14 +47,14 @@
       )
     
     (doseq [[name {run :run}] @reg-state]
-          (.submit @exec-service (fn [] 
-             (time ((watch-critical-error run)))
-           ))
-        ))
+      (let [service ^java.util.concurrent.ExecutorService  @exec-service
+            ^java.util.concurrent.Callable callable (fn [] (time ((watch-critical-error run))))]
+          (.submit service callable))))
   
   (defn stop-all []
-     (try 
-     (doseq [[name {stop :stop}] @reg-state]
+    (let [service ^java.util.concurrent.ExecutorService @exec-service]
+      (try 
+        (doseq [[name {stop :stop}] @reg-state]
           ((watch-normal-error stop))
-          ) (finally (.shutdown @exec-service))
-     ))
+          ) (finally (.shutdown service)))))
+  

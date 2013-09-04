@@ -7,7 +7,7 @@
          pseidon.core.wal)
    
    (:import (clojure.lang ArityException)
-            (org.apache.hadoop.io.compress CompressionCodec))
+            (org.apache.hadoop.io.compress CompressionCodec Compressor))
   )
 
 (import '(org.streams.commons.compression CompressionPool CompressionPoolFactory))
@@ -18,7 +18,7 @@
 (defrecord TopicConf [key codec])
 
 
-(def compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 nil))
+(def ^CompressionPoolFactory compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 nil))
 
 (def file-resource-exec-service (ref nil))
 
@@ -41,7 +41,7 @@
 
 
 ;returns the complete file name with extension adding an extra '_' suffix
-(defn ^String create-file-name [key, codec]
+(defn ^String create-file-name [key, ^CompressionCodec codec]
    (str key (.getDefaultExtension codec) "_" (System/nanoTime)))
 
 
@@ -62,7 +62,7 @@
  (defn add-agent [topic key]
    
   (let [codec (get-codec topic) 
-        compressor (-> compressor-pool-factory (.get codec) )
+        ^CompressionPool compressor (-> compressor-pool-factory (.get codec) )
         file-name (create-file-name (clojure.string/join "/" [(get-topic-basedir topic) key]) codec)
         agnt 
            (agent 
@@ -88,7 +88,7 @@
   ))
 
 ;create a file using the codec
-(defn create-file [^java.io.File file ^org.apache.hadoop.io.compress.CompressionCodec codec compressor]
+(defn create-file [^java.io.File file ^org.apache.hadoop.io.compress.CompressionCodec codec ^CompressionPool compressor]
        (if-let [parent (.getParentFile file)] (.mkdirs parent) (info "File has no parent " file) )
        (.createNewFile file)
        (if (.exists file) (info "Created " file) (throw (java.io.IOException. (str "Failed to create " file)))  )
