@@ -24,8 +24,8 @@
 	         )))
 
 (defmacro with-txn 
- [spec body]
-    `(txn-helper ~(if spec spec dbspec )  ~body))
+ [spec & body]
+    `(txn-helper ~(if spec spec dbspec )  ~@body))
 
 (defn as-str [& s] (apply str s))
 

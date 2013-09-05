@@ -29,15 +29,17 @@
  
  :hdfs-url "hdfs://localhost:8020" 
  
-  hdfs-dir-model 1 ; how files are uploaded to hdfs
+ :hdfs-dir-model 1 ; how files are uploaded to hdfs
                    ; 1 = uses a directory structure dt=yyyyMMdd/hr=yyyyMMddHH
                    ; 2 = uses a directory structure year=yyyy/month=MM/day=dd/hour=HH
   
-  hdfs-local-file-model 1 ; defines the expected local file format from which the date hour will be extracted
+ :hdfs-local-file-model 1 ; defines the expected local file format from which the date hour will be extracted
                           ; 1 = type_id_hr_yyyyMMddHH.extension
                           ; 2 = type_yyyMMddHH.extension
-  hdfs-base-dir "/log/raw"
+ :hdfs-base-dir "/log/raw"
   
+ :default-codec org.apache.hadoop.io.compress.GzipCodec
+ 
  ;use this property to include new plugins' jars on the classpath
  :classpath [
              "/opt/pseidon/lib/"

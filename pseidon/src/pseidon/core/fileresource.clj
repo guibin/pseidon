@@ -7,7 +7,8 @@
          pseidon.core.wal)
    
    (:import (clojure.lang ArityException)
-            (org.apache.hadoop.io.compress CompressionCodec Compressor))
+            (org.apache.hadoop.io.compress CompressionCodec Compressor)
+            (org.apache.hadoop.conf Configurable Configuration))
   )
 
 (import '(org.streams.commons.compression CompressionPool CompressionPoolFactory))
@@ -24,12 +25,26 @@
 
 (def fileMap (ref {}))
 
-(def gzip-codec (org.apache.hadoop.io.compress.GzipCodec.))
+;used to configuration codecs that are marked as Configurable codecs like LZO require the hadoop configuration to be set.
+(def hadoop-conf (Configuration.))
 
-;find codec from codec map otherwise return the GzipCodec
+
+(defn ^CompressionCodec configure-codec [^CompressionCodec codec ^Configuration hadoop-conf]
+  (if (instance? Configurable codec)
+      (doto codec (.setConf hadoop-conf))
+      codec))
+
+(def default-codec 
+   (configure-codec (if-let [codec (get-conf2 :default-codec nil)]
+    (-> (Thread/currentThread) .getContextClassLoader (.loadClass (.getName codec)) .newInstance)
+    (org.apache.hadoop.io.compress.GzipCodec.))  hadoop-conf))
+
 (defn ^CompressionCodec get-codec [topic]
-   (get  (get-conf2 :topic-codecs {}) topic  gzip-codec)
-  )
+  (if-let [ codec (get  (get-conf2 :topic-codecs {}) topic)]
+     (configure-codec codec hadoop-conf)
+     default-codec))
+
+
 (defn get-writer-basedir [] 
   (get-conf2 :writer-basedir "target")
   )
