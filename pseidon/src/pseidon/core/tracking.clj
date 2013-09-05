@@ -156,6 +156,7 @@
   "
     (with-txn db
       ;if ids is a sequence update every id and then apply f
+     (do
       (doseq [id (if (sequential? ids) ids [ids])]
               
 				      (update-check-message!  
@@ -163,8 +164,8 @@
                     (fn [msg] (= (:status msg) status-run))
 					          {:status status-done}))
           )
-    (f)
-      )
+        (f)
+       ))
 
   
 (defn select-ds-messages  

@@ -74,7 +74,7 @@
 					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 					<distribution>pseidon</distribution>
 					<group>utilties</group>
-					<release>2</release>
+					<release>5</release>
 					<packager>http://code.google.com/p/</packager>
 					<provides>
 						<provide>pseidon</provide>
@@ -127,7 +127,7 @@
 							<groupname>hadoop</groupname>
 							<dependency>
 								<includes>
-									<include>org.apache.hadoop:hadoop-core:0.20.2</include>
+									<include>org.apache.hadoop:hadoop-core</include>
 								</includes>
 							</dependency>
 						</mapping>
@@ -148,7 +148,11 @@
 							<filemode>775</filemode>
 							<username>pseidon</username>
 							<groupname>pseidon</groupname>
-							<dependency />
+							<dependency>
+							  <excludes>
+							    <exclude>org.apache.hadoop:hadoop-core</exclude>
+							  </excludes>
+							</dependency>
 						</mapping>
 						<mapping>
 							<directory>/opt/pseidon/lib</directory>
@@ -390,7 +394,7 @@
 					<artifactId>hsqldb</artifactId>
 				</exclusion>
 			</exclusions>
-			<scope>provided</scope>
+			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>criterium</groupId>
