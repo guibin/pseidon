@@ -15,7 +15,6 @@
   
 (defn load-props[file]
   (let [props (clojure.edn/read-string (slurp file)) ]
-    (prn "Is Map " (map? props))
     (if (map? props) props (throw (Exception. (str "The config file " file " must be a map { :kw val :kw2 val2 }") )))
   ))
   

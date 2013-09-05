@@ -40,7 +40,7 @@
                  [spyscope "0.1.3" :scope "test"]
                 
                  ]
-  :aot [pseidon.core]
+  :aot [pseidon.core pseidon.getenv]
   :main pseidon.core
   :repositories {"sonatype-oss-public"
                "https://oss.sonatype.org/content/groups/public/"

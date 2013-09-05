@@ -45,9 +45,9 @@ done
 CLIENT_CLASS="pseidon.core"
 CLASSPATH=$CONF_DIR:$CONF_DIR/META-INF:$CLASSPATH
 
-cp=$($JAVA -classpath "$CLASSPATH" $CLIENT_CLASS --get-cp | tail -n 1)
+cp=$($JAVA -classpath "$CLASSPATH" pseidon.getenv --get-cp | tail -n 1)
 
-if [ -z $cp ]; then
+if [ -z "$cp" ]; then
 cp="/opt/pseidon/lib/*"
 fi
 
