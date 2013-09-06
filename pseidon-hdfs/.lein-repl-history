@@ -1,0 +1,157 @@
+(use 'pseidon.hdsf.cloudera.core.datasource :reload)
+(use 'pseidon.hdfs.cloudera.core.datasource :reload)
+(defn coll! [coll f]
+  (map #(delay (f %) %) coll))
+(coll! [1 2 3 4] #(prn "hi " %))
+(doc map)
+(import 'org.apache.commons.lang.StringUtils)
+(StringUtils/join "/" ["a", "b"])
+(StringUtils/join ["a", "b"] "/")
+(StringUtils/join ["a", "/b"] "/")
+(use 'pseidon.test.hdfs.cloudera.core :reload)
+(use 'pseidon.test.hdfs.cloudera.core)
+(import org.apache.hadoop.fs.FileUtil)
+(doc FileUtil/copy
+)
+(javadoc FileUtil/copy
+)
+(use 'pseidon.hdfs.cloudera.core.hdfs-processor)
+(use 'pseidon.hdfs.cloudera.core.hdfs-processor :reload)
+(use 'pseidon.hdfs.cloudera.core.hdfs-processor)
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor)
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor :reload)
+(defn copy! []
+           (go
+             (while true
+               (let [[ds local-file remote-file]  (<! c)]
+                 ;retry till the file has been uploaded
+                 (while (false? (file->hdfs ds local-file remote-file))
+                   (Thread/sleep 1000))))))
+    
+    (defn copy! []
+           (go
+             (while true
+               (let [[ds local-file remote-file]  (<! c)]
+                 ;retry till the file has been uploaded
+                 (while (false? (file->hdfs ds local-file remote-file))
+                   (Thread/sleep 1000)))))
+)
+(defn ^:dynamic load-processor []
+  (letfn [
+    (parse-id [id] (StringUtils/split id ":") )
+    
+    (copy! []
+           (go
+             (while true
+               (let [[ds local-file remote-file]  (<! c)]
+                 ;retry till the file has been uploaded
+                 (while (false? (file->hdfs ds local-file remote-file))
+                   (Thread/sleep 1000))))))             
+                   
+    (start [])
+    (stop [])
+    (exec [ {:keys [topic ts ds] :as msg } ] ;unpack message
+          (let [date-ts (from-long ts)
+                dt (unparse dt-formatter date-ts) ;parse dt
+                hr (unparse hr-formatter date-ts) ;parse hr
+                ids (get-ids msg)  ;get the message ids as a sequence
+                hdfs-dir (get-conf2 "hdsf-base-dir" "/log/raw") ;get the base hdfs dir
+                ]
+               (doseq [[internal-topic local-file] (map parse-id ids)] ;for each id (the id should be the local file-name) upload the file
+                 (let [file-name (-> local-file java.io.File. .getName) 
+                       remote-file (str hdfs-dir "/" internal-topic "/" dt "/" hr "/" file-name) ;construct the remote file-name
+                       ]
+                   (go 
+                     (>! c [ds local-file remote-file]) ;here id is the local file
+                     )))))
+    ]
+     (register (->Processor "hdfs" start stop exec))
+    )
+)
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor :reload)
+(let [[a b :as c] [1 2]] (prn c))
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor :reload)
+(letfn [ (a [] )] (a))
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor :reload)
+(def f (fn [x] ))
+(def f1 (fn [] ))
+(meta f)
+(meta 'f)
+(meta 'f1)
+(meta f1)
+(:arglist (meta f1))
+(type f)
+(class f)
+(-> (class f) .getMethods)
+(-> (class f) .getMethods (map str))
+(->> (class f) .getMethods (map str))
+(f)
+(f 1)
+(f1)
+(f1 7)
+(throw ArithmeticException "hi")
+(throw (ArithmeticException. ))
+(throw (ArityException.))
+(throw (clojure.lang.ArityException.))
+(throw (clojure.lang.ArityException. ""))
+(throw (clojure.lang.ArityException. "12"))
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor)
+(import 'java.io.File)
+(-> "/tmp/myfile.txt" File. .getName)
+(-> "/tmp/myfile.txt" File. .getAbsoluteName)
+(-> "/tmp/myfile.txt" File. .getAbsolutePath)
+(doc set-ref)
+(doc ref-set)
+(def a [s] (str "apply a to " s))
+(defn a [s] (str "apply a to " s))
+(defn b [s] (str "apply b to " s))
+(defmarco apply-f [model]
+   (cons (= model 1)
+         `a)) 
+(defmarco apply-f [model arg]
+(defmacro apply-f [model]
+   (cons (= model 1)
+         ))
+(defmacro apply-f [model arg]
+   (cons (= model 1)
+          `(a ~arg)
+         (= model 2)
+          `(b ~arg)
+))
+(appply-f 1 2)
+(apply-f 1 2)
+(apply-f 1 )
+(apply-f )
+(apply-f 1 2)
+(defmacro apply-f [model & arg]
+)
+(defmacro apply-model [model-key model-map & args]
+  (if-let [f (get model-map model-key)]
+   `(f ~@args)))
+(apply-model 1 {1 (fn [x] (str "hi " x))} "Gerrit")
+(defmacro apply-model [model-key model-map & args]
+  (if-let [f# (get model-map model-key)]
+   `(f# ~@args)))
+(apply-model 1 {1 (fn [x] (str "hi " x))} "Gerrit")
+(defmacro apply-model [model-key model-map & args]
+  (if-let [f# (get model-map model-key)]
+   `(~f# ~@args)))
+(apply-model 1 {1 (fn [x] (str "hi " x))} "Gerrit")
+(def ^:dynamic dt-formatter (formatter "yyyyMMdd"))
+(def ^:dynamic hr-formatter (formatter "yyyyMMddHH"))
+(use 'clj-time.format)
+(def ^:dynamic dt-formatter (formatter "yyyyMMdd"))
+(def ^:dynamic hr-formatter (formatter "yyyyMMddHH"))
+(def d (parse hr-formatter "2013090212"))
+d
+(year d)
+(use 'clj-time.core)
+(hour d)
+(year d)
+(day d)
+(day-of-week d)
+(days d)
+(doc clojure.java.io/delete-file)
+(clojure.java.io/delete-file "avacd.txt" true)
+(clojure.java.io/delete-file "avacd.txt" )
+(clojure.java.io/delete-file "avacd.txt" false)
