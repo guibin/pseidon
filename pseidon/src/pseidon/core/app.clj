@@ -13,7 +13,7 @@
 
 (set! *warn-on-reflection* true)
 
-(def data-queue (q/channel))
+(def data-queue (q/channel "message"))
 
 
 ;will reload all of the plugins

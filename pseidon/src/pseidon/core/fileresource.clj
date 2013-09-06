@@ -1,10 +1,10 @@
 (ns pseidon.core.fileresource
    (:require [pseidon.core.tracking :refer [with-txn]]
-             [pseidon.core.utils :refer [apply-f]])
+             [pseidon.core.utils :refer [apply-f]]
+             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time]])
    (:use clojure.tools.logging 
          pseidon.core.watchdog
-         pseidon.core.conf
-         pseidon.core.wal)
+         pseidon.core.conf)
    
    (:import (clojure.lang ArityException)
             (org.apache.hadoop.io.compress CompressionCodec Compressor)
@@ -15,15 +15,26 @@
 (import '(org.streams.commons.compression.impl CompressionPoolFactoryImpl))
 
 ;post-roll is a sequence of functions that will be applied only after the file is rolled
-(defrecord FileRS [name output codec compressor file walfile post-roll])
+(defrecord FileRS [name output codec compressor file post-roll])
 (defrecord TopicConf [key codec])
 
 
 (def ^CompressionPoolFactory compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 nil))
 
+(def global-on-roll-callbacks (ref {}))
+
+(defn register-on-roll-callback [^String name ^clojure.lang.IFn f]
+  (info "register global call back " f)
+  "Adds the callback function to a map with the given id the"
+       (dosync
+         (commute global-on-roll-callbacks (fn [m]  (assoc m name f) ))))
+
 (def file-resource-exec-service (ref nil))
 
 (def fileMap (ref {}))
+
+(def file-write-time (add-timer "pseidon.core.fileresource.file-write-time"))
+(def open-files-gauge (add-gauge "pseidon.core.fileresource.open-files" #(count @fileMap)))
 
 ;used to configuration codecs that are marked as Configurable codecs like LZO require the hadoop configuration to be set.
 (def hadoop-conf (Configuration.))
@@ -87,7 +98,6 @@
                codec 
                compressor 
                (java.io.File. file-name) 
-               (create-walfile (clojure.string/join "-" [file-name "-wal"] ))
                [] ;no post roll yet
                )
              )
@@ -137,12 +147,11 @@
                          codec 
                          (:compressor frs) 
                          (:file frs) 
-                         (:walfile frs)
                          (if (nil? post-roll-fn) (:post-roll frs) (conj (:post-roll frs) post-roll-fn))
                          )
                )
         ]
-    
+         
       (writer (:output frs-t))
       
       ;we always return a FileRS instance
@@ -152,11 +161,13 @@
 ; post-roll-fn can be nill if not its applied only when the FileRS is rolled.
 ; this means each FileRS will have a collection of post-roll-fn(s) and each is applied on roll-over.
 ; if any error on these functions the rolled file is deleted and the status in the tracking db setup back.
-(defn write [topic key ^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn]
-   (let [agent ((watch-critical-error get-agent topic key))]
+(defn write 
+  ([topic key ^clojure.lang.IFn writer]
+   (write topic key writer nil))
+  ([topic key ^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn]
+   (measure-time file-write-time #(let [agent ((watch-critical-error get-agent topic key))]
      (dosync (send-off agent (watch-critical-error write-to-frs writer post-roll-fn) ) )
-    )
-  )
+    ))))
 
 (defn close-roll-agent [^FileRS frs]
   (when (and (not (nil? frs)) (not (nil? (:output frs) ) ) ) 
@@ -164,17 +175,16 @@
     ;find rename the file by removing the last \.([a-zA-Z0-9])+_([0-9]+) piece of the filename and appending (group2).(group1)
   
 	  (let [
-	        post-roll (:post-roll frs)
+	        post-roll (apply conj (:post-roll frs) (vals @global-on-roll-callbacks))
 	        file (:file frs)  
 	        ^java.io.File new-file  (java.io.File. (create-rolled-file-name (:name frs) ))
 	        renamed (.renameTo file new-file)
 	        ]
 	     (if renamed 
 	       (do 
-	         (info "File " new-file " created") 
-	         (close-destroy (:walfile frs))
+	         (info "File " new-file " created ") 
 	           (try 
-	             (with-txn pseidon.core.tracking/dbspec (doseq [prf post-roll] (apply-f prf new-file)))
+	             (with-txn pseidon.core.tracking/dbspec (doseq [prf post-roll] (info "apply rollback f " prf) (apply-f prf new-file)))
 	             (catch Exception e (do 
                                     ;if the post-roll messages could not be run, the file is deleted
 	                                  (.delete new-file)

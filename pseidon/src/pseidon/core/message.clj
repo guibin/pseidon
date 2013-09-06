@@ -17,7 +17,7 @@
   )
 
 (defn get-ids [{:keys [ids]}] 
-  (if (instance? clojure.lang.ISeq) ids [ids])  
+  (if (instance? java.util.Collection ids) ids [ids])  
   )
 
 (defn create-message [^clojure.lang.IFn bytes-f ds ids topic accept ts priority]

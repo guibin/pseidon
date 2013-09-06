@@ -14,29 +14,6 @@
 
 
 
-(def ^:Dynamic dbspec)
-(defn ^:Dynamic ensure-started [] )
-
-(defmacro txn-helper [spec & body]
-	      `(clojure.java.jdbc/with-connection
-          ~spec
-          (clojure.java.jdbc/transaction ~@body
-	         )))
-
-(defmacro with-txn 
- [spec & body]
-    `(txn-helper ~(if spec spec dbspec )  ~@body))
-
-(defn as-str [& s] (apply str s))
-
-(defn create-query-paging [{:keys [tbl properties predicate from max] :or {max 100} }]
-  "Creates a SQL query using paging and ROWNUM()"
-  (str "SELECT * from (select " (clojure.string/join "," (map #(str "a." %) properties)) 
-                        ", ROWNUM() rnum from (select " (clojure.string/join "/" properties) 
-                        " from " tbl
-                        " order by dsid,ts,status) a "
-                        " WHERE ROWNUM() <= " (+ from max)
-                        ") WHERE " (if-not predicate "" (str predicate " and ")) " rnum >= " from))
 
 (defn create-table[db]
     "Creates the message table, if it already exists the method silently fails."
@@ -72,6 +49,31 @@
      ))
 
 (def dbspec (create-spec (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking4")))
+
+(defn ^:Dynamic ensure-started [] )
+
+(defmacro txn-helper [spec & body]
+	      `(clojure.java.jdbc/with-connection
+          ~spec
+          (clojure.java.jdbc/transaction ~@body
+	         )))
+
+(defmacro with-txn 
+ [spec body]
+    `(txn-helper ~(if spec spec dbspec )  ~body))
+
+
+(defn as-str [& s] (apply str s))
+
+(defn create-query-paging [{:keys [tbl properties predicate from max] :or {max 100} }]
+  "Creates a SQL query using paging and ROWNUM()"
+  (str "SELECT * from (select " (clojure.string/join "," (map #(str "a." %) properties)) 
+                        ", ROWNUM() rnum from (select " (clojure.string/join "/" properties) 
+                        " from " tbl
+                        " order by dsid,ts,status) a "
+                        " WHERE ROWNUM() <= " (+ from max)
+                        ") WHERE " (if-not predicate "" (str predicate " and ")) " rnum >= " from))
+
 
 
 (defn query [q max]
@@ -109,8 +111,10 @@
 
     This method saves the message tracking metadata with status==run
   "
+  {:pre (and (string? ds) (string? id)) }
   (with-txn db
 	  (let [ds-id (clojure.string/join \u0001 [ds id] )]
+        (info "mark-run! dsid: " ds-id " id " id)
         (insert-message! {:dsid ds-id :status status-run :ts (now)})    
         )))
 
@@ -154,25 +158,26 @@
     If f fails the status will be rolled back.
     The status is set first to ensure that if there is any failure with the emebedded db the function f is never applied.
   "
+   {:pre (string? ds)}
     (with-txn db
       ;if ids is a sequence update every id and then apply f
      (do
       (doseq [id (if (sequential? ids) ids [ids])]
-              
+                                      (info "mark-done! dsid " (StringUtils/join [ds id] \u0001))
 				      (update-check-message!  
 				            (StringUtils/join [ds id] \u0001)
                     (fn [msg] (= (:status msg) status-run))
 					          {:status status-done}))
-          )
-        (f)
-       ))
+        ))
+     (f)
+     )
 
   
 (defn select-ds-messages  
   "Returns a vector of messages from to max"
-  [^String ds & {:keys [max status] :or { max 100 status status-run} } ]
-  (select-messages (str "dsid like '" ds \u0001 "%' and status='" status "'") 0 max))
-
+  [^String ds & {:keys [db max status] :or {db dbspec max 100 status status-run} } ]
+  (with-txn db
+          (select-messages (str "dsid like '" ds \u0001 "%' and status='" status "'") 0 max)))
 
 (defn expire-old-messages [^Long ts & {:keys [db] :or {db dbspec}}]
   "Runs a delete query on the current db to remove records older than ts"

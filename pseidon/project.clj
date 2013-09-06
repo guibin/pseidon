@@ -18,6 +18,8 @@
                  [cheshire "5.2.0"]
                  [org.clojure/core.async "0.1.0-SNAPSHOT"]
                  [org.clojure/tools.cli "0.2.2"]
+                 [com.codahale.metrics/metrics-core "3.0.1"]
+                 [com.codahale.metrics/metrics-servlets "3.0.1"]
                  
                  [log4j/log4j "1.2.16" :exclusions [javax.mail/mail
                                               javax.jms/jms
@@ -27,7 +29,7 @@
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/tools.nrepl "0.2.3"]
                  [org.apache.curator/curator-framework "2.0.1-incubating"]
-   		 [org.apache.curator/curator-test "2.0.1-incubating" :scope "test"]
+                 [org.apache.curator/curator-test "2.0.1-incubating" :scope "test"]
                  
                  [midje "1.6-alpha2" :scope "test"]
                  
