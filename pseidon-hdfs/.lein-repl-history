@@ -155,3 +155,8 @@ d
 (clojure.java.io/delete-file "avacd.txt" true)
 (clojure.java.io/delete-file "avacd.txt" )
 (clojure.java.io/delete-file "avacd.txt" false)
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor)
+dt-formatter
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor :reload)
+dt-formatter
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor :reload)

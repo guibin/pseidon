@@ -18,10 +18,10 @@
            )
   )
 
-;applys a function in the map depending on a model key
+;apply a function in the map depending on a model key
 (defmacro apply-model [model-key model-map & args]
-   (if-let [f# (get model-map model-key)]
-   `(~f# ~@args)))
+   `(if-let [f# (get ~model-map ~model-key)]
+       (f# ~@args)))
 
 (defn ^:dynamic number-format [^Integer n]
   (if (< n 10) (str "0" n) (str n)))
@@ -36,26 +36,28 @@
                                        "
                                       (let [date (parse hr-formatter date-hr)
 	                                          dt (unparse dt-formatter date)] ;parse dt
-                                        (str "dt=" dt "/hr=" date-hr)))
+                                        (info "!!!! hdfs-dir-formatters: " date-hr) (str "dt=" dt "/hr=" date-hr)))
                                     2 (fn [date-hr]
                                         "Expects the format yyyyMMddHH
                                          returns year=yyyy/month=MM/day=dd/hour=HH
                                          "
+                                   
                                         (let [date (parse hr-formatter date-hr)]
                                           (str "year=" (year date) "/month=" (number-format (month date))
                                                                    "/day=" (number-format (day date))
                                                                    "/hour=" (number-format (hour date)))))
                                     })
+(info "!!!! macro expand " (macroexpand '(apply-model 1 hdfs-dir-formatters "2013090600")))
+(info "!!!! apply " (apply-model 1 hdfs-dir-formatters "2013090600"))
 
 (def ^:dynamic file-name-parsers {1 
                                      (fn [file-name]
                                        "Expects a file name with type_id_hr_yyyyMMddHH.extension
-																			   use this method as (let [ [type id _ date] (parse-file-name file-name)]  ) 
-																			  "
-																			  (let [[type id _ date] (clojure.string/split file-name #"[_\.]")]
-																			  (prn "Parsing file " file-name " to [ " type " " id " " date "]")
-
-																			  [type id nil date]))
+                                        use this method as (let [ [type id _ date] (parse-file-name file-name)]  ) 
+					 "
+					(let [[type id _ date] (clojure.string/split file-name #"[_\.]")]
+					 (info "Parsing file " file-name " to [ " type " " id " " date "]")
+  				         [type id nil date]))
                                      2 (fn [file-name]
                                         "Expects a file name with type_yyyMMddHH.extension
                                          the id value part is returned empty

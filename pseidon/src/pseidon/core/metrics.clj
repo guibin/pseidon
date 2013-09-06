@@ -6,6 +6,9 @@
 (defonce registry (MetricRegistry.))
 (defonce jmx-reporter (-> registry JmxReporter/forRegistry .build))
 
+(defn list-metrics []
+ (.getMetrics registry))
+
 (defn ^Gauge create-gauge [^clojure.lang.IFn f]
   (reify Gauge (getValue [this] (f))))
 
