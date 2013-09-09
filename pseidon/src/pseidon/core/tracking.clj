@@ -70,9 +70,9 @@
   (str "SELECT * from (select " (clojure.string/join "," (map #(str "a." %) properties)) 
                         ", ROWNUM() rnum from (select " (clojure.string/join "/" properties) 
                         " from " tbl
-                        " order by dsid,ts,status) a "
+                        (if-not predicate "" (str " WHERE " predicate)) " order by dsid,ts,status) a "
                         " WHERE ROWNUM() <= " (+ from max)
-                        ") WHERE " (if-not predicate "" (str predicate " and ")) " rnum >= " from))
+                        ") WHERE rnum >= " from))
 
 
 
@@ -114,14 +114,18 @@
   {:pre (and (string? ds) (string? id)) }
   (with-txn db
 	  (let [ds-id (clojure.string/join \u0001 [ds id] )]
-        (info "mark-run! dsid: " ds-id " id " id)
         (insert-message! {:dsid ds-id :status status-run :ts (now)})    
         )))
 
 ;(defn create-query-paging [{:keys [tbl properties predicate from max]}]
   
+(defn deserialize-message [{:keys [dsid status ts] }]
+  (let [[ds id] (destruct-dsid dsid)]
+        {:ds ds :ids id :status status :ts ts}))
+
 (defn select-messages  
-  "Returns a vector of messages from to max"
+  "Returns a vector of messages from to max
+  "
   ([^long from ^long max]
   (query (create-query-paging {:tbl "messagetracking" :properties ["*"] :from from :max max} ) (+ from max)))
   ([^String where ^long from ^long max]
@@ -163,7 +167,6 @@
       ;if ids is a sequence update every id and then apply f
      (do
       (doseq [id (if (sequential? ids) ids [ids])]
-                                      (info "mark-done! dsid " (StringUtils/join [ds id] \u0001))
 				      (update-check-message!  
 				            (StringUtils/join [ds id] \u0001)
                     (fn [msg] (= (:status msg) status-run))
@@ -177,7 +180,7 @@
   "Returns a vector of messages from to max"
   [^String ds & {:keys [db max status] :or {db dbspec max 100 status status-run} } ]
   (with-txn db
-          (select-messages (str "dsid like '" ds \u0001 "%' and status='" status "'") 0 max)))
+          (select-messages (str "dsid like '" (clojure.string/join [ds \u0001 \%]) "' and status='" status "'") 0 max)))
 
 (defn expire-old-messages [^Long ts & {:keys [db] :or {db dbspec}}]
   "Runs a delete query on the current db to remove records older than ts"

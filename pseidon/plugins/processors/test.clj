@@ -6,7 +6,7 @@
      [clj-time.format :refer [unparse formatter]]
      [pseidon.core.message :refer [get-bytes-seq get-ids create-message]]
      [clojure.tools.logging :refer [info error]]
-     [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done!]]
+     [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done! deserialize-message]]
      [pseidon.core.queue :refer [publish]]
      [pseidon.core.app :refer [data-queue]]
      )
@@ -54,7 +54,7 @@
                                                                         ))
                                                       (info "complete publish"))))
 
-  (doseq [msg (select-ds-messages "testprocess-hdfs")]
+  (doseq [msg (map deserialize-message (select-ds-messages "testprocess-hdfs"))]
        (info "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    Recovering msg [" msg "]")
        (publish data-queue msg))
   (prn "Starting test processors"))

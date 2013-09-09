@@ -282,7 +282,7 @@
        (if (nil? lines) [line] (conj lines line)))
      
      (defn read-lines [n]
-       (loop [i n lines nil total-char-count 0]
+       (loop [i (int n) lines nil total-char-count (long 0)]
          (let [[line char-count] (try (n-read-line reader) (catch Exception e [nil 0]) )]
            (if (nil? line) (do 
                              (.close reader)
