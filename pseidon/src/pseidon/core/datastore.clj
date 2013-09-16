@@ -75,10 +75,11 @@
    (let [
          p (ensure-path (get-client) ns id )
          f #(-> %1 .setData (.forPath p (get-bytes value)) ) ]
+    (prn "set-data! " p  " : " value)
+    (debug "set-data! " p " : " value)
     (f (get-client))
     value
   ))
-
 
 (defn mkdirs [ns & dirs]
   "
@@ -96,21 +97,23 @@
    The children of that directory is called, note that the first argument must always begin with '/'
    incase of an exception an empty vector is returned
    Directories are always returned in lexical sorted order
+   Only the child names are returned i.e. if you list /a/b  and /a/b contains dirs 1 2 3, then (1 2 3) will be returned.
   "
   (try (let [dir 
-             (join-path 
-               name-space (reduce join-path dirs))
-             
+              (join-path 
+               name-space (reduce join-path (if (empty? dirs) [] dirs)))
              
         f #(-> %1 .getChildren (.forPath dir) sort)]
    (f (get-client))  
   )
-  (catch Exception e [] )
+  (catch org.apache.zookeeper.KeeperException$NoNodeException e nil) ;ignore
+  (catch Exception e (do (.printStackTrace e) (error e (str "Error while listing ")) nil) )
   ))
 
 (defn get-data [ns id]
   "Gets the value of a data in bytes"
   (let [f #(-> %1 .getData (.forPath (ensure-path (get-client) ns id )))  ]
+     (prn "get-data " (ensure-path (get-client) ns id ))
      (f (get-client))
   ))
 
