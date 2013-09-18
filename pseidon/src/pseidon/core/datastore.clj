@@ -75,8 +75,6 @@
    (let [
          p (ensure-path (get-client) ns id )
          f #(-> %1 .setData (.forPath p (get-bytes value)) ) ]
-    (prn "set-data! " p  " : " value)
-    (debug "set-data! " p " : " value)
     (f (get-client))
     value
   ))
@@ -113,7 +111,6 @@
 (defn get-data [ns id]
   "Gets the value of a data in bytes"
   (let [f #(-> %1 .getData (.forPath (ensure-path (get-client) ns id )))  ]
-     (prn "get-data " (ensure-path (get-client) ns id ))
      (f (get-client))
   ))
 
