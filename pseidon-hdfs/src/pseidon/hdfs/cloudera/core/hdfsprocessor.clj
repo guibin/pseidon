@@ -30,7 +30,7 @@
 (def ^:dynamic hr-formatter (formatter "yyyyMMddHH"))
 
 (defn- ^:dynamic ^String extract-file-date [^String file-name]
-  (if-let [d (re-find #"\d{10}" file-name)] d  (clojure.string/replace (re-find #"\d{4}-\d{2}-\d{2}-\d{2}" file) #"-" "")))
+  (if-let [d (re-find #"\d{10}" file-name)] d  (clojure.string/replace (re-find #"\d{4}-\d{2}-\d{2}-\d{2}" file-name) #"-" "")))
 
 (def ^:dynamic hdfs-dir-formatters {1
                                     (fn [date-hr]
