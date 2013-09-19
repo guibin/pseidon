@@ -31,7 +31,7 @@ To see metrics for a running instance
 
 Open in a browser:
 
-http://localhost:8282/metrics](http://localhost:8282/metrics)
+[http://localhost:8281/metrics](http://localhost:8282/metrics)
 
 ### Tracking
 
