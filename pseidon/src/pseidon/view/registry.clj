@@ -1,11 +1,11 @@
 (ns pseidon.view.registry
   (:require 
             [pseidon.core.registry :refer [reg-list-all]]
-            [cheshire.core :refer :all]
+            [pseidon.view.utils :refer [write-json]]
             )
   )
 
 
 (defn registry-index [req]
-  (generate-string (reg-list-all))
+  (write-json (reg-list-all))
   )
