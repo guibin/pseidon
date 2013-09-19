@@ -21,6 +21,17 @@ The default property value is /opt/pseidon/lib
 
 To add in a new plugin with its own jars and files edit this property.
 
+### Metrics
+
+Pseidon uses the http://metrics.codahale.com/ library to show metrics.
+
+Plugins can use the pseidon.core.metrics namespace to add metrics.
+
+To see metrics for a running instance 
+
+Open in a browser:
+
+http://localhost:8282/metrics](http://localhost:8282/metrics)
 
 ### Tracking
 
