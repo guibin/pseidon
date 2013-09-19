@@ -8,12 +8,14 @@
     [pseidon.view.registry :refer [registry-index]]
     [pseidon.view.tracking :refer [tracking-index]]
     [pseidon.view.metrics  :refer [metrics-index]]
+    [pseidon.view.home :refer [home-index]]
     )
     
   )
 
 
 (defroutes all-routes
+  (GET "/" [] (fn [req] (home-index req)))
   (GET "/registry" [] registry-index)
   (GET "/tracking" [] (fn [req] (tracking-index req) ))
   (GET "/metrics"  [] (fn [req] (metrics-index req)))
