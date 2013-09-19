@@ -56,7 +56,7 @@
                                        "Expects a file name with type_id_hr_yyyyMMddHH.extension
                                         use this method as (let [ [type id _ date] (parse-file-name file-name)]  ) 
 					 "
-																				(let [[type id ] parts
+																				(let [[type id ] (clojure.string/split file-name #"[_\.]")
                                                date (extract-file-date file-name) ] 
 																				 (info "Parsing file " file-name " to [ " type " " id " " date "]")
                                                [type id nil date]))
