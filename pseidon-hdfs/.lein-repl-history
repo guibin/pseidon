@@ -160,3 +160,62 @@ dt-formatter
 (use 'pseidon.hdfs.cloudera.core.hdfsprocessor :reload)
 dt-formatter
 (use 'pseidon.hdfs.cloudera.core.hdfsprocessor :reload)
+(use 'pseidon.hdfs.cloudera.core.hdfsprocessor)
+(def ^:dynamic file-name-parsers {1 
+                                     (fn [file-name]
+                                       "Expects a file name with type_id_hr_yyyyMMddHH.extension
+                                        use this method as (let [ [type id _ date] (parse-file-name file-name)]  ) 
+ "
+(let [[type id _ date] (clojure.string/split file-name #"[_\.]")]
+ (info "Parsing file " file-name " to [ " type " " id " " date "]")
+           [type id nil date]))
+                                     2 (fn [file-name]
+                                        "Expects a file name with type_yyyMMddHH.extension
+                                         the id value part is returned empty
+                                         " 
+                                         (let [ [type date] (clojure.string/split file-name #"[_\.]")]
+                                           [type "" date]))
+                                     })
+(use 'clojure.tools.logging)
+ (fn [file-name]
+                                       "Expects a file name with type_id_hr_yyyyMMddHH.extension
+                                        use this method as (let [ [type id _ date] (parse-file-name file-name)]  ) 
+ "
+(let [[type id _ date] (clojure.string/split file-name #"[_\.]")]
+ (info "Parsing file " file-name " to [ " type " " id " " date "]")
+           [type id nil date]))
+(def f1  (fn [file-name]
+                                       "Expects a file name with type_id_hr_yyyyMMddHH.extension
+                                        use this method as (let [ [type id _ date] (parse-file-name file-name)]  ) 
+ "
+(let [[type id _ date] (clojure.string/split file-name #"[_\.]")]
+ (info "Parsing file " file-name " to [ " type " " id " " date "]")
+           [type id nil date])))
+(use 'clj-time.coerce)
+(use 'clj-time.core)
+(def ^:dynamic dt-formatter (formatter "yyyyMMdd"))
+(def ^:dynamic hr-formatter (formatter "yyyyMMddHH"))
+(use 'clj-time.format)
+(def ^:dynamic dt-formatter (formatter "yyyyMMdd"))
+(def ^:dynamic hr-formatter (formatter "yyyyMMddHH"))
+(def file "advertiser-banner-impressions.2013091909.44735510003754505.gz")
+(f1 file)
+(def file1 "advertiser-banner-impressions.myid.2013091909.44735510003754505.gz")
+(f1 file1)
+(re-find #"\d\d\d\d\d\d\d\d\d\d" file)
+(re-find #"\d\d\d\d\d\d\d\d\d\d" file1)
+(re-find #"\d{10}" file1)
+(re-find #"\d{9}" file1)
+(re-find #"\d{11}" file1)
+(re-find #"\d{10}" file1)
+(re-find #"\d{11111}" file1)
+(re-find #"\d{4}-\d{2}-\d{2}-\d{2}" "jdkljakfd.jkdfjdksjf.jkdajfdksj.1212231.2013-09-20-09")
+(doc clojure.string/replace)
+file
+(def file "hdljaflsdf.,dkjdsjf.akdfjksjfdks.2013-09-20-20.jkdjfal.jkldaf.12123213")
+(-> file  (re-find #"\d{4}-\d{2}-\d{2}-\d{2}") (clojure.string/replace #"-" "") )
+(clojure.string/replace (re-find #"\d{4}-\d{2}-\d{2}-\d{2}") #"-" "")
+(clojure.string/replace "hl" #"h" "")
+(type (re-find #"\d{4}-\d{2}-\d{2}-\d{2}"))
+(clojure.string/replace (re-find #"\d{4}-\d{2}-\d{2}-\d{2}" file) #"-" "")
+quit

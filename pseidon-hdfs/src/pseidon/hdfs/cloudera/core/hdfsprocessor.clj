@@ -29,6 +29,9 @@
 (def ^:dynamic dt-formatter (formatter "yyyyMMdd"))
 (def ^:dynamic hr-formatter (formatter "yyyyMMddHH"))
 
+(defn- ^:dynamic ^String extract-file-date [^String file-name]
+  (if-let [d (re-find #"\d{10}" file-name)] d  (clojure.string/replace (re-find #"\d{4}-\d{2}-\d{2}-\d{2}" file) #"-" "")))
+
 (def ^:dynamic hdfs-dir-formatters {1
                                     (fn [date-hr]
                                       "Expects the format yyyyMMddHH
@@ -47,23 +50,23 @@
                                                                    "/day=" (number-format (day date))
                                                                    "/hour=" (number-format (hour date)))))
                                     })
-(info "!!!! macro expand " (macroexpand '(apply-model 1 hdfs-dir-formatters "2013090600")))
-(info "!!!! apply " (apply-model 1 hdfs-dir-formatters "2013090600"))
 
 (def ^:dynamic file-name-parsers {1 
                                      (fn [file-name]
                                        "Expects a file name with type_id_hr_yyyyMMddHH.extension
                                         use this method as (let [ [type id _ date] (parse-file-name file-name)]  ) 
 					 "
-					(let [[type id _ date] (clojure.string/split file-name #"[_\.]")]
-					 (info "Parsing file " file-name " to [ " type " " id " " date "]")
-  				         [type id nil date]))
+																				(let [[type id ] parts
+                                               date (extract-file-date file-name) ] 
+																				 (info "Parsing file " file-name " to [ " type " " id " " date "]")
+                                               [type id nil date]))
                                      2 (fn [file-name]
                                         "Expects a file name with type_yyyMMddHH.extension
                                          the id value part is returned empty
                                          " 
-                                         (let [ [type date] (clojure.string/split file-name #"[_\.]")]
-                                           [type "" date]))
+                                         (let [ [type] (clojure.string/split file-name #"[_\.]")
+                                                date (extract-file-date file-name)]
+                                           [type "1" nil date]))
                                      })
 
 (defonce c (chan))

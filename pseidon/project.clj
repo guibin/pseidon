@@ -12,6 +12,7 @@
                  [org.apache.sshd/sshd-core "0.8.0"]  
                  [com.jcraft/jsch "0.1.50"]
                  [org.clojure/tools.namespace "0.2.4"]
+                 [reply "0.1.0-beta9"]
                  [clj-time "0.5.1"]
                  [http-kit "2.1.8"]
                  [compojure "1.1.5"]
