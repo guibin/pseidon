@@ -184,7 +184,8 @@
 	       (do 
 	         (info "File " new-file " created ") 
 	           (try 
-	             (with-txn pseidon.core.tracking/dbspec (doseq [prf post-roll] (info "apply rollback f " prf) (apply-f prf new-file)))
+	             (with-txn pseidon.core.tracking/dbspec (doall (pmap (fn [prf] 
+                                                                    (apply-f prf new-file)) post-roll)))
 	             (catch Exception e (do 
                                     ;if the post-roll messages could not be run, the file is deleted
 	                                  (.delete new-file)
