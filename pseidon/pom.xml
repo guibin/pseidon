@@ -159,7 +159,7 @@
 							<groupname>pseidon</groupname>
 							<sources>
 								<source>
-									<location>target/pseidon-${project.version}.jar</location>
+									<location>target/provided/pseidon-${project.version}.jar</location>
 								</source>
 							</sources>
 						</mapping>
