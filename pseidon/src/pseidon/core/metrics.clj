@@ -12,7 +12,7 @@
 (defn start-csv-reporter [^File file ^Integer frequency]
   "Start a CsvReporter. The file must be a directory"
   (-> (CsvReporter/forRegistry registry) (.formatFor Locale/US) 
-      (.convertRatesTo TimeUnit/SECOND)
+      (.convertRatesTo TimeUnit/SECONDS)
       (.convertDurationsTo TimeUnit/MILLISECONDS)
       (.build file)
       (.start frequency TimeUnit/SECONDS)))
