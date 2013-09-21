@@ -1,10 +1,21 @@
 (ns pseidon.core.metrics
   (:import [com.codahale.metrics MetricRegistry Gauge Counter Meter
-            Histogram Timer Timer$Context JmxReporter]
+            Histogram Timer Timer$Context JmxReporter CsvReporter]
+           [java.util.concurrent TimeUnit]
+           [java.io File]
+           [java.util Locale]
   ))
 
 (defonce registry (MetricRegistry.))
 (defonce jmx-reporter (-> registry JmxReporter/forRegistry .build))
+
+(defn start-csv-reporter [^File file ^Integer frequency]
+  "Start a CsvReporter. The file must be a directory"
+  (-> (CsvReporter/forRegistry registry) (.formatFor Locale/US) 
+      (.convertRatesTo TimeUnit/MILLISECONDS)
+      (.convertDurationsTo TimeUnit/MILLISECONDS)
+      (.build file)
+      (.start frequency TimeUnit/SECONDS)))
 
 (defn list-metrics []
  (.getMetrics registry))
