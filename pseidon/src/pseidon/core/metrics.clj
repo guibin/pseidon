@@ -1,5 +1,5 @@
 (ns pseidon.core.metrics
-  (:import [com.codahale.metrics MetricRegistry Gauge Counter Meter
+  (:import [com.codahale.metrics MetricRegistry Gauge Counter Meter MetricFilter Metric
             Histogram Timer Timer$Context JmxReporter CsvReporter]
            [java.util.concurrent TimeUnit]
            [java.io File]
@@ -19,6 +19,11 @@
 
 (defn list-metrics []
  (.getMetrics registry))
+
+(defn remove-all []
+ (.removeMatching registry (reify MetricFilter
+                             (matches [_ _ _] true))))
+
 
 (defn ^Gauge create-gauge [^clojure.lang.IFn f]
   (reify Gauge (getValue [this] (f))))
