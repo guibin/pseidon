@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+  <classpathentry kind="src" path="src"/>
+  <classpathentry kind="lib" path="/Users/gvanvuuren/checkouts/pseidon/pseidon-kafka/target/classes"/>
+  <classpathentry kind="lib" path="/Users/gvanvuuren/.m2/repository/clojure-complete/clojure-complete/0.2.3/clojure-complete-0.2.3.jar"/>
+  <classpathentry kind="lib" path="/Users/gvanvuuren/.m2/repository/org/clojure/tools.nrepl/0.2.3/tools.nrepl-0.2.3.jar"/>
+  <classpathentry kind="lib" path="/Users/gvanvuuren/.m2/repository/org/clojure/clojure/1.5.1/clojure-1.5.1.jar"/>
+  <classpathentry kind="lib" path="/Users/gvanvuuren/.m2/repository/org/apache/kafka/kafka_2.9.2/0.8.0-beta1/kafka_2.9.2-0.8.0-beta1.jar"/>
+  <classpathentry kind="src" path="test"/>
+  <classpathentry kind="src" path="resources"/>
+  <classpathentry path="org.eclipse.jdt.launching.JRE_CONTAINER" kind="con"/>
+  <classpathentry kind="output" path="target/classes"/>
+</classpath>

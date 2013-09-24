@@ -1,0 +1,9 @@
+(use 'pseidon.kafka.util :reload)
+quit
+(use 'pseidon.kafka.util :reload)
+quit
+(use 'pseidon.kafka.util :reload)
+(def m (create-message "hi" 1))
+m
+(def m2 (create-message "topic" "hi" 1))
+m2
