@@ -30,6 +30,19 @@
   )
 
 
+(defn get-sub-conf [parent-key]
+  "If the config contains {:abc.id 1 :abc.f 1} calling this function as (get-sub-conf :abc) returns {:id 1 :f 1}"
+  (into {}
+        (map 
+          #(let [[k v] %] 
+             [(keyword 
+                (clojure.string/replace (str k) 
+                                        (re-pattern (str parent-key "\\.")) "")) 
+              v]
+             ) 
+          @conf)))
+  
+
 (defn get-conf [n]
   (get @conf (keyword n))  
   )
