@@ -14,6 +14,18 @@
 
 (defn reg-list-all []  @reg-state)
 
+(defn create-datasource [{:keys [name run stop list-files reader-seq]}]
+  (DataSource. name run stop list-files reader-seq))
+
+(defn create-channel [{:keys [name run stop]}]
+  (Channel. name run stop))
+
+(defn create-datasink [{:keys [name run stop writer]}]
+  (DataSink. name run stop writer))
+
+(defn create-processor [{:keys [name run stop exec]}]
+  (Processor. name run stop exec))
+
 (defn register [{name :name :as item}]
   "Register a service "
    (info "Regiser service " name  (class item))
