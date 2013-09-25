@@ -29,8 +29,8 @@
                  [clj-logging-config "1.9.10"]
                  [org.clojure/tools.logging "0.2.3"]
                  [org.clojure/tools.nrepl "0.2.3"]
-                 [org.apache.curator/curator-framework "2.0.1-incubating"]
-                 [org.apache.curator/curator-test "2.0.1-incubating" :scope "test"]
+                 [org.apache.curator/curator-framework "2.2.0-incubating"]
+                 [org.apache.curator/curator-test "2.2.0-incubating" :scope "test"]
                  
                  [midje "1.6-alpha2" :scope "test"]
                  
