@@ -29,9 +29,9 @@
        
     
 (defn ^ExecutorService get-exec-service [^String topic]
-  (dosync
-    (if-let [service (get @topic-services topic)] service
-      (alter topic-services assoc topic (create-exec-service topic)))))
+    (dosync
+      (if-let [service (get @topic-services topic)] service
+        (get (alter topic-services assoc topic (create-exec-service topic)) topic ))))
   
 (defn submit [f]
   "Submits a function to a thread pool"
@@ -39,6 +39,7 @@
     (let [^Callable callable (fn[] (try (measure-time exec-timer #(f msg)) 
                                                           (finally (update-meter queue-consume-meter))))
           ^ExecutorService service (get-exec-service (:topic msg))]
+     
     (.submit service callable))))
 
 (defn get-worker-queue []
@@ -55,15 +56,15 @@
         queue
         ))
 
-(defn consume [^java.util.concurrent.BlockingQueue channel f]
+(defn consume [^BlockingQueue channel f]
   "Consumes asynchronously from the channel"
   (let [sI (repeatedly #(.take channel))
-        ^java.util.concurrent.Callable callable #(doseq [msg sI] (f msg))]
+        ^Callable callable #(doseq [msg sI] (f msg))]
         (.submit queue-master callable)))
 
-(defn publish [^java.util.concurrent.BlockingQueue channel msg]
+(defn publish [^BlockingQueue channel msg]
   (update-meter queue-publish-meter)
-  (.add channel msg))
+  (.offer channel msg 180 TimeUnit/SECONDS))
 
 (defn publish-seq [^java.util.concurrent.BlockingQueue channel xs]
  (doseq [msg xs] (publish channel msg))
