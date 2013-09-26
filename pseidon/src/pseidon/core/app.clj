@@ -36,6 +36,7 @@
    (shutdown-agents)
    (ds/shutdown)
    (tracking-shutdown)
+   (shutdown-threads)
    (info "Stopped")
   )
 

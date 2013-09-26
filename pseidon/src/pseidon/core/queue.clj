@@ -2,29 +2,55 @@
   (:require [clojure.tools.logging :refer [info]]
             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time add-meter update-meter]])
   (:use pseidon.core.conf)
+  (:import [java.util.concurrent BlockingQueue Callable ThreadPoolExecutor SynchronousQueue TimeUnit ExecutorService ThreadPoolExecutor$CallerRunsPolicy])
   )
 
-(def ^java.util.concurrent.ExecutorService queue-exec (java.util.concurrent.Executors/newCachedThreadPool))
-(def ^java.util.concurrent.ExecutorService queue-master (java.util.concurrent.Executors/newCachedThreadPool))
+(def topic-services (ref {}))
+
+(def ^ExecutorService queue-master (java.util.concurrent.Executors/newCachedThreadPool))
 
 (def exec-timer (add-timer "pseidon.core.queue.exec-timer"))
 (def queue-publish-meter (add-meter "pseidon.core.queue.publish-meter"))
 (def queue-consume-meter (add-meter "pseidon.core.queue.consume-meter"))
 
+
+(defn shutdown-threads []
+  (.shutdown queue-master)
+  (doseq [[_ service] @topic-services]
+    (.shutdown service)
+    (if-not (.awaitTermination service 10 TimeUnit/SECONDS)
+      (.shutdownNow service))))
+
+(defn- create-exec-service [topic]
+  (let [threads (get-conf2 (keyword (str "worker-" topic "-threads")) (get-conf2 :worker-threads (-> (Runtime/getRuntime) .availableProcessors)))]
+    (info "Creating thread pool for " topic " limit " threads)
+      (doto (ThreadPoolExecutor. 0 threads 60 TimeUnit/SECONDS (SynchronousQueue.))
+        (.setRejectedExecutionHandler  (ThreadPoolExecutor$CallerRunsPolicy.)))))
+       
+    
+(defn ^ExecutorService get-exec-service [^String topic]
+  (dosync
+    (if-let [service (get @topic-services topic)] service
+      (alter topic-services assoc topic (create-exec-service topic)))))
   
 (defn submit [f]
   "Submits a function to a thread pool"
   (fn [msg]
-    (let [^java.util.concurrent.Callable callable (fn[] (try (measure-time exec-timer #(f msg)) 
-                                                          (finally (update-meter queue-consume-meter))))]
-    (.submit queue-exec callable))))
+    (let [^Callable callable (fn[] (try (measure-time exec-timer #(f msg)) 
+                                                          (finally (update-meter queue-consume-meter))))
+          ^ExecutorService service (get-exec-service (:topic msg))]
+    (.submit service callable))))
 
 (defn get-worker-queue []
-  (java.lang.Class/forName (name (get-conf2 :worker-queue 'java.util.concurrent.PriorityBlockingQueue)) )
+  (java.lang.Class/forName (name (get-conf2 :worker-queue 'java.util.concurrent.ArrayBlockingQueue)) )
   )
 
-(defn ^java.util.concurrent.BlockingQueue channel [^String name] 
-  (let [^java.util.concurrent.BlockingQueue queue (let [^java.lang.Class cls (get-worker-queue) ] (.newInstance cls))]
+(defn ^BlockingQueue channel [^String name] 
+  (let [limit (get-conf2 :worker-queue-limit 1000)
+        ^BlockingQueue queue (let [^Class cls (get-worker-queue) ] 
+                               (try 
+                                 (-> cls (.getConstructor (into-array Class [Integer/TYPE])) (.newInstance (into-array Object [(int limit)])))
+                                 (catch NoSuchMethodException e (.newInstance cls) )  ))]
         (add-gauge (str "pseidon.core.queue." name ".size") #(.size queue))
         queue
         ))
@@ -36,7 +62,6 @@
         (.submit queue-master callable)))
 
 (defn publish [^java.util.concurrent.BlockingQueue channel msg]
-  (info "publish " (:topic msg) " to " channel)
   (update-meter queue-publish-meter)
   (.add channel msg))
 

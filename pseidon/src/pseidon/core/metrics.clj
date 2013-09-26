@@ -72,8 +72,11 @@
   (defn update-histogram [^Histogram h val]
     (.update h val))
   
-  (defn update-meter[^Meter meter]
-    (.mark meter))
+  (defn update-meter
+    ([^Meter meter]
+      (.mark meter))
+    ([^Meter meter ^Long n]
+      (.mark meter n)))
   
   (defn inc-counter[^Counter counter]
     (.inc counter))

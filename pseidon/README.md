@@ -31,7 +31,7 @@ To see metrics for a running instance
 
 Open in a browser:
 
-[http://localhost:8281/metrics](http://localhost:8282/metrics)
+[http://localhost:8282/metrics](http://localhost:8282/metrics)
 
 ### Tracking
 
@@ -63,6 +63,13 @@ Open in a browser:
 
 [http://localhost:8282/registry](http://localhost:8282/registry)
 
+## Configuration
+
+|Name |Description |
+|worker-queue | the type of queue to use default is ArrayBlockingQueue |
+|worker-queue-limit | the limit to use default is 1000 |
+|worker-threads | each topic is assigned its own thread pool, this is the limit to use on each thread pool, default is the number of processors on the box|
+|worker-$topic-threads | overrides worker-threads on a per topic basis |
 
 ## License
 
