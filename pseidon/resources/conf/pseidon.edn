@@ -11,7 +11,7 @@
                  "resources/plugins/channels"
                   "resources/plugins/processors"]
  
- :worker-queue java.util.concurrent.PriorityBlockingQueue
+ :worker-queue java.util.concurrent.ArrayBlockingQueue
  
  :repl-port 7112
  

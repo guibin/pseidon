@@ -2,7 +2,9 @@
   (:require [clojure.tools.logging :refer [info]]
             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time add-meter update-meter]])
   (:use pseidon.core.conf)
-  (:import [java.util.concurrent BlockingQueue Callable ThreadPoolExecutor SynchronousQueue TimeUnit ExecutorService ThreadPoolExecutor$CallerRunsPolicy])
+  (:import 
+          [java.util.concurrent BlockingQueue Callable ThreadPoolExecutor SynchronousQueue TimeUnit ExecutorService ThreadPoolExecutor$CallerRunsPolicy]
+          [clojure.lang IFn])
   )
 
 (def topic-services (ref {}))
@@ -47,7 +49,8 @@
   )
 
 (defn ^BlockingQueue channel [^String name] 
-  (let [limit (get-conf2 :worker-queue-limit 1000)
+  (prn "Creating channel " name " :worker-queue-limit " (get-conf2 :worker-queue-limit -1))
+  (let [limit (get-conf2 :worker-queue-limit 100)
         ^BlockingQueue queue (let [^Class cls (get-worker-queue) ] 
                                (try 
                                  (-> cls (.getConstructor (into-array Class [Integer/TYPE])) (.newInstance (into-array Object [(int limit)])))
@@ -56,15 +59,24 @@
         queue
         ))
 
+(defn- consume-messages [^BlockingQueue channel ^IFn f]
+  (loop [msg (.take channel)]
+    (f msg)
+    (recur (.take channel))))
+    
+
 (defn consume [^BlockingQueue channel f]
   "Consumes asynchronously from the channel"
-  (let [sI (repeatedly #(.take channel))
-        ^Callable callable #(doseq [msg sI] (f msg))]
-        (.submit queue-master callable)))
+  (let [ sI (repeatedly #(.take channel))
+        ^Runnable runnable #(consume-messages channel f)    
+                                 ]
+        (.submit queue-master runnable)))
 
 (defn publish [^BlockingQueue channel msg]
   (update-meter queue-publish-meter)
-  (.offer channel msg 180 TimeUnit/SECONDS))
+  (.put channel msg)
+  
+  )
 
 (defn publish-seq [^java.util.concurrent.BlockingQueue channel xs]
  (doseq [msg xs] (publish channel msg))
