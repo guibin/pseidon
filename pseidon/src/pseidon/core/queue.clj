@@ -67,7 +67,7 @@
 
 (defn consume [^BlockingQueue channel f]
   "Consumes asynchronously from the channel"
-  (let [ sI (repeatedly #(.take channel))
+  (let [ 
         ^Runnable runnable #(consume-messages channel f)    
                                  ]
         (.submit queue-master runnable)))
