@@ -1,26 +1,26 @@
 (ns pseidon.kafka.util
   (:require [pseidon.core.conf :refer [get-sub-conf]]
-            [clj-kafka.consumer.zk :refer [shutdown consumer messages]]
-            [clj-kafka.producer :refer [producer send-messages]]
-            [clj-kafka.core :refer [as-properties with-resource]]
+            [pseidon.kafka.consumer :refer [shutdown consumer messages]]
+            [pseidon.kafka.producer :refer [producer send-messages message]]
+            [pseidon.kafka.kafka-util :refer [as-properties with-resource]]
             [pseidon.core.registry :refer [create-datasource create-datasink register]]
-            [clojure.tools.logging :refer [info error]])  
-  (:import [kafka.producer KeyedMessage])
+            [clojure.tools.logging :refer [info error]])
+   (:import 
+            [kafka.message Message])
   )
-
 
 (defn get-kafka-conf []
   (into {} 
         (map (fn [[k v]] [ (if (instance? clojure.lang.Keyword k) (name k) (str k)) v]) (get-sub-conf :kafka))))
 
 (defn create-message 
-  ([{:keys [topic k val]}]
+  ([{:keys [topic k ^bytes val]}]
       (if k (create-message topic k val)
         (create-message topic val)))
-  ([^String topic val]
-      (KeyedMessage. topic val))
-  ([topic k val]
-      (KeyedMessage. ^String topic k val)))
+  ([^String topic ^bytes val]
+      (message topic [(Message. val)] ))
+  ([topic k ^bytes val]
+      (message ^String topic k [(Message. val)])))
 
 (defn load-datasource [conf]
   "Returns a DataSource instance that

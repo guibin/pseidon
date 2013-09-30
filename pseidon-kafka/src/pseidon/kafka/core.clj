@@ -27,12 +27,18 @@
 
 
 (comment 
+  (defn start-logging []
+  (org.apache.log4j.BasicConfigurator/configure))
+  
+  (start-logging)
+  
   (use 'pseidon.kafka.util)
   (use 'pseidon.core.conf)
   
   (def base-config {
-                    :kafka.zookeeper.connect "10.101.4.142:2181"
-                    :kafka.groupid "test"
+                    :kafka.zk.connect "localhost:2181"; "192.168.56.101"
+                    :kafka.groupid "test--group"
+                    :kafka.zk.connectiontimeout.ms "1000"
                     
                     
                     })
@@ -42,5 +48,10 @@
   
   (def ds (load-datasink kconf))
   (def writer (:writer ds))
-  (writer [["test1" (.getBytes "hi")]])
+  (writer [{:topic "test1" :val [ (.getBytes "hi")] }])
+  
+  (def ds-source (load-datasource kconf))
+  (def messages ((:reader-seq ds-source) "abc"))
+  (take 10 messages)
+  (+ 1 2)
   )
