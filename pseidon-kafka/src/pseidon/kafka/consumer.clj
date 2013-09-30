@@ -9,7 +9,7 @@
 
 ;;shamelessly copied from https://github.com/pingles/clj-kafka/tree/master/src/clj_kafka
 ;;the later works with kafka 0.8.1 and this library needs to work with 0.7.2 which is the latest stable release
-
+;;changes made to work with clojure.core.async
 
 (defn consumer
   "Uses information in Zookeeper to connect to Kafka. More info on settings
@@ -40,14 +40,9 @@
   (apply hash-map (interleave topics
                               (repeat (Integer/valueOf 1)))))
 
+
 (defn messages
-  "Creates a sequence of KafkaMessage messages from the given topics. Consumes
-   messages from a single stream. topics is a collection of topics to consume
-   from.
-   Optional: queue-capacity. Can be used to limit number of messages held in
-   queue before they've been dequeued in the returned sequence. Defaults to
-   Integer/MAX_VALUE but can be changed if your messages are particularly large
-   and consumption is slow."
+  "Returns a lazy sequence that will block when data is not available"
   [^ConsumerConnector consumer topics]
   (let [ch (chan 10000)
         stream-map (.createMessageStreams consumer (topic-map topics))]
@@ -56,4 +51,6 @@
            (go
              (doseq [msg (iterator-seq (.iterator stream))]
                (>! ch msg)))))
-       ch))
+       
+       (repeatedly #(<!! ch)
+       )))
