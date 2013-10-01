@@ -46,7 +46,7 @@
 					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 					<distribution>pseidon-kafka</distribution>
 					<group>utilties</group>
-					<release>2</release>
+					<release>3</release>
 					<packager>https://github.com/gerritjvv/pseidon/tree/master/pseidon-kafka</packager>
 					<provides>
 						<provide>pseidon-kafka</provide>

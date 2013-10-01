@@ -72,7 +72,7 @@
 					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 					<distribution>pseidon</distribution>
 					<group>utilties</group>
-					<release>11</release>
+					<release>13</release>
 					<packager>http://code.google.com/p/</packager>
 					<provides>
 						<provide>pseidon</provide>
@@ -381,6 +381,45 @@
       <groupId>org.clojure</groupId>
       <artifactId>java.jdbc</artifactId>
       <version>0.3.0-alpha4</version>
+    </dependency>
+     <dependency>
+      <groupId>org.streams</groupId>
+      <artifactId>commons</artifactId>
+      <version>0.2.5</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.protobuf</groupId>
+          <artifactId>protobuf-java</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.restlet.jse</groupId>
+          <artifactId>org.restlet.ext.jackson</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.restlet.jse</groupId>
+          <artifactId>org.restlet</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.googlecode.protobuf-java-format</groupId>
+          <artifactId>protobuf-java-format</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-context</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-beans</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>cglib</groupId>
+          <artifactId>cglib-nodep</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
