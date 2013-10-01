@@ -1,6 +1,6 @@
 (ns pseidon.kafka.consumer
     (:require [pseidon.kafka.kafka-util :refer [to-clojure as-properties pipe]]
-              [clojure.core.async :refer [chan go <! >!]])
+              [clojure.core.async :refer [chan go <! >! <!!]])
     (:import [kafka.javaapi.consumer ZookeeperConsumerConnector]
               [kafka.consumer ConsumerConfig Consumer KafkaStream ConsumerConnector]
               [kafka.api FetchRequest]
