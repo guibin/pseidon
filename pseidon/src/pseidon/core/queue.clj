@@ -50,7 +50,7 @@
 
 (defn ^BlockingQueue channel [^String name] 
   (prn "Creating channel " name " :worker-queue-limit " (get-conf2 :worker-queue-limit -1))
-  (let [limit (get-conf2 :worker-queue-limit 100)
+  (let [limit (get-conf2 :worker-queue-limit 10000)
         ^BlockingQueue queue (let [^Class cls (get-worker-queue) ] 
                                (try 
                                  (-> cls (.getConstructor (into-array Class [Integer/TYPE])) (.newInstance (into-array Object [(int limit)])))

@@ -1,7 +1,7 @@
 (ns pseidon.kafka.util
   (:require [pseidon.core.conf :refer [get-sub-conf]]
             [pseidon.kafka.consumer :refer [shutdown consumer messages]]
-            [pseidon.kafka.producer :refer [producer send-messages message]]
+            [pseidon.kafka.producer :refer [producer send-messages send-message message]]
             [pseidon.kafka.kafka-util :refer [as-properties with-resource]]
             [pseidon.core.registry :refer [create-datasource create-datasink register]]
             [clojure.tools.logging :refer [info error]])
@@ -14,7 +14,7 @@
         (map (fn [[k v]] [ (if (instance? clojure.lang.Keyword k) (name k) (str k)) v]) (get-sub-conf :kafka))))
 
 (defn create-message 
-  ([{:keys [topic k ^bytes val]}]
+  ([{:keys [topic k ^bytes val] :as msg}]
       (if k (create-message topic k val)
         (create-message topic val)))
   ([^String topic ^bytes val]
@@ -54,7 +54,6 @@
    writer returns a function that takes a list of messages and publishes
           the format of each item must be a KeyedMessage see create-message"
     
-    (info "!!!! " conf)
     (let [name "pseidon.kafka.util.datasink"
         p (ref nil) 
         ]
@@ -66,7 +65,9 @@
         (stop [] )
         (writer  [messages]
                       (if-not @p (run))
-                      (send-messages @p (vec (map create-message messages))))
+                      (if (coll? messages)
+                             (send-messages @p (vec (map create-message messages))) 
+                             (send-message @p (create-message messages))))
         ]
       (create-datasink {:name name :run run :stop stop :writer writer}))))
 

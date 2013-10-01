@@ -13,8 +13,7 @@
 
 (set! *warn-on-reflection* true)
 
-(def data-queue (q/channel "message"))
-
+(declare data-queue)
 
 ;will reload all of the plugins
 (defn refresh-plugins []
@@ -41,6 +40,8 @@
   )
 
 (defn start-app []
+  (def data-queue (q/channel "message"))
+
   (tracking-start)
   (refresh-plugins)
   (Thread/sleep 1000)

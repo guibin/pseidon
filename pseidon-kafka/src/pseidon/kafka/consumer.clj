@@ -32,7 +32,7 @@
 
 (defn shutdown
   "Closes the connection to Zookeeper and stops consuming messages."
-  [^ConsumerConnector consumer]
+  [^ZookeeperConsumerConnector consumer]
   (.shutdown consumer))
 
 (defn topic-map
@@ -43,7 +43,7 @@
 
 (defn messages
   "Returns a lazy sequence that will block when data is not available"
-  [^ConsumerConnector consumer topics]
+  [^ZookeeperConsumerConnector consumer topics]
   (let [ch (chan 10000)
         stream-map (.createMessageStreams consumer (topic-map topics))]
        (doseq [[topic streams] stream-map]
