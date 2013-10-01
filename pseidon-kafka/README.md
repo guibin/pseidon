@@ -42,6 +42,12 @@ For more configuration properties please see [http://kafka.apache.org/07/configu
 Load the plugin into pseidon via the :classpath and :plugin-dirs properties in /opt/pseidon/conf/pseidon.edn.
 Then use the datasource and datasinks provided via the registry api.
 
+Add the following to both :classpath and :plugin-dirs
+
+/opt/pseidon-kafka/lib/
+
+/opt/pseidon-kafka/plugins
+
 ### Using the Data Sink to send messages to kafka
 
 ```clojure

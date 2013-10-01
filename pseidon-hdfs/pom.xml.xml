@@ -46,7 +46,7 @@
 						<release>1</release>
 						<packager>http://code.google.com/p/</packager>
 						<provides>
-							<provide>pseidon</provide>
+							<provide>pseidon-hdfs</provide>
 						</provides>
 						<defineStatements>
 							<defineStatement>_unpackaged_files_terminate_build 0
