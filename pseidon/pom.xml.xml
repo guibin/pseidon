@@ -72,7 +72,7 @@
 					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 					<distribution>pseidon</distribution>
 					<group>utilties</group>
-					<release>10</release>
+					<release>11</release>
 					<packager>http://code.google.com/p/</packager>
 					<provides>
 						<provide>pseidon</provide>
@@ -381,21 +381,6 @@
       <groupId>org.clojure</groupId>
       <artifactId>java.jdbc</artifactId>
       <version>0.3.0-alpha4</version>
-    </dependency>
-    <dependency>
-      <groupId>org.streams</groupId>
-      <artifactId>streams-log</artifactId>
-      <version>0.5.0</version>
-      <exclusions>
-        <exclusion>
-          <groupId>hsqldb</groupId>
-          <artifactId>hsqldb</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.apache.hadoop</groupId>
-          <artifactId>hadoop-core</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>

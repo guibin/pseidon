@@ -3,7 +3,7 @@
   :url "https://github.com/gerritjvv/pseidon"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [
+  :dependencies 
                  [org.clojure/clojure "1.5.1"]
                  [commons-net "3.2"]
                  [commons-lang "2.6"]
@@ -37,12 +37,12 @@
                  [org.hsqldb/hsqldb "2.3.0"]
                  [org.clojure/java.jdbc "0.3.0-alpha4"]
   
-                 [org.streams/streams-log "0.5.0" :exclusions [hsqldb org.apache.hadoop/hadoop-core]]
+                 ;[org.streams/streams-log "0.5.0" :exclusions [hsqldb org.apache.hadoop/hadoop-core]]
                  [org.apache.hadoop/hadoop-core "0.20.2" :scope "provided" :exclusions [hsqldb]]
                  [criterium "0.4.1" :scope "test"] ;benchmarking
                  [spyscope "0.1.3" :scope "test"]
                 
-                 ]
+                 
   :aot [pseidon.core pseidon.getenv]
   :main pseidon.core
   :repositories {"sonatype-oss-public"

@@ -53,6 +53,8 @@
    stop calls shutdown on the producer
    writer returns a function that takes a list of messages and publishes
           the format of each item must be a KeyedMessage see create-message"
+    
+    (info "!!!! " conf)
     (let [name "pseidon.kafka.util.datasink"
         p (ref nil) 
         ]

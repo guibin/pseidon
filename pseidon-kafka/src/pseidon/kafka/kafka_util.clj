@@ -1,10 +1,12 @@
 (ns pseidon.kafka.kafka-util
+  (:require [clojure.tools.logging :refer [info error]])
   (:import
           [java.nio ByteBuffer]
           [java.util Properties]
           [kafka.message MessageAndMetadata MessageAndOffset]
-           [java.util.concurrent LinkedBlockingQueue]
-           [kafka.cluster Broker])
+          [java.util.concurrent LinkedBlockingQueue]
+          [kafka.cluster Broker]
+	  )
   )
 
 
@@ -13,10 +15,23 @@
 
 (defrecord KafkaMessage [topic offset partition key value])
 
+(defprotocol StringUtil (as-string [this]))
+
+(extend-protocol StringUtil
+               nil
+                    (as-string [_] "")
+               Object
+		     (as-string [this] (str this))
+               java.util.Collection
+                     (as-string [this] (clojure.string/join "," this))
+               java.util.Map
+                     (as-string [this] (as-string (vals this))))
+
 (defn as-properties
   [m]
   (let [props (Properties. )]
-    (doseq [[n v] m] (.setProperty props n v))
+    
+    (doseq [[n v] m] (if (and v v) (.setProperty props (str n)  (as-string v))))
     props))
 
 (defprotocol ToClojure
