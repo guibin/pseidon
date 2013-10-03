@@ -4,7 +4,10 @@
         [pseidon.core.conf :only [load-config! get-conf2] ]
         [pseidon.core.app :only [start-app stop-app refresh-plugins]]
         [clojure.tools.nrepl.server :only [start-server stop-server] ]
-        ) 
+        
+        )
+  (:require [reply.main :refer [launch-nrepl]])
+  
   )
 
  (require '[clojure.tools.nrepl :as repl])
@@ -18,6 +21,9 @@
     ["-stop" "--stop" "Shutdown the application" :flag true]
     ["-r" "--refresh-plugins" "Refresh all edited plugins" :flag true]
     ["-get-cp" "--get-cp" "Returns classpath string from the pseidon.edn classpath setting"]
+    ["-repl" "--repl" "Opens a repl to the current running app" :flag true]
+    ["-p" "--port" "Used with repl to specify the port to attach to"]
+    
   ))
 
 
@@ -77,20 +83,30 @@
       (-> (repl/client conn 1000) (repl/message {:op :eval :code "(do (pseidon.core/shutdown) )"  })
           (repl/response-values)
                                   )))
+(defn run-repl [port]
+  (prn "Connecting to localhost:" port)
+  (launch-nrepl {:attach (str "localhost:" port)}))
+
+(defn load-config [opts]
+          (load-config! (clojure.string/join "/" [ (:config opts) "pseidon.edn"] )))
 
 (defn -main [& args]
-     
-     (if-let [opts (check-opts (cmd args) ) ]
+     (prn "Hi check-ops: " (check-opts (cmd args) ))  
+     (try (if-let [opts (check-opts (cmd args) ) ]
        (do
-          (load-config! (clojure.string/join "/" [ (:config opts) "pseidon.edn"] )) 
           
+          (prn "Opts " opts   " is repl " (:repl opts))
 		      (cond
-		              (:refresh-plugins opts) (send-refresh)
+                 (:repl opts) (run-repl (:port opts))
+		             (:refresh-plugins opts) (send-refresh)
 		             (:stop opts) (send-shutdown)
 		             (contains? opts :get-cp) (.println System/out (get-classpath))
 		              :else
 		               (do 
+                     (load-config opts)
 				             (start-repl (get-conf2 :repl-port 7111))
 				             (start-app))             
-		          ))))
+		          )))
+       
+          (catch Exception e (.printStackTrace e)) ))
 

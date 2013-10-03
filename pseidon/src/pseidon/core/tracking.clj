@@ -48,7 +48,7 @@
      spec
      ))
 
-(def dbspec (create-spec (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking4")))
+(def dbspec (delay (create-spec (get-conf2 "tracking-db-dir" "/tmp/pseidon-tracking4"))))
 
 (defn ^:Dynamic ensure-started [] )
 
@@ -60,7 +60,7 @@
 
 (defmacro with-txn 
  [spec body]
-    `(txn-helper ~(if spec spec dbspec )  ~body))
+    `(txn-helper ~(if spec spec (force dbspec) )  ~body))
 
 
 (defn as-str [& s] (apply str s))
@@ -105,7 +105,7 @@
     [ns (clojure.string/join \u0001 ids)]
     ))
 
-(defn mark-run! [^String ds ^String id & {:keys [db] :or {db dbspec}}]
+(defn mark-run! [^String ds ^String id & {:keys [db] :or {db @dbspec}}]
   " The ds and id values cannot hold any byte 1 characters, the key formed is ds byte1 id and must be unique, 
     if the object already exists in the database a unique constraint exception will be thrown.
 
@@ -156,7 +156,7 @@
    ["dsid=?" dsid]
    params))
 
-(defn mark-done! [^String ds ids ^clojure.lang.IFn f & {:keys [db] :or {db dbspec}}]
+(defn mark-done! [^String ds ids ^clojure.lang.IFn f & {:keys [db] :or {db @dbspec}}]
   "
     Applies the function f inside a transaction together with the set status to done
     If f fails the status will be rolled back.
@@ -178,17 +178,17 @@
   
 (defn select-ds-messages  
   "Returns a vector of messages from to max"
-  [^String ds & {:keys [db max status] :or {db dbspec max 100 status status-run} } ]
+  [^String ds & {:keys [db max status] :or {db @dbspec max 100 status status-run} } ]
   (with-txn db
           (select-messages (str "dsid like '" (clojure.string/join [ds \u0001 \%]) "' and status='" status "'") 0 max)))
 
-(defn expire-old-messages [^Long ts & {:keys [db] :or {db dbspec}}]
+(defn expire-old-messages [^Long ts & {:keys [db] :or {db @dbspec}}]
   "Runs a delete query on the current db to remove records older than ts"
   (with-txn db
     (sql/delete-rows "messagetracking" ["ts <= ?" ts])))
 
 
-(defn message-statuscount [dsid & {:keys [db max] :or {db dbspec max 100}}]
+(defn message-statuscount [dsid & {:keys [db max] :or {db @dbspec max 100}}]
   "Returns the messages filtered by where and grouped by status as 
    [{:status \"status\" :n count-value} , ... ] 
   "

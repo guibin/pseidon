@@ -238,9 +238,19 @@
       <version>1.5.1</version>
     </dependency>
     <dependency>
+      <groupId>goat</groupId>
+      <artifactId>goat</artifactId>
+      <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
       <groupId>reply</groupId>
       <artifactId>reply</artifactId>
       <version>0.1.0-beta9</version>
+    </dependency>
+    <dependency>
+      <groupId>jline</groupId>
+      <artifactId>jline</artifactId>
+      <version>2.11</version>
     </dependency>
     <dependency>
       <groupId>commons-net</groupId>

@@ -23,6 +23,7 @@
                  [jline "2.11" :scope "provided"] ;need for dependency from reply
                  ]
 
+  :warn-on-reflection true
 
   :plugins [
           [lein-rpm "0.0.5"] [lein-midje "3.0.1"] [lein-marginalia "0.7.1"]

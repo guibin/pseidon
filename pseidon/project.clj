@@ -5,6 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [
                  [org.clojure/clojure "1.5.1"]
+                 [goat "0.1.0-SNAPSHOT"]
                  [commons-net "3.2"]
                  [commons-lang "2.6"]
                  [commons-io "2.4"]
@@ -12,7 +13,6 @@
                  [org.apache.sshd/sshd-core "0.8.0"]  
                  [com.jcraft/jsch "0.1.50"]
                  [org.clojure/tools.namespace "0.2.4"]
-                 [reply "0.1.0-beta9"]
                  [clj-time "0.5.1"]
                  [http-kit "2.1.8"]
                  [compojure "1.1.5"]
@@ -21,7 +21,8 @@
                  [org.clojure/tools.cli "0.2.2"]
                  [com.codahale.metrics/metrics-core "3.0.1"]
                  [com.codahale.metrics/metrics-servlets "3.0.1"]
-                 
+                 [reply "0.1.0-beta9"]
+                 [jline "2.11"] ;need for dependency from reply
                  [log4j/log4j "1.2.16" :exclusions [javax.mail/mail
                                               javax.jms/jms
                                               com.sun.jdmk/jmxtools
