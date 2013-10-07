@@ -6,7 +6,9 @@
         [clojure.tools.nrepl.server :only [start-server stop-server] ]
         
         )
-  (:require [reply.main :refer [launch-nrepl]])
+  (:require [reply.main :refer [launch-nrepl]]
+            [clojure.tools.logging :refer [info error]]
+            [pseidon.core.watchdog :refer [watch-critical-error]])
   
   )
 
@@ -26,7 +28,14 @@
     
   ))
 
-
+(defn set-java-library-path [path]
+  (when path 
+    (do 
+      (System/setProperty "java.library.path" path)
+      (doto (.getDeclaredField ClassLoader "sys_paths")
+        (.setAccessible true)
+        (.set nil nil)))
+        path))
 
 (defn parse-cp-item [item]
   (let [file (clojure.java.io/file item)]
@@ -91,7 +100,6 @@
           (load-config! (clojure.string/join "/" [ (:config opts) "pseidon.edn"] )))
 
 (defn -main [& args]
-     (prn "Hi check-ops: " (check-opts (cmd args) ))  
      (try (if-let [opts (check-opts (cmd args) ) ]
        (do
           
@@ -104,9 +112,11 @@
 		              :else
 		               (do 
                      (load-config opts)
+                     (info "Java Library Path: " (set-java-library-path (get-conf2 :java-library-path "/opt/hadoopgpl/native/Linux-amd64-64/")))
+                     
 				             (start-repl (get-conf2 :repl-port 7111))
-				             (start-app))             
-		          )))
+				             (start-app)             
+		          ))))
        
-          (catch Exception e (.printStackTrace e)) ))
+          (catch Exception e (do (.printStackTrace e) (error e)))))
 

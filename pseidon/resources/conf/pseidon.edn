@@ -38,7 +38,9 @@
                           ; 2 = type_yyyMMddHH.extension
  :hdfs-base-dir "/log/raw"
   
- :default-codec org.apache.hadoop.io.compress.GzipCodec
+ :default-codec org.apache.hadoop.io.compress.GzipCodec ;com.hadoop.compression.lzo.LzopCodec
+ 
+ :java-library-path "/opt/hadoopgpl/native/Linux-amd64-64/"
  
  ;use this property to include new plugins' jars on the classpath
  :classpath [

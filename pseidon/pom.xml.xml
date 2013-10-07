@@ -72,7 +72,7 @@
 					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 					<distribution>pseidon</distribution>
 					<group>utilties</group>
-					<release>16</release>
+					<release>20</release>
 					<packager>http://code.google.com/p/</packager>
 					<provides>
 						<provide>pseidon</provide>
@@ -107,7 +107,8 @@
 							</sources>
 						</mapping>
 						<mapping>
-							<directory>/etc/init.d/pseidon</directory>
+							<directory>/etc/init.d</directory>
+							<directoryIncluded>false</directoryIncluded>
 							<configuration>true</configuration>
 							<filemode>776</filemode>
 							<username>root</username>

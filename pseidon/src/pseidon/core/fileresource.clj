@@ -19,7 +19,7 @@
 (defrecord TopicConf [key codec])
 
 
-(def ^CompressionPoolFactory compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 nil))
+(def ^CompressionPoolFactory compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 (reify Status (setCounter [self name i] ))))
 
 (def global-on-roll-callbacks (ref {}))
 
@@ -45,15 +45,17 @@
       (doto codec (.setConf hadoop-conf))
       codec))
 
-(def default-codec 
-   (configure-codec (if-let [codec (get-conf2 :default-codec nil)]
-    (-> (Thread/currentThread) .getContextClassLoader (.loadClass (.getName codec)) .newInstance)
-    (org.apache.hadoop.io.compress.GzipCodec.))  hadoop-conf))
+(defn default-codec [] 
+										   (let [codec (configure-codec (if-let [codec (get-conf2 :default-codec nil)]
+										    (-> (Thread/currentThread) .getContextClassLoader (.loadClass (.getName codec)) .newInstance)
+										    (org.apache.hadoop.io.compress.GzipCodec.))  hadoop-conf)]
+               (prn "!!! Using codec " codec " conf " (.getConf codec))
+               codec))
 
 (defn ^CompressionCodec get-codec [topic]
   (if-let [ codec (get  (get-conf2 :topic-codecs {}) topic)]
      (configure-codec codec hadoop-conf)
-     default-codec))
+     (default-codec) ))
 
 
 (defn get-writer-basedir [] 
