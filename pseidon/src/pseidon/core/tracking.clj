@@ -54,13 +54,13 @@
 
 (defmacro txn-helper [spec & body]
 	      `(clojure.java.jdbc/with-connection
-          ~spec
+          (force ~spec)
           (clojure.java.jdbc/transaction ~@body
 	         )))
 
 (defmacro with-txn
  [spec body]
-    `(txn-helper ~(if spec (if (delay? spec) (force spec) spec) (force dbspec) )  ~body))
+    `(txn-helper ~(if spec spec dbspec )  ~body))
 
 
 (defn as-str [& s] (apply str s))

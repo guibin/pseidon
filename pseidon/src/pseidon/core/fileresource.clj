@@ -184,8 +184,7 @@
 	        renamed (.renameTo file new-file)
 	        ]
 	     (if renamed 
-	       (do 
-	         (info "File " new-file " created ") 
+	       (do  
 	           (try 
 	             (with-txn pseidon.core.tracking/dbspec (doall (pmap (fn [prf] 
                                                                     (apply-f prf new-file)) post-roll)))
