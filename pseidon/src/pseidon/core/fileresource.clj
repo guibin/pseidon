@@ -8,11 +8,12 @@
    
    (:import (clojure.lang ArityException)
             (org.apache.hadoop.io.compress CompressionCodec Compressor)
-            (org.apache.hadoop.conf Configurable Configuration))
+            (org.apache.hadoop.conf Configurable Configuration)
+            (org.streams.commons.status Status)
+            (org.streams.commons.compression CompressionPool CompressionPoolFactory)
+            (org.streams.commons.compression.impl CompressionPoolFactoryImpl))
   )
 
-(import '(org.streams.commons.compression CompressionPool CompressionPoolFactory))
-(import '(org.streams.commons.compression.impl CompressionPoolFactoryImpl))
 
 ;post-roll is a sequence of functions that will be applied only after the file is rolled
 (defrecord FileRS [name output codec compressor file post-roll])

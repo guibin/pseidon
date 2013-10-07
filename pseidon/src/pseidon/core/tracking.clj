@@ -58,9 +58,9 @@
           (clojure.java.jdbc/transaction ~@body
 	         )))
 
-(defmacro with-txn 
+(defmacro with-txn
  [spec body]
-    `(txn-helper ~(if spec spec (force dbspec) )  ~body))
+    `(txn-helper ~(if spec (if (delay? spec) (force spec) spec) (force dbspec) )  ~body))
 
 
 (defn as-str [& s] (apply str s))
