@@ -4,10 +4,13 @@
             [pseidon.kafka.producer :refer [producer send-messages send-message message]]
             [pseidon.kafka.kafka-util :refer [as-properties with-resource]]
             [pseidon.core.registry :refer [create-datasource create-datasink register]]
-            [clojure.tools.logging :refer [info error]])
+            [clojure.tools.logging :refer [info error]]
+            [pseidon.core.metrics :refer [add-meter update-meter]])
    (:import 
             [kafka.message Message])
   )
+
+(def kafka-datasink-meter (add-meter "pseidon.kafka.util.datasink.publish"))
 
 (defn get-kafka-conf []
   (into {} 
@@ -66,8 +69,10 @@
         (writer  [messages]
                       (if-not @p (run))
                       (if (coll? messages)
-                             (send-messages @p (vec (map create-message messages))) 
-                             (send-message @p (create-message messages))))
+                             (do (update-meter kafka-datasink-meter (count messages)) 
+                                 (send-messages @p (vec (map create-message messages)))) 
+                             (do (update-meter kafka-datasink-meter) 
+                                 (send-message @p (create-message messages)))))
         ]
       (create-datasink {:name name :run run :stop stop :writer writer}))))
 
