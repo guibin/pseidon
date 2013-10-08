@@ -124,7 +124,6 @@
 			<groupId>com.github.sgroschupf</groupId>
 			<artifactId>zkclient</artifactId>
 			<version>0.1</version>
-			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>midje</groupId>
