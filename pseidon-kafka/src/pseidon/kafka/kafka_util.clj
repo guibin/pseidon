@@ -38,6 +38,10 @@
   (to-clojure [x] "Converts type to Clojure structure"))
 
 (extend-protocol ToClojure
+  
+  KafkaMessage
+  (to-clojure [x] x)
+  
   MessageAndMetadata
   (to-clojure [x] (KafkaMessage. (.topic x) (.offset x) (.partition x) (.key x) (.message x)))
 

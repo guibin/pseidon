@@ -68,7 +68,7 @@
         (stop [] )
         (writer  [messages]
                       (if-not @p (run))
-                      (if (coll? messages)
+                      (if (and (coll? messages) (not (map? messages)))
                              (do (update-meter kafka-datasink-meter (count messages)) 
                                  (send-messages @p (vec (map create-message messages)))) 
                              (do (update-meter kafka-datasink-meter) 

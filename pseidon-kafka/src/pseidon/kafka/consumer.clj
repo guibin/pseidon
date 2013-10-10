@@ -40,7 +40,7 @@
   (apply hash-map (interleave topics
                               (repeat (Integer/valueOf 1)))))
 
-
+;returns kafka.message.MessageAndMetadata[K, V](key: K, message: V, topic: String, partition: Int, offset: Long)
 (defn messages
   "Returns a lazy sequence that will block when data is not available"
   [^ZookeeperConsumerConnector consumer topics]
@@ -50,7 +50,7 @@
          (doseq [ stream streams]
            (go
              (doseq [msg (iterator-seq (.iterator stream))]
-               (>! ch msg)))))
+               (>! ch (to-clojure msg))))))
        
        (repeatedly #(<!! ch)
        )))
