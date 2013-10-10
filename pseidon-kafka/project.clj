@@ -7,9 +7,9 @@
 
   :dependencies [
 
-                 [org.apache.kafka/kafka-core "0.7.2"]
+                 [org.apache.kafka/kafka-core "0.7.2-2.10"]
                  [com.github.sgroschupf/zkclient "0.1"]
-                 [org.scala-lang/scala-library "2.8.0"]
+                 [org.scala-lang/scala-library "2.10.2"]
                  
                  [com.yammer.metrics/metrics-core "2.2.0" :scope "test"]
                  [com.github.sgroschupf/zkclient "0.1" :scope "test"]
