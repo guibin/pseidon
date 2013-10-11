@@ -18,19 +18,6 @@
 	<build>
 		<sourceDirectory>src</sourceDirectory>
 		<testSourceDirectory>test</testSourceDirectory>
-		<resources>
-			<resource>
-				<directory>deps/kafka/kafka-0.7.2-2.10.jar</directory>
-			</resource>
-		</resources>
-		<testResources>
-			<testResource>
-				<directory>dev-resources</directory>
-			</testResource>
-			<testResource>
-				<directory>deps/kafka/kafka-0.7.2-2.10.jar</directory>
-			</testResource>
-		</testResources>
 		<directory>target/</directory>
 		<outputDirectory>target/classes</outputDirectory>
 
@@ -74,7 +61,7 @@
 							<filemode>776</filemode>
 							<username>pseidon</username>
 							<groupname>pseidon</groupname>
-						    <dependency/>
+							<dependency />
 						</mapping>
 					</mappings>
 				</configuration>
@@ -106,13 +93,8 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.apache.kafka</groupId>
-			<artifactId>kafka-core</artifactId>
-			<version>0.7.2</version>
-		</dependency>
-		<dependency>
-			<groupId>org.scala-lang</groupId>
-			<artifactId>scala-library</artifactId>
-			<version>2.8.0</version>
+			<artifactId>kafka_2.9.2</artifactId>
+			<version>0.8.0-beta1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.yammer.metrics</groupId>

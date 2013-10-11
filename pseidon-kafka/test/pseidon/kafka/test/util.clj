@@ -5,7 +5,8 @@
            [java.io File FileInputStream]
            [java.net InetSocketAddress]
            [java.util Properties]
-           [kafka.server KafkaServer KafkaConfig])
+           [kafka.server KafkaServer KafkaConfig]
+           [kafka.utils SystemTime$])
   
   )
 
@@ -24,6 +25,7 @@
       zk-server)))
 
 (defn kafka-server []
+  ;class KafkaServer(val config: KafkaConfig, time: Time = SystemTime) extends Logging {
   (let [ props (doto (Properties.) (.load (FileInputStream. "test/resources/server.properties"))) ]
-    (doto (KafkaServer. (KafkaConfig. props)) .startup)))
+    (doto (KafkaServer. (KafkaConfig. props) (SystemTime$/MODULE$)) .startup)))
   

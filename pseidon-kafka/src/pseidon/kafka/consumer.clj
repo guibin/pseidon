@@ -1,15 +1,15 @@
 (ns pseidon.kafka.consumer
     (:require [pseidon.kafka.kafka-util :refer [to-clojure as-properties pipe]]
-              [clojure.core.async :refer [chan go <! >! <!!]])
+              [clojure.core.async :refer [chan go <! >! <!!]]
+              [clojure.tools.logging :refer [info error]])
     (:import [kafka.javaapi.consumer ZookeeperConsumerConnector]
               [kafka.consumer ConsumerConfig Consumer KafkaStream ConsumerConnector]
               [kafka.api FetchRequest]
+              [pseidon.kafka.util KafkaStreamsHelper]
+              
            ))
 
 
-;;shamelessly copied from https://github.com/pingles/clj-kafka/tree/master/src/clj_kafka
-;;the later works with kafka 0.8.1 and this library needs to work with 0.7.2 which is the latest stable release
-;;changes made to work with clojure.core.async
 
 (defn consumer
   "Uses information in Zookeeper to connect to Kafka. More info on settings
@@ -44,13 +44,26 @@
 (defn messages
   "Returns a lazy sequence that will block when data is not available"
   [^ZookeeperConsumerConnector consumer & topics]
-  (let [ch (chan 10000)
-        stream-map (.createMessageStreams consumer (topic-map topics))]
-       (doseq [[topic streams] stream-map]
-         (doseq [ stream streams]
-           (go
-             (doseq [msg (iterator-seq (.iterator stream))]
-               (>! ch (to-clojure msg))))))
-       
-       (repeatedly #(<!! ch)
-       )))
+  (map to-clojure 
+       (repeatedly #(.take (KafkaStreamsHelper/get_streams consumer (topic-map topics) 1000)))))
+
+
+(comment 
+  
+  (defn messages
+  "Returns a lazy sequence that will block when data is not available"
+  [^ZookeeperConsumerConnector consumer & topics]
+  (let [stream-map (.createMessageStreams consumer (topic-map topics))]
+    (lazy-cat (for [topic topics]
+      (let [it (.iterator (first (get stream-map topic)))]
+        (repeatedly #(.next it)))))))
+  
+;returns kafka.message.MessageAndMetadata[K, V](key: K, message: V, topic: String, partition: Int, offset: Long)
+(defn messages
+  "Returns a lazy sequence that will block when data is not available"
+  [^ZookeeperConsumerConnector consumer & topics]
+  (let [stream-map (.createMessageStreams consumer (topic-map topics))]
+       (first (get stream-map "test")))))
+        
+	          
+

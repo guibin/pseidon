@@ -21,9 +21,9 @@
       (if k (create-message topic k val)
         (create-message topic val)))
   ([^String topic ^bytes val]
-      (message topic [(Message. val)] ))
+      (message topic val))
   ([topic k ^bytes val]
-      (message ^String topic k [(Message. val)])))
+      (message ^String topic k val)))
 
 (defn load-datasource [conf]
   "Returns a DataSource instance that
@@ -46,7 +46,7 @@
         (list-files  [] )
         (reader-seq  [ & topics]
                       (if-not @c (run))
-                      (messages @c topics))
+                      (apply messages @c topics))
         ]
       (create-datasource {:name name :run run :stop stop :list-files list-files :reader-seq reader-seq}))))
 

@@ -6,17 +6,17 @@
   :resource-paths ["deps/kafka/kafka-0.7.2-2.8.0.jar"]
 
   :dependencies [
-
-                 [org.apache.kafka/kafka-core "0.7.2-2.8.0"]
-                 [com.github.sgroschupf/zkclient "0.1"]
-                 [org.scala-lang/scala-library "2.8.0"]
+                 [org.apache.kafka/kafka_2.9.2 "0.8.0-beta1"]
+                 ;[com.github.sgroschupf/zkclient "0.1"]
+                 [com.101tec/zkclient "0.3" :exclusions [org.apache.zookeeper/zookeeper]]
                  [com.yammer.metrics/metrics-core "2.2.0" :scope "test"]
                  [com.github.sgroschupf/zkclient "0.1" :scope "test"]
                  [midje "1.6-alpha2" :scope "test"]
                  [pseidon "0.3.1-SNAPSHOT" :scope "provided"]
                  [night-vision "0.1.0-SNAPSHOT" :scope "test"]
                  [org.apache.zookeeper/zookeeper "3.4.5"]
-                 
+                 [org.scala-lang/scala-library "2.9.2"]
+                 [net.sf.jopt-simple/jopt-simple "3.2"]
                  [org.clojure/clojure "1.5.1" :scope "provided"]
                  [reply "0.1.0-beta9" :scope "provided"]
                  [jline "2.11" :scope "provided"] ;need for dependency from reply
@@ -31,5 +31,6 @@
 
    :aot [pseidon.kafka.core]
    :main pseidon.kafka.core
+   :java-source-paths ["java"]
   
   )

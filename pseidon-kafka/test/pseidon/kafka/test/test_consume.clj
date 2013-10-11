@@ -3,7 +3,7 @@
         pseidon.kafka.consumer
         pseidon.kafka.datasource
         pseidon.kafka.util
-        pseidon.kafka.kafka_util) 
+        pseidon.kafka.kafka-util) 
   )
 
 

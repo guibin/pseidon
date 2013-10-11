@@ -10,9 +10,6 @@
   )
 
 
-;;shamelessly copied from https://github.com/pingles/clj-kafka/tree/master/src/clj_kafka
-;;the later works with kafka 0.8.1 and this library needs to work with 0.7.2 which is the latest stable release
-
 (defrecord KafkaMessage [topic offset partition key value])
 
 (defprotocol StringUtil (as-string [this]))
