@@ -1,6 +1,7 @@
 (ns pseidon.kafka.test.producer-consumer-tests
   (:require [pseidon.kafka.test.util :refer [zookeeper kafka-server]]
-            [pseidon.core.conf :refer [set-conf!]])
+            [pseidon.core.conf :refer [set-conf!]]
+            [clojure.tools.logging :refer [info error]])
   (:use midje.sweet
         pseidon.kafka.consumer
         pseidon.kafka.producer
@@ -33,8 +34,8 @@
                   (writer {:topic "test" :val "test"}))
                
                 (let [msg (take 10 (reader-seq "test"))]
-                 (count msg) => 10)
+                 (count msg) => 10
                 )
-             ))
+             )))
        
 
