@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry kind="src" path="java"/>
 	<classpathentry kind="lib" path="/Users/gvanvuuren/checkouts/pseidon/pseidon-kafka/target/classes"/>
 	<classpathentry kind="lib" path="/Users/gvanvuuren/.m2/repository/com/google/guava/guava/14.0.1/guava-14.0.1.jar"/>
 	<classpathentry kind="lib" path="/Users/gvanvuuren/.m2/repository/org/apache/maven/scm/maven-scm-provider-svn-commons/1.4/maven-scm-provider-svn-commons-1.4.jar"/>
