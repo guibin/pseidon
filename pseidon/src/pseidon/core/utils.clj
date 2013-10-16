@@ -1,5 +1,6 @@
 (ns pseidon.core.utils
   (:require [clojure.core.async :refer [go timeout <!]]
+            [clojure.tools.logging :refer [info]]
            )
   (:import (clojure.lang ArityException))
   )

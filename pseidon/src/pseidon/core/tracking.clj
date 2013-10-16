@@ -156,7 +156,8 @@
    ["dsid=?" dsid]
    params))
 
-(defn mark-done! [^String ds ids ^clojure.lang.IFn f & {:keys [db] :or {db @dbspec}}]
+(defn mark-done! 
+  [^String ds ids ^clojure.lang.IFn f & {:keys [db] :or {db @dbspec}}]
   "
     Applies the function f inside a transaction together with the set status to done
     If f fails the status will be rolled back.

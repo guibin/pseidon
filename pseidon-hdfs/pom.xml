@@ -43,10 +43,10 @@
 						<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 						<distribution>pseidon-hdfs</distribution>
 						<group>utilties</group>
-						<release>1</release>
+						<release>2</release>
 						<packager>http://code.google.com/p/</packager>
 						<provides>
-							<provide>pseidon</provide>
+							<provide>pseidon-hdfs</provide>
 						</provides>
 						<defineStatements>
 							<defineStatement>_unpackaged_files_terminate_build 0

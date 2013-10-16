@@ -44,9 +44,9 @@
 (defn messages
   "Returns a lazy sequence that will block when data is not available"
   [^ZookeeperConsumerConnector consumer & topics]
-  (map to-clojure 
-       (repeatedly #(.take (KafkaStreamsHelper/get_streams consumer (topic-map topics) 1000)))))
-
+  (let [queue (KafkaStreamsHelper/get_streams consumer (topic-map topics) 100)]
+		  (map to-clojure 
+		       (repeatedly #(.take queue)))))
 
 (comment 
   

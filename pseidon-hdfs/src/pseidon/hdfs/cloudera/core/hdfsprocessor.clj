@@ -23,6 +23,16 @@
    `(if-let [f# (get ~model-map ~model-key)]
        (f# ~@args)))
 
+(defn ^:dynamic get-local-host-name []
+  "Returns the local host name, any exception will be printed and 'localhost' returned"
+  (try
+    (.getHostName (InetAddress/getLocalHost))
+    (catch Exception e (do 
+                         (error e e)
+                         "localhost"))))
+
+(defonce host-name (get-local-host-name))
+
 (defn ^:dynamic number-format [^Integer n]
   (if (< n 10) (str "0" n) (str n)))
   
@@ -55,8 +65,9 @@
                                      (fn [file-name]
                                        "Expects a file name with type_id_hr_yyyyMMddHH.extension
                                         use this method as (let [ [type id _ date] (parse-file-name file-name)]  ) 
-					 "
-																				(let [[type id ] (clojure.string/split file-name #"[_\.]")
+					                             "
+                                       
+																				(let [[type id ] (clojure.string/split file-name (re-pattern (get-conf2 "local-file-model-split" #"[_\.]")))
                                                date (extract-file-date file-name) ] 
 																				 (info "Parsing file " file-name " to [ " type " " id " " date "]")
                                                [type id nil date]))
@@ -64,7 +75,7 @@
                                         "Expects a file name with type_yyyMMddHH.extension
                                          the id value part is returned empty
                                          " 
-                                         (let [ [type] (clojure.string/split file-name #"[_\.]")
+                                         (let [ [type] (clojure.string/split file-name (re-pattern (get-conf2 "local-file-model-split" #"[_\.]")))
                                                 date (extract-file-date file-name)]
                                            [type "1" nil date]))
                                      })
@@ -112,8 +123,7 @@
       true
       )
     (catch Exception e (do 
-                         (info "!!!!!!!!!!!!!!!!!!!!!!!!! ERROR " e)
-                         (error e)
+                         (error e e)
                          false
                          ))))
 
@@ -159,7 +169,7 @@
 	                       ^String file-name (-> local-file java.io.File. .getName)
 	                       [type-name _ _ date-hr] (apply-model local-file-model file-name-parsers file-name); inserts the correct model function
 	                       date-dir (apply-model hdfs-dir-model hdfs-dir-formatters date-hr)
-	                       remote-file (str hdfs-dir "/" type-name "/" date-dir "/" file-name) ;construct the remote file-name
+	                       remote-file (str hdfs-dir "/" type-name "/" date-dir "/" host-name "-" file-name) ;construct the remote file-name
 	                       ]
                            (info "reading id " id)
 	                   (go 

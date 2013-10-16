@@ -29,6 +29,7 @@ Where files are uploaded depends on:
 | hdfs-base-dir | the base directory to which the files will be uploaded |
 | hdfs-dir-model | how the subdirectories for each file is created 1 = dt=yyyyMMdd/hr=yyyyMMddHH, 2 = year=yyyy/month=MM/day=dd/hour=HH |
 | hdfs-local-file-model | how the type, date, file values are extracted from the local file 1 = type_id_hr_yyyyMMddHH.extension, 2 = type_yyyMMddHH.extension |
+| hdfs-local-file-model-split | how the file is split to get the topic this must be a regex string either #"" or "" the default is "[_\.]" |
 
  
 The final directory is:
