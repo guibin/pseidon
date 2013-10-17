@@ -15,6 +15,7 @@
            (java.io File)
            (org.apache.hadoop.fs Path FileUtil FileSystem)
            (org.apache.hadoop.conf Configuration)
+           (java.net InetAddress)
            )
   )
 
@@ -122,6 +123,10 @@
 
       true
       )
+    (catch java.io.FileNotFoundException fe (do 
+                                              (mark-done! ds id (fn []))
+                                              (info local-file " not found ignoring")
+                                              true))
     (catch Exception e (do 
                          (error e e)
                          false

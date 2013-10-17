@@ -9,6 +9,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import kafka.consumer.Consumer;
 import kafka.consumer.ConsumerConfig;
@@ -50,7 +51,7 @@ public final class KafkaStreamsHelper {
 							final ConsumerIterator<byte[], byte[]> it = stream
 									.iterator();
 
-							while (!Thread.interrupted()) {
+							while (it.hasNext()) {
 								try {
 									final MessageAndMetadata<byte[], byte[]> obj = it
 											.next();
@@ -72,18 +73,28 @@ public final class KafkaStreamsHelper {
 		return queue;
 	}
 
+
 	private static final List<KafkaStream<byte[], byte[]>> flatten(
 			ConsumerConnector conn, Map<String, Integer> topicMap) {
-		Map<String, List<KafkaStream<byte[], byte[]>>> map = conn
-				.createMessageStreams(topicMap);
-		// we do this is java because for some reason the java scala bindings to
-		// not work well here with clojure
-		List<KafkaStream<byte[], byte[]>> streams = new ArrayList<KafkaStream<byte[], byte[]>>();
-		for (List<KafkaStream<byte[], byte[]>> listStreams : map.values())
-			for (KafkaStream<byte[], byte[]> stream : listStreams)
-				streams.add(stream);
+		try {
+			Map<String, List<KafkaStream<byte[], byte[]>>> map = conn
+					.createMessageStreams(topicMap);
+			// we do this is java because for some reason the java scala
+			// bindings to
+			// not work well here with clojure
+			List<KafkaStream<byte[], byte[]>> streams = new ArrayList<KafkaStream<byte[], byte[]>>();
+			for (List<KafkaStream<byte[], byte[]>> listStreams : map.values())
+				for (KafkaStream<byte[], byte[]> stream : listStreams)
+					streams.add(stream);
 
-		return streams;
+			return streams;
+		} catch (org.I0Itec.zkclient.exception.ZkNodeExistsException e) {
+			RuntimeException rte = new RuntimeException(
+					"Kafka does not allow calling createMesasgeStreams for the same connector multiple times",
+					e);
+			rte.setStackTrace(e.getStackTrace());
+			throw rte;
+		}
 	}
 
 	public static final void main(String args[]) throws InterruptedException {
