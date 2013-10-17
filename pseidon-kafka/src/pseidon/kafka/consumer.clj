@@ -48,22 +48,4 @@
 		  (map to-clojure 
 		       (repeatedly #(.take queue)))))
 
-(comment 
-  
-  (defn messages
-  "Returns a lazy sequence that will block when data is not available"
-  [^ZookeeperConsumerConnector consumer & topics]
-  (let [stream-map (.createMessageStreams consumer (topic-map topics))]
-    (lazy-cat (for [topic topics]
-      (let [it (.iterator (first (get stream-map topic)))]
-        (repeatedly #(.next it)))))))
-  
-;returns kafka.message.MessageAndMetadata[K, V](key: K, message: V, topic: String, partition: Int, offset: Long)
-(defn messages
-  "Returns a lazy sequence that will block when data is not available"
-  [^ZookeeperConsumerConnector consumer & topics]
-  (let [stream-map (.createMessageStreams consumer (topic-map topics))]
-       (first (get stream-map "test")))))
-        
-	          
 

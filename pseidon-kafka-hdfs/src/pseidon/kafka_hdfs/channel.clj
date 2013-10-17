@@ -22,15 +22,15 @@
 
 (def kafka-reader  (delay (let [{:keys [reader-seq]} (reg-get-wait "pseidon.kafka.util.datasource" 10000)] reader-seq)))
 
-(defn ^:dynamic process-topic [topic]
+(defn ^:dynamic process-topics [topics]
   "Start in infinite loop that will read the current batch ids and send to the hdfs topic
   "
-  (let [consume-meter (add-meter (str "pseidon.kafka_hdfs.channel-" topic))]
+  (let [consume-meter-map (into {} (map (fn [n] [n (add-meter (str "pseidon.kafka_hdfs.channel-" n))]) topics))]
 	  (while (not (Thread/interrupted))
-	    (let [rdr-seq ((force kafka-reader) topic)]
+	    (let [rdr-seq (apply (force kafka-reader) topics)]
 	      (doseq [{:keys [offset topic partition value] :as msg } rdr-seq]
 	        (let [msg-id (str topic ":" partition ":" offset)]
-	          (update-meter consume-meter)
+	          (update-meter (get consume-meter-map topic))
 	          (try
              (do
                (mark-run! ch-dsid msg-id)   ; mark message as run, the processor will mark as done
@@ -65,8 +65,7 @@
   {:start (fn [] 
               (channel-init)
               (prn "Using logs " topics)
-                  (doseq [topic topics]
-                        (.submit service (watch-critical-error process-topic topic))))
+              (.submit service (watch-critical-error process-topics topics)))
    
    :stop (fn []
            (.shutdown service)
