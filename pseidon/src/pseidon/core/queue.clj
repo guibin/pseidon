@@ -3,13 +3,18 @@
             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time add-meter update-meter]])
   (:use pseidon.core.conf)
   (:import 
-          [java.util.concurrent BlockingQueue Callable ThreadPoolExecutor SynchronousQueue TimeUnit ExecutorService ThreadPoolExecutor$CallerRunsPolicy]
+          [reactor.queue QueuePersistor IndexedChronicleQueuePersistor]
+          [java.util.concurrent ThreadFactory BlockingQueue Callable ThreadPoolExecutor SynchronousQueue TimeUnit ExecutorService ThreadPoolExecutor$CallerRunsPolicy]
           [clojure.lang IFn])
   )
 
 (def topic-services (ref {}))
 
-(def ^ExecutorService queue-master (java.util.concurrent.Executors/newCachedThreadPool))
+;the master threads are daemon threads to allow the jvm to shutdown at any time
+(def ^ExecutorService queue-master (java.util.concurrent.Executors/newCachedThreadPool
+                                     (reify ThreadFactory
+                                       (^Thread newThread [_ ^Runnable r]
+                                         (doto (Thread. r) (.setDaemon true))))))
 
 (def exec-timer (add-timer "pseidon.core.queue.exec-timer"))
 (def queue-publish-meter (add-meter "pseidon.core.queue.publish-meter"))
@@ -20,8 +25,12 @@
   (.shutdown queue-master)
   (doseq [[_ service] @topic-services]
     (.shutdown service)
-    (if-not (.awaitTermination service 10 TimeUnit/SECONDS)
+    (info "shutdown " service) 
+    (if-not (.awaitTermination service 1 TimeUnit/SECONDS)
       (.shutdownNow service))))
+
+;on jvm shutdown we shutdown all threads
+(doto (Runtime/getRuntime) (.addShutdownHook (Thread. shutdown-threads)))
 
 (defn- create-exec-service [topic]
   (let [threads (get-conf2 (keyword (str "worker-" topic "-threads")) (get-conf2 :worker-threads (-> (Runtime/getRuntime) .availableProcessors)))]
@@ -44,45 +53,40 @@
      
     (.submit service callable))))
 
-(defn get-worker-queue []
-  (java.lang.Class/forName (name (get-conf2 :worker-queue 'java.util.concurrent.ArrayBlockingQueue)) )
-  )
+(defn ^QueuePersistor get-worker-queue []
+  (let [path  (get-conf2 :pseidon-queue-path (str "/tmp/data/pseidonqueue/" (System/currentTimeMillis)))]
+    (info "Creating queue with path " path)
+    (IndexedChronicleQueuePersistor. path)))
 
-(defn ^BlockingQueue channel [^String name] 
+
+(defn ^QueuePersistor channel [^String name] 
   (prn "Creating channel " name " :worker-queue-limit " (get-conf2 :worker-queue-limit -1))
-  (let [limit (get-conf2 :worker-queue-limit 10000)
-        ^BlockingQueue queue (let [^Class cls (get-worker-queue) ] 
-                               (try 
-                                 (-> cls (.getConstructor (into-array Class [Integer/TYPE])) (.newInstance (into-array Object [(int limit)])))
-                                 (catch NoSuchMethodException e (.newInstance cls) )  ))]
+  (let [
+        ^QueuePersistor queue (get-worker-queue)]
         (add-gauge (str "pseidon.core.queue." name ".size") #(.size queue))
         queue
         ))
 
-(defn- consume-messages [^BlockingQueue channel ^IFn f]
-  (loop [msg (.take channel)]
-    (f msg)
-    (recur (.take channel))))
-    
+(defn- consume-messages [^QueuePersistor channel ^IFn f]
+    (loop [it (.iterator channel)]
+      (while (and (not (.hasNext it)) (not (Thread/interrupted))) (Thread/sleep 500))
+      (f (.next it))
+      (recur it)))
+      
 
-(defn consume [^BlockingQueue channel f]
+(defn consume [^QueuePersistor channel f]
   "Consumes asynchronously from the channel"
   (let [ 
         ^Runnable runnable #(consume-messages channel f)    
                                  ]
         (.submit queue-master runnable)))
 
-(defn publish [^BlockingQueue channel msg]
+(defn publish [^QueuePersistor channel msg]
   (update-meter queue-publish-meter)
-  (.put channel msg)
-  
-  )
+  (-> channel .offer (.apply msg)))
 
-(defn publish-seq [^java.util.concurrent.BlockingQueue channel xs]
+(defn publish-seq [^QueuePersistor channel xs]
  (doseq [msg xs] (publish channel msg))
  )
  
-(defn qpeek [^java.util.concurrent.BlockingQueue channel]
-  (.peek channel)
-  )
   

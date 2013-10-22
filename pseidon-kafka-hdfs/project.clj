@@ -11,6 +11,8 @@
           [lein-kibit "0.0.8"] [no-man-is-an-island/lein-eclipse "2.0.0"]
            ]
 
-  :dependencies [[org.clojure/clojure "1.5.1"]]
+  :dependencies [
+                 [org.clojure/data.json "0.2.3"]
+                 [org.clojure/clojure "1.5.1"]]
 
   )

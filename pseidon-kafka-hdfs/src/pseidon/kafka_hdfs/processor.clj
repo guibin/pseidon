@@ -11,25 +11,44 @@
             [pseidon.core.fileresource :refer [write register-on-roll-callback]]
             [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done! deserialize-message]]
             [clojure.tools.logging :refer [info error]]
+            [clojure.data.json :as json]
      )
      (:import [org.apache.commons.lang StringUtils])
   )
 
 
-(def ^:dynamic dateformat (formatter "yyyyMMddHH"))
+(def ^:private dateformat (formatter "yyyyMMddHH"))
 
-;read messages from the logpuller and send to hdfs
-(defn ^:dynamic exec [ {:keys [bytes-seq ts ds ids] :as msg } ]
-  (defn exec-write [out bts]
-       (if (or (nil? bts) (< (count bts) 1) )
+(def ^:private ts-parser { :json 
+                          (fn [^bytes msg-data path-seq]
+                            (reduce (fn [d k] (get d k)) (json/read-str (String. msg-data "UTF-8")) path-seq))
+                           :now 
+                           (fn [msg-data _]
+                             (System/currentTimeMillis))
+                          })
+
+(defn- exec-write [^java.io.OutputStream out ^bytes bts]
+       (if (nil? bts)
              (error "Receiving null byte messages from  ts " ts)
              (pseidon.util.Bytes/writeln out bts)  
-             )
-       )
+             ))
+
+(def ^:private selected-ts-parser (delay (if-let [parser (get ts-parser (get-conf2 :kafka-hdfs-ts-parser :now) )]
+                                    parser
+                                    (:now ts-parser))))
+
+(def ^:private ts-parser-args (delay (if-let [parser (get ts-parser (get-conf2 :kafka-hdfs-ts-parser-args nil) )]
+                                    parser
+                                    nil)))
+                                    
+;read messages from the logpuller and send to hdfs
+(defn exec [ {:keys [bytes-seq ts ds ids] :as msg } ]
+  
    (let [id ids
-         bdata bytes-seq
+         ^bytes bdata bytes-seq
          [topic partition offset] (StringUtils/split (str id) \:)
-         key (str topic "_" (unparse dateformat (from-long (System/currentTimeMillis))))]
+         ts ((force selected-ts-parser) bdata (force ts-parser-args))
+         key (str topic "_" (unparse dateformat (from-long ts)))]
          (if bdata  
 	      (write topic 
                key

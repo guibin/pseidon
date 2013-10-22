@@ -50,7 +50,11 @@
   (w/start-consume data-queue)  
   (frs/start-services)
   (info "Started")
-  (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (stop-app) )) )))
+  (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (do  
+                                                                                     (info "<<< Shutdown from System.exit or kill !!!!  >>>> ")
+                                                                                     (stop-app)
+                                                                                     (info "<<<< Stopped App >>>>")
+                                                                                     ))) )))
   (view/start)
   (info "View started")
   )

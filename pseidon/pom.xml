@@ -49,8 +49,145 @@
               </sources>
             </configuration>
           </execution>
+          <execution>
+            <id>add-test-source</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources/>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
+      <plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>rpm-maven-plugin</artifactId>
+				<version>2.0.1</version>
+				<extensions>true</extensions>
+
+
+				<configuration>
+					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
+					<distribution>pseidon</distribution>
+					<group>utilties</group>
+					<release>22</release>
+					<packager>http://code.google.com/p/</packager>
+					<provides>
+						<provide>pseidon</provide>
+					</provides>
+					<defineStatements>
+						<defineStatement>_unpackaged_files_terminate_build 0
+						</defineStatement>
+					</defineStatements>
+					<mappings>
+						<mapping>
+							<directory>/opt/pseidon/bin</directory>
+							<configuration>true</configuration>
+							<filemode>777</filemode>
+							<username>pseidon</username>
+							<groupname>pseidon</groupname>
+							<sources>
+								<source>
+									<location>resources/bin</location>
+								</source>
+							</sources>
+						</mapping>
+						<mapping>
+							<directory>/opt/pseidon/conf</directory>
+							<configuration>true</configuration>
+							<filemode>776</filemode>
+							<username>pseidon</username>
+							<groupname>pseidon</groupname>
+							<sources>
+								<source>
+									<location>resources/conf</location>
+								</source>
+							</sources>
+						</mapping>
+						<mapping>
+							<directory>/etc/init.d</directory>
+							<directoryIncluded>false</directoryIncluded>
+							<configuration>true</configuration>
+							<filemode>776</filemode>
+							<username>root</username>
+							<groupname>root</groupname>
+							<sources>
+								<source>
+									<location>resources/etc/init.d/pseidon</location>
+								</source>
+							</sources>
+						</mapping>
+						<mapping>
+							<directory>/opt/pseidon/lib-hadoop</directory>
+							<filemode>775</filemode>
+							<username>pseidon</username>
+							<groupname>hadoop</groupname>
+							<dependency>
+								<includes>
+									<include>org.apache.hadoop:hadoop-core</include>
+								</includes>
+							</dependency>
+						</mapping>
+						<mapping>
+							<directory>/opt/pseidon/resources/plugins</directory>
+							<configuration>true</configuration>
+							<filemode>776</filemode>
+							<username>pseidon</username>
+							<groupname>pseidon</groupname>
+							<sources>
+								<source>
+									<location>plugins</location>
+								</source>
+							</sources>
+						</mapping>
+						<mapping>
+							<directory>/opt/pseidon/lib</directory>
+							<filemode>775</filemode>
+							<username>pseidon</username>
+							<groupname>pseidon</groupname>
+							<dependency>
+							  <excludes>
+							    <exclude>org.apache.hadoop:hadoop-core</exclude>
+							  </excludes>
+							</dependency>
+						</mapping>
+						<mapping>
+							<directory>/opt/pseidon/lib</directory>
+							<filemode>775</filemode>
+							<username>pseidon</username>
+							<groupname>pseidon</groupname>
+							<sources>
+								<source>
+									<location>target/pseidon-${project.version}.jar</location>
+								</source>
+							</sources>
+						</mapping>
+						<mapping>
+							<directory>/opt/pseidon/log</directory>
+							<filemode>775</filemode>
+							<username>pseidon</username>
+							<groupname>pseidon</groupname>
+						</mapping>
+
+					</mappings>
+					<preinstallScriptlet>
+						<script>
+							#!/usr/bin/env bash
+							#Creates the pseidon user and group
+							#see http://fedoraproject.org/wiki/Packaging%3aUsersAndGroups
+							#safety for when the commands to not exist
+							type getent || exit 0
+
+							getent group pseidon >/dev/null || groupadd -r pseidon
+							
+							useradd -r -g pseidon -d /home/pseidon -s /sbin/nologin pseidon 2> /dev/null
+							exit 0
+						</script>
+					</preinstallScriptlet>
+				</configuration>
+			</plugin>
     </plugins>
   </build>
   <repositories>
@@ -105,6 +242,16 @@
       <groupId>goat</groupId>
       <artifactId>goat</artifactId>
       <version>0.1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>reply</groupId>
+      <artifactId>reply</artifactId>
+      <version>0.1.0-beta9</version>
+    </dependency>
+    <dependency>
+      <groupId>jline</groupId>
+      <artifactId>jline</artifactId>
+      <version>2.11</version>
     </dependency>
     <dependency>
       <groupId>commons-net</groupId>
@@ -182,16 +329,6 @@
       <version>3.0.1</version>
     </dependency>
     <dependency>
-      <groupId>reply</groupId>
-      <artifactId>reply</artifactId>
-      <version>0.1.0-beta9</version>
-    </dependency>
-    <dependency>
-      <groupId>jline</groupId>
-      <artifactId>jline</artifactId>
-      <version>2.11</version>
-    </dependency>
-    <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
       <version>1.2.16</version>
@@ -256,7 +393,7 @@
       <artifactId>java.jdbc</artifactId>
       <version>0.3.0-alpha4</version>
     </dependency>
-    <dependency>
+     <dependency>
       <groupId>org.streams</groupId>
       <artifactId>commons</artifactId>
       <version>0.2.5</version>
@@ -317,18 +454,6 @@
       <groupId>spyscope</groupId>
       <artifactId>spyscope</artifactId>
       <version>0.1.3</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>clojure-complete</groupId>
-      <artifactId>clojure-complete</artifactId>
-      <version>0.2.3</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.clojure</groupId>
-          <artifactId>clojure</artifactId>
-        </exclusion>
-      </exclusions>
       <scope>test</scope>
     </dependency>
   </dependencies>

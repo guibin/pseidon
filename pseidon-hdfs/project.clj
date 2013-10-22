@@ -12,7 +12,7 @@
     [commons-lang "2.6" :scope "provided"]
     [org.clojure/core.async "0.1.0-SNAPSHOT" :scope "provided"]
     [midje "1.6-alpha2" :scope "test"]
-     
+    [org.clojure/data.json "0.2.3"]
 		]
   :repositories {
 		 "cloudera"

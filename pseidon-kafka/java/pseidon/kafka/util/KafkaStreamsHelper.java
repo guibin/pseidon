@@ -42,15 +42,19 @@ public final class KafkaStreamsHelper {
 		List<KafkaStream<byte[], byte[]>> list = flatten(conn, topicMap);
 
 		for (int i = 0; i < list.size(); i++) {
+			final int index = i;
 			final KafkaStream<byte[], byte[]> stream = list.get(i);
+			LOG.info("!!!!!!!!!!!!!!!!!!!!!!  submit stream " + i);
 			service.submit(new Runnable() {
 				public void run() {
+					LOG.info("consuming from iterator " + index);
 					while (!Thread.interrupted()) {
 						try {
+							LOG.info("consuming from iterator2 " + index);
 							final ConsumerIterator<byte[], byte[]> it = stream
 									.iterator();
 
-							while (it.hasNext()) {
+							while (!Thread.interrupted()) {
 								try {
 									final MessageAndMetadata<byte[], byte[]> obj = it
 											.next();
@@ -61,9 +65,16 @@ public final class KafkaStreamsHelper {
 							}
 						} catch (Throwable t) {
 							LOG.error(t.toString(), t);
-						} finally {
-							LOG.info("EXIT Consumer Loop");
 						}
+						
+						try {
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {
+							LOG.info("Thread interrupted, exit");
+							Thread.currentThread().interrupt();
+							return;
+						}
+						
 					}
 				}
 			});
@@ -76,8 +87,10 @@ public final class KafkaStreamsHelper {
 	private static final List<KafkaStream<byte[], byte[]>> flatten(
 			ConsumerConnector conn, Map<String, Integer> topicMap) {
 		try {
+			LOG.info("!!!!!!!!!!!!!!!!!!!!!! Get streams from topicMap " + topicMap);
 			Map<String, List<KafkaStream<byte[], byte[]>>> map = conn
 					.createMessageStreams(topicMap);
+			LOG.info("!!!!!!!!!!!!!!!!!!!!!! got streams");
 			// we do this is java because for some reason the java scala
 			// bindings to
 			// not work well here with clojure
@@ -85,7 +98,7 @@ public final class KafkaStreamsHelper {
 			for (List<KafkaStream<byte[], byte[]>> listStreams : map.values())
 				for (KafkaStream<byte[], byte[]> stream : listStreams)
 					streams.add(stream);
-
+			LOG.info("returning streams !!!!!!!!!!!!!!!!!!!!!! ");
 			return streams;
 		} catch (org.I0Itec.zkclient.exception.ZkNodeExistsException e) {
 			RuntimeException rte = new RuntimeException(

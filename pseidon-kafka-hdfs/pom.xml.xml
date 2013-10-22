@@ -68,7 +68,14 @@
 								</source>
 							</sources>
 						</mapping>
-
+						<mapping>
+							<directory>/opt/pseidon-kafka-hdfs/lib</directory>
+							<configuration>true</configuration>
+							<filemode>776</filemode>
+							<username>pseidon</username>
+							<groupname>pseidon</groupname>
+							<dependency />
+						</mapping>
 
 					</mappings>
 
@@ -101,8 +108,14 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.clojure</groupId>
+			<artifactId>data.json</artifactId>
+			<version>0.2.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.clojure</groupId>
 			<artifactId>clojure</artifactId>
 			<version>1.5.1</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.clojure</groupId>

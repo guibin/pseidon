@@ -9,6 +9,7 @@
             [pseidon.core.message :refer [get-ids]]
             [pseidon.core.registry :refer [register ->Processor]]
             [clojure.tools.logging :refer [info error]]
+            [clojure.data.json :as json]
            )
            
    (:import (org.apache.commons.lang StringUtils)
@@ -80,6 +81,8 @@
                                                 date (extract-file-date file-name)]
                                            [type "1" nil date]))
                                      })
+
+
 
 (defonce c (chan))
 
