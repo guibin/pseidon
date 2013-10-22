@@ -33,7 +33,6 @@
 	          (update-meter (get consume-meter-map topic))
 	          (try
              (do
-               (mark-run! ch-dsid msg-id)   ; mark message as run, the processor will mark as done
                (publish data-queue (create-message value ch-dsid msg-id "pseidon.kafka-hdfs.processor" true (System/currentTimeMillis) 1))
                )
              (catch java.sql.BatchUpdateException e (info "ignore duplicate message " msg-id)))))))))
@@ -51,14 +50,7 @@
                                                              (publish data-queue (create-message
                                                                           (pseidon.util.Bytes/toBytes "1")
                                                                           ds id topic true (System/currentTimeMillis) 1
-                                                                        )))))
-  
-   ;we recover any messages that the hdfs plugin did not send
-   (doseq [{:keys [ds ids ts] :as msg} (map deserialize-message (select-ds-messages ch-dsid))]
-       (info "Recovering msg [" msg "]")
-       (if msg  
-         (publish data-queue (create-message nil ds ids "pseidon.kafka-hdfs.processor" true (to-long ts) 1) )))
-  )
+                                                                        ))))))
 
 (defn ^:dynamic load-channel []
   (let [topics (get-conf2 :kafka-hdfs-topics [])]

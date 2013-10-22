@@ -66,7 +66,7 @@ Open in a browser:
 ## Configuration
 
 |Name |Description |
-|worker-queue | the type of queue to use default is ArrayBlockingQueue |
+|pseidon-queue-path | Psiedon uses chronicle to store its internal queue messages, this path is used to store locally|
 |worker-queue-limit | the limit to use default is 1000 |
 |worker-threads | each topic is assigned its own thread pool, this is the limit to use on each thread pool, default is the number of processors on the box|
 |worker-$topic-threads | overrides worker-threads on a per topic basis |

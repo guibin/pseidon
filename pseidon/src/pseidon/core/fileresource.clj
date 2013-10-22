@@ -34,7 +34,7 @@
 
 (def fileMap (ref {}))
 
-(def file-write-time (add-timer "pseidon.core.fileresource.file-write-time"))
+;(def file-write-time (add-timer "pseidon.core.fileresource.file-write-time"))
 (def open-files-gauge (add-gauge "pseidon.core.fileresource.open-files" #(count @fileMap)))
 
 ;used to configuration codecs that are marked as Configurable codecs like LZO require the hadoop configuration to be set.
@@ -168,9 +168,9 @@
   ([topic key ^clojure.lang.IFn writer]
    (write topic key writer nil))
   ([topic key ^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn]
-   (measure-time file-write-time #(let [agent ((watch-critical-error get-agent topic key))]
+   (let [agent ((watch-critical-error get-agent topic key))]
      (dosync (send-off agent (watch-critical-error write-to-frs writer post-roll-fn) ) )
-    ))))
+    )))
 
 (defn close-roll-agent [^FileRS frs]
   (when (and (not (nil? frs)) (not (nil? (:output frs) ) ) ) 

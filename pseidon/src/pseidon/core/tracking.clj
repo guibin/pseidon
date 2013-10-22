@@ -29,9 +29,7 @@
 				      [:ts "TIMESTAMP" "NOT NULL"])
 				   (sql/do-commands "CREATE INDEX messagetraking_index1 ON messagetracking(dsid, status, ts)")
            (sql/do-commands "CREATE INDEX messagetraking_index2 ON messagetracking(ts, status)")))
-        (clojure.java.jdbc/with-connection db
-          (clojure.java.jdbc/transaction 
-            (sql/do-commands "SET TABLE messagetracking TYPE CACHED")))))
+        ))
 		
 	   (defn wrap-table-exist-exception [f]
 	    (try (f) 

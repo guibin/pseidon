@@ -55,24 +55,24 @@
                (fn [out] (exec-write out bdata))
                (fn [file_name]
                  ;setting the batchid to done
-                 (try
-                    (mark-done! ds id (fn[] ))
-		    (catch java.sql.BatchUpdateException e (error "ds " ds " id " id " error " e ))))))))
+                 )))))
 
 (defn ^:dynamic start []
   (def dsid "pseidon.kafka-hdfs.processor")
-  
+   
   ;this will be called when any file written by this channel has been rolled
   ;we send the rolled file to the hdfs plugin and this plugin will take care of sending the file to hdfs
-  (register-on-roll-callback dsid (fn [file]
+  (let [n-bytes (pseidon.util.Bytes/toBytes "1")]
+    (register-on-roll-callback dsid (fn [file]
                                                        (let [ds dsid
                                                              topic "hdfs"
                                                              id (.getAbsolutePath file)]
                                                              (mark-run! ds id)
                                                              (publish data-queue (create-message
-                                                                          (pseidon.util.Bytes/toBytes "1")
+                                                                          n-bytes
                                                                           ds id topic true (System/currentTimeMillis) 1
-                                                                        )))))
+                                                                        ))))))
+  
   
    ;we recover any messages that the hdfs plugin did not send
    (doseq [{:keys [ds ids ts] :as msg} (map deserialize-message (select-ds-messages dsid))]
