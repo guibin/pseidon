@@ -58,7 +58,9 @@
   :repositories {"sonatype-oss-public"
                "https://oss.sonatype.org/content/groups/public/"
                "streams-repo"
-               "https://bigstreams.googlecode.com/svn/mvnrepo/releases"}
+               "https://bigstreams.googlecode.com/svn/mvnrepo/releases"
+	       "spring snapshot"
+	       "http://repo.springsource.org/libs-snapshot"}
   
   :java-source-paths ["java"]
   
