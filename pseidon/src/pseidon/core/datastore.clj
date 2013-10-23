@@ -97,9 +97,10 @@
    Directories are always returned in lexical sorted order
    Only the child names are returned i.e. if you list /a/b  and /a/b contains dirs 1 2 3, then (1 2 3) will be returned.
   "
-  (try (let [dir 
-              (join-path 
-               name-space (reduce join-path (if (empty? dirs) [] dirs)))
+  (try (let [dir (if dirs
+                   (join-path 
+                     name-space (reduce join-path (if (empty? dirs) [] dirs)))
+                   name-space)
              
         f #(-> %1 .getChildren (.forPath dir) sort)]
    (f (get-client))  
