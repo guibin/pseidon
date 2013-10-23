@@ -21,7 +21,8 @@
 
 (def ^:private ts-parser { :json 
                           (fn [^bytes msg-data path-seq]
-                            (reduce (fn [d k] (get d k)) (json/read-str (String. msg-data "UTF-8")) path-seq))
+                            	(reduce (fn [d k] (get d k)) (json/read-str (String. msg-data "UTF-8")) path-seq))
+
                            :now 
                            (fn [msg-data _]
                              (System/currentTimeMillis))
@@ -37,13 +38,12 @@
                                     parser
                                     (:now ts-parser))))
 
-(def ^:private ts-parser-args (delay (if-let [parser (get ts-parser (get-conf2 :kafka-hdfs-ts-parser-args nil) )]
-                                    parser
+(def ^:private ts-parser-args (delay (if-let [parser-args (get-conf2 :kafka-hdfs-ts-parser-args ["ts"])]
+                                    parser-args
                                     nil)))
                                     
 ;read messages from the logpuller and send to hdfs
 (defn exec [ {:keys [bytes-seq ts ds ids] :as msg } ]
-  
    (let [id ids
          ^bytes bdata bytes-seq
          [topic partition offset] (StringUtils/split (str id) \:)
