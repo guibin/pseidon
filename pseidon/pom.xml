@@ -74,7 +74,7 @@
 					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 					<distribution>pseidon</distribution>
 					<group>utilties</group>
-					<release>24</release>
+					<release>25</release>
 					<packager>http://code.google.com/p/</packager>
 					<provides>
 						<provide>pseidon</provide>
@@ -174,22 +174,6 @@
 						</mapping>
 
 					</mappings>
-					<preinstallScriptlet>
-						<script>
-							#!/usr/bin/env bash
-							#Creates the pseidon user and group
-							#see http://fedoraproject.org/wiki/Packaging%3aUsersAndGroups
-							#safety for when the commands to not exist
-							type getent || exit 0
-
-							getent group pseidon >/dev/null || groupadd -r pseidon
-
-							useradd -r
-							-g pseidon -d /home/pseidon -s /sbin/nologin pseidon 2>
-							/dev/null
-							exit 0
-						</script>
-					</preinstallScriptlet>
 				</configuration>
 			</plugin>
 		</plugins>

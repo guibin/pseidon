@@ -29,7 +29,7 @@
 
 (defn- exec-write [^java.io.OutputStream out ^bytes bts]
        (if (nil? bts)
-             (error "Receiving null byte messages from  ts " ts)
+             (error "Receiving null byte messages from  ts ")
              (pseidon.util.Bytes/writeln out bts)  
              ))
 
