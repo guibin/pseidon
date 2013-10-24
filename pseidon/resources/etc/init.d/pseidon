@@ -46,128 +46,119 @@ ENV_FILE="/opt/gluecron/conf/env.sh"
 
 
 if [ -z "$JAVA_HOME" ]; then
-
-  echo "JAVA_HOME not set using /usr/java/latest"
+  echo "JAVA_HOME not set, using /usr/java/latest" >&2
   export JAVA_HOME="/usr/java/latest"
-
 fi
 
 start() {
+  touch $lockfile
 
-   touch $lockfile
+  status
+  RETVAL=$?
 
-   status
-   RETVAL=$?
-
-   if [ $RETVAL = $OK_STAT ]; then
+  if [ $RETVAL = $OK_STAT ]; then
     echo "The pseidon is already running"
     RETVAL=$OK_STAT
-   else
-
+  else
     echo -n $"Starting pseidon: "
     
-    su - pseidon -l -m -c "nohup bash $gcronsd > /opt/pseidon/log/serverlog.log 2>&1 /dev/null&"
+    su - ${PSEIDON_USER:-pseidon} -l -m -c "exec $gcronsd < /dev/null >>/opt/pseidon/log/serverlog.log 2>&1 &"
 
     counter=0
-    while [ $counter -lt 5 ]
+    while [ $counter -lt 30 ]
     do
         status
         RETVAL=$?
+        [ "$RETVAL" = $OK_STAT ] && break
         sleep 1s
         counter=$(( counter + 1 ))
     done
 
-   fi
+  fi
 
-   [ $RETVAL = $OK_STAT ] && echo " OK"
-   [ $RETVAL = $DEAD_STAT ] && echo " FAILED"
-
-   return $RETVAL
-
+  [ $RETVAL = $OK_STAT ] && echo " OK"
+  [ $RETVAL = $DEAD_STAT ] && echo " FAILED"
+  return $RETVAL
 }
 
 stop() {
+  status
+  RETVAL=$?
 
-    status
-    RETVAL=$?
-
-    if [ $RETVAL = $OK_STAT ]; then
-      echo -n "Stopping pseidon: "
-
-	  kill
+  if [ $RETVAL = $OK_STAT ]; then
+    echo -n "Stopping pseidon: "
+    kill_proc
       
-      counter=0
-      while [ $counter -lt 5 ]
-      do
-        status
-        RETVAL=$?
-        sleep 1s
-        counter=$(( counter + 1 ))
+    counter=0
+    while [ $counter -lt 30 ]
+    do
+      status
+      RETVAL=$?
+      [ "$RETVAL" = $DEAD_STAT ] && break
+      sleep 1s
+      counter=$(( counter + 1 ))
 
-        [ $counter -gt 3 ] && [ $RETVAL = $OK_STAT ] && kill
-      done
+      [ $counter -gt 3 ] && [ $RETVAL = $OK_STAT ] && kill_proc
+    done
 
-       [ $RETVAL = $DEAD_STAT ] && rm -f ${lockfile} && echo "OK"
+    [ $RETVAL = $DEAD_STAT ] && rm -f ${lockfile} && echo "OK"
+  else
+    echo "No pseidon instance is running" 
+    RETVAL=$DEAD_STAT
+  fi
 
-    else
-       echo "No pseidon instance is running" 
-       RETVAL=$DEAD_STAT
-    fi
-
-    return $RETVAL
-
+  return $RETVAL
 }
 
 restart() {
-    stop
-    start
+  stop
+  start
 }
 
-kill() {
-
-  pid=`pgrep -f "$REGEX"`
-  if [ -n "$pid" ]; then
-    su - -c "kill $pid"
-  fi
-
+kill_proc() {
+  pkill -u ${PSEIDON_USER:-pseidon} -f "$REGEX"
 }
+
 status() {
-
-   pid=`pgrep -f "$REGEX"`
-   if [ -n "$pid" ]; then
-       RETVAL=$OK_STAT
-   else
-       RETVAL=$DEAD_STAT
-   fi
-
+  if pgrep -f "$REGEX" >/dev/null; then
+    RETVAL=$OK_STAT
+  else
+    RETVAL=$DEAD_STAT
+  fi
 
   return $RETVAL
 }
 
 case "$1" in
-  start)
-    start
-    exit $?
-    ;;
-  stop)
-    stop
-    exit $?
-    ;;
-  restart)
-    stop
-    start
-    exit $?
-    ;;
-  status)
-    status
-    RETVAL=$?
-    [ $RETVAL = $OK_STAT ] && echo "Running"
-    [ $RETVAL = $DEAD_STAT ] && echo "Stopped"
-    exit $RETVAL
-    ;;
-  *)
-    echo $"Usage: $0 {start|stop|status|restart}"
-    exit $DEAD_STAT
+start)
+  start
+  exit $?
+  ;;
+stop)
+  stop
+  RETVAL=$?
+  if [ $RETVAL = $DEAD_STAT ]; then
+    exit 0
+  else
+    exit 1
+  fi
+  ;;
+restart)
+  stop || exit $?
+  start
+  exit $?
+  ;;
+status)
+  status
+  RETVAL=$?
+  [ $RETVAL = $OK_STAT ] && echo "Running"
+  [ $RETVAL = $DEAD_STAT ] && echo "Stopped"
+  exit $RETVAL
+  ;;
+*)
+  echo $"Usage: $0 {start|stop|status|restart}"
+  exit $DEAD_STAT
+  ;;
 esac
 
 exit $OK_STAT
