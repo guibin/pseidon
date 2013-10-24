@@ -74,7 +74,7 @@
 					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 					<distribution>pseidon</distribution>
 					<group>utilties</group>
-					<release>25</release>
+					<release>27</release>
 					<packager>http://code.google.com/p/</packager>
 					<provides>
 						<provide>pseidon</provide>

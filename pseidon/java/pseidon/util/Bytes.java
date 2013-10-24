@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * 
@@ -33,7 +34,8 @@ public final class Bytes {
 		System.out.println("Bytes.skip: " + chars);
 		while ((read = reader.read(ch, 0, (int) getI(ch, chars - total))) > 0
 				&& (total += read) < chars)
-			System.out.println("Bytes.skip-222: total " + total + " read " + read);
+			System.out.println("Bytes.skip-222: total " + total + " read "
+					+ read);
 	}
 
 	public static final long size(File file) {
@@ -116,10 +118,36 @@ public final class Bytes {
 
 	public static final String toString(final byte[] bts)
 			throws UnsupportedEncodingException {
-		if (bts == null)
+		return getData(bts);
+	}
+
+	/**
+	 * This function tries to guess the data type and return the correct String
+	 * representation
+	 * 
+	 * @param bts
+	 * @return
+	 */
+	public static final String getData(final byte[] bts) throws UnsupportedEncodingException {
+		if (bts == null || bts.length == 0)
 			return "";
-		else
-			return new String(bts, "utf-8");
+		else if (bts.length == 4) {
+			// could be int
+			final String str = new String(bts, "UTF-8");
+			if(StringUtils.isNumeric(str) || !StringUtils.isAsciiPrintable(str))
+				return String.valueOf(toInt(bts));
+			else 
+				return str;
+		} else if (bts.length == 8) {
+			// could be long
+			final String str = new String(bts, "UTF-8");
+			if(StringUtils.isNumeric(str) || !StringUtils.isAsciiPrintable(str))
+				return String.valueOf(toLong(bts));
+			else
+				return str;
+		} else {
+			return new String(bts, "UTF-8");
+		}
 	}
 
 	public static final int toInt(final byte[] bts) {

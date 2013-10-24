@@ -60,7 +60,7 @@
    
 
 (defn ensure-path [^org.apache.curator.framework.CuratorFramework client ns path]
-  (let [p   (join-path ns path) ]
+  (let [p (clean-path (join-path ns path)) ]
   (when (not (-> client .checkExists (.forPath p)))
      (do 
        (def create (fn  [dirs dir]
@@ -103,10 +103,11 @@
    Directories are always returned in lexical sorted order
    Only the child names are returned i.e. if you list /a/b  and /a/b contains dirs 1 2 3, then (1 2 3) will be returned.
   "
-  (try (let [dir (if dirs
-                   (join-path 
-                     name-space (reduce join-path (if (empty? dirs) [] dirs)))
-                   name-space)
+  (try (let [dir (clean-path 
+                   (if dirs
+                     (join-path
+                       name-space (reduce join-path (if (empty? dirs) [] dirs)))
+                     name-space))
              
         f #(-> %1 .getChildren (.forPath dir) sort)]
    (f (get-client))  
@@ -117,7 +118,7 @@
 
 (defn get-data [ns id]
   "Gets the value of a data in bytes"
-  (let [f #(-> %1 .getData (.forPath (ensure-path (get-client) ns id )))  ]
+  (let [f #(-> %1 .getData (.forPath (ensure-path (get-client) (clean-path ns) (clean-path id) )))  ]
      (f (get-client))
   ))
 
