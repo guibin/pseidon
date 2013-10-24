@@ -1,7 +1,10 @@
 (ns pseidon.core.datastore
   (:use clojure.tools.logging
         pseidon.core.conf
-        ))
+        )
+  
+  (:import [org.apache.commons.lang StringUtils])
+  )
 
 (def client (ref nil))
 
@@ -44,12 +47,17 @@
 (defn get-bytes [value]
   (pseidon.util.Bytes/toBytes value))
   
-(defn join-path [ns path]
-   (let [p (-> (str ns "/" path) (org.apache.commons.lang.StringUtils/replace "//" "/"))  
-         
-         p2 (if (.startsWith p "/") p (str "/" p))  ]
-     p2
-   ))
+(defn clean-path [path]
+  (->> (StringUtils/replace path "//" "/") 
+    (#(if (StringUtils/startsWith % "/") % (str "/" %)))
+    (#(if (StringUtils/endsWith % "/") (StringUtils/left % (dec (count %))) %))))
+
+(defn join-path 
+  ([path]
+    (clean-path path)) 
+  ([ns path]
+    (clean-path (str ns "/" path))))      
+   
 
 (defn ensure-path [^org.apache.curator.framework.CuratorFramework client ns path]
   (let [p   (join-path ns path) ]
@@ -61,10 +69,8 @@
                                    (if (not (-> client .checkExists (.forPath p2))) (-> client .create (.withMode (org.apache.zookeeper.CreateMode/PERSISTENT)) (.withACL org.apache.zookeeper.ZooDefs$Ids/OPEN_ACL_UNSAFE) 
                                                                                       (.forPath p2) 
                                       ))
-                                     (clojure.string/join "/" [dirs dir])
-                       )
-                       
-                       ))
+                                     p2
+                       )))
        (reduce create (clojure.string/split p #"/"))
      ))
      p ;return the path
