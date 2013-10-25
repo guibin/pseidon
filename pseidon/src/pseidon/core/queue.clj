@@ -65,7 +65,7 @@
                 ;sleep while the queue is full
                   (locking persistor
                     (let [s (System/currentTimeMillis)]
-	                    (while (>= (.size persistor) limit)
+	                    (while (and (>= (.size persistor) limit) (not (Thread/interrupted)))
 	                      (Thread/sleep 500)
 	                      (if (> (- (System/currentTimeMillis) s) timeout)
                          (throw (TimeoutException. (str "Timined out waiting for queue " timeout))))
@@ -95,7 +95,7 @@
 
 (defn- consume-messages [^BlockingChannelImpl channel ^IFn f]
     (loop [it (.getIterator channel)]
-      (while (and (not (.hasNext it)) (not (Thread/interrupted))) (Thread/sleep 500))
+      (while (and (not (.hasNext it)) (not (Thread/interrupted))) (Thread/sleep 100))
       (f (.next it))
       (recur it)))
       
