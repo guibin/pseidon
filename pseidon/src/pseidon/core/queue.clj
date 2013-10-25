@@ -5,7 +5,8 @@
   (:import 
           [reactor.queue QueuePersistor IndexedChronicleQueuePersistor]
           [java.util.concurrent ThreadFactory BlockingQueue Callable ThreadPoolExecutor SynchronousQueue TimeUnit ExecutorService ThreadPoolExecutor$CallerRunsPolicy]
-          [clojure.lang IFn])
+          [clojure.lang IFn]
+          [java.util.concurrent TimeoutException])
   )
 
 (def topic-services (ref {}))
@@ -53,39 +54,58 @@
      
     (.submit service callable))))
 
-(defn ^QueuePersistor get-worker-queue []
+(defprotocol IBlockingChannel 
+             (doPut [this e timeout] "Puts an element on the queue potentially blocking")
+             (getIterator [this] "Gets an interator from which to consume"))
+
+(defrecord BlockingChannelImpl [^QueuePersistor persistor ^long limit]
+           IBlockingChannel
+           (doPut [this msg timeout]
+                ;sleep while the queue is full
+                  (locking persistor
+                    (let [s (System/currentTimeMillis)]
+	                    (while (>= (.size persistor) limit)
+	                      (Thread/sleep 500)
+	                      (if (> (- (System/currentTimeMillis) s) timeout)
+                         (throw (TimeoutException. (str "Timined out waiting for queue " timeout))))
+	                      )))
+                (-> persistor .offer (.apply msg)))
+           (getIterator [this ]
+                (.iterator persistor))
+           )
+
+(defn get-worker-queue []
   (let [path  (get-conf2 :pseidon-queue-path (str "/tmp/data/pseidonqueue/" (System/currentTimeMillis)))]
     (info "Creating queue with path " path)
     (IndexedChronicleQueuePersistor. path)))
 
-
-(defn ^QueuePersistor channel [^String name] 
-  (prn "Creating channel " name " :worker-queue-limit " (get-conf2 :worker-queue-limit -1))
+(defn ^BlockingChannelImpl channel [^String name & {:keys [limit] :or {limit 50}}] 
+  (prn "Creating channel " name " :psedon-queue-limit " (get-conf2 :psedon-queue-limit limit))
   (let [
         ^QueuePersistor queue (get-worker-queue)]
         (add-gauge (str "pseidon.core.queue." name ".size") #(.size queue))
-        queue
+        (BlockingChannelImpl. queue (get-conf2 :psedon-queue-limit limit))
         ))
 
-(defn- consume-messages [^QueuePersistor channel ^IFn f]
-    (loop [it (.iterator channel)]
+(defn- consume-messages [^BlockingChannelImpl channel ^IFn f]
+    (loop [it (.getIterator channel)]
       (while (and (not (.hasNext it)) (not (Thread/interrupted))) (Thread/sleep 500))
       (f (.next it))
       (recur it)))
       
 
-(defn consume [^QueuePersistor channel f]
+(defn consume [^BlockingChannelImpl channel f]
   "Consumes asynchronously from the channel"
   (let [ 
         ^Runnable runnable #(consume-messages channel f)    
                                  ]
         (.submit queue-master runnable)))
 
-(defn publish [^QueuePersistor channel msg]
+(defn publish [^BlockingChannelImpl channel msg & {:keys [timeout] :or {timeout (Long/MAX_VALUE)}} ]
   (update-meter queue-publish-meter)
-  (-> channel .offer (.apply msg)))
+  (.doPut channel msg timeout))
 
-(defn publish-seq [^QueuePersistor channel xs]
+(defn publish-seq [^BlockingChannelImpl channel xs]
  (doseq [msg xs] (publish channel msg))
  )
  

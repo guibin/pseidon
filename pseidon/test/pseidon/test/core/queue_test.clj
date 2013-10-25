@@ -2,11 +2,36 @@
   
   (:require [pseidon.core.queue :refer :all])
   (:use midje.sweet)
-  (:import [java.util.concurrent Executors TimeUnit])
+  (:import [java.util.concurrent Executors TimeUnit TimeoutException])
   
   )
 
 (facts "Test pub sub"
+       
+         
+       (fact "Test pub sub timeout"
+
+             (let [
+                   messages (range 100)
+                   ch (channel "test" :limit 10)
+                   received-msgs (ref [])
+                   ]
+               (consume ch (fn [msg]
+                             (dosync
+                               (commute received-msgs conj msg))))
+                 
+               (try 
+                 (doseq [msg messages]
+                   (prn "publish " msg)
+                   (publish ch msg :timeout 100))
+                (catch TimeoutException e (prn "planned timeout")))
+               
+               (Thread/sleep 1000)
+               
+               (prn "messages " @received-msgs)
+               (= (sort @received-msgs) (take 10 messages)) => true
+               
+               ))
        
        (fact "Test pub sub"
 
@@ -33,7 +58,7 @@
 
              (let [
                    service (Executors/newCachedThreadPool)
-                   ch (channel "test")
+                   ch (channel "test1223" :limit 10000)
                    received-msgs (ref [])
                    ]
                (consume ch (fn [msg]
@@ -52,6 +77,8 @@
                
                (count @received-msgs) => 1000
                
-               )))
+               ))
+      
+       )
                
 
