@@ -52,7 +52,10 @@
   (info "Started")
   (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (do  
                                                                                      (info "<<< Shutdown from System.exit or kill !!!!  >>>> ")
-                                                                                     (stop-app)
+                                                                                     (try 
+                                                                                       (stop-app)
+                                                                                       (finally 
+                                                                                         (q/close-channel data-queue)))
                                                                                      (info "<<<< Stopped App >>>>")
                                                                                      ))) )))
   (view/start)

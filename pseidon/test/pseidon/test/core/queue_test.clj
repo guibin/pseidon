@@ -30,6 +30,7 @@
                
                (prn "messages " @received-msgs)
                (= (sort @received-msgs) (take 10 messages)) => true
+               (close-channel ch)
                
                ))
        
@@ -52,6 +53,7 @@
                
                (prn "messages " @received-msgs)
                (= (sort @received-msgs) messages) => true
+               (close-channel ch)
                
                ))
        (fact "Test pub sub multi threaded"
@@ -76,6 +78,7 @@
                (Thread/sleep 1000)
                
                (count @received-msgs) => 1000
+               (close-channel ch)
                
                ))
       

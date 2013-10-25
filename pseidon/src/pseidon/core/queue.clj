@@ -56,7 +56,8 @@
 
 (defprotocol IBlockingChannel 
              (doPut [this e timeout] "Puts an element on the queue potentially blocking")
-             (getIterator [this] "Gets an interator from which to consume"))
+             (getIterator [this] "Gets an interator from which to consume")
+             (close [this]))
 
 (defrecord BlockingChannelImpl [^QueuePersistor persistor ^long limit]
            IBlockingChannel
@@ -72,7 +73,12 @@
                 (-> persistor .offer (.apply msg)))
            (getIterator [this ]
                 (.iterator persistor))
+           (close [this]
+                (.close persistor))
            )
+
+(defn close-channel [^BlockingChannelImpl channel]
+  (.close channel))
 
 (defn get-worker-queue []
   (let [path  (get-conf2 :pseidon-queue-path (str "/tmp/data/pseidonqueue/" (System/currentTimeMillis)))]
