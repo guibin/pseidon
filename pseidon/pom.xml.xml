@@ -5,7 +5,7 @@
 	<groupId>pseidon</groupId>
 	<artifactId>pseidon</artifactId>
 	<packaging>jar</packaging>
-	<version>0.3.1-SNAPSHOT</version>
+	<version>0.4.1-SNAPSHOT</version>
 	<name>pseidon</name>
 	<description>BigData Import Framework</description>
 	<url>https://github.com/gerritjvv/pseidon</url>
@@ -74,8 +74,8 @@
 					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 					<distribution>pseidon</distribution>
 					<group>utilties</group>
-					<release>28</release>
-					<packager>http://code.google.com/p/</packager>
+					<release>5</release>
+					<packager>https://github.com/gerritjvv/pseidon</packager>
 					<provides>
 						<provide>pseidon</provide>
 					</provides>
@@ -87,7 +87,7 @@
 						<mapping>
 							<directory>/opt/pseidon/bin</directory>
 							<configuration>true</configuration>
-							<filemode>777</filemode>
+							<filemode>775</filemode>
 							<username>pseidon</username>
 							<groupname>pseidon</groupname>
 							<sources>
@@ -99,7 +99,7 @@
 						<mapping>
 							<directory>/opt/pseidon/conf</directory>
 							<configuration>true</configuration>
-							<filemode>776</filemode>
+							<filemode>775</filemode>
 							<username>pseidon</username>
 							<groupname>pseidon</groupname>
 							<sources>
@@ -112,7 +112,7 @@
 							<directory>/etc/init.d</directory>
 							<directoryIncluded>false</directoryIncluded>
 							<configuration>true</configuration>
-							<filemode>776</filemode>
+							<filemode>775</filemode>
 							<username>root</username>
 							<groupname>root</groupname>
 							<sources>
@@ -135,7 +135,7 @@
 						<mapping>
 							<directory>/opt/pseidon/resources/plugins</directory>
 							<configuration>true</configuration>
-							<filemode>776</filemode>
+							<filemode>775</filemode>
 							<username>pseidon</username>
 							<groupname>pseidon</groupname>
 							<sources>
@@ -171,6 +171,11 @@
 							<filemode>775</filemode>
 							<username>pseidon</username>
 							<groupname>pseidon</groupname>
+							<sources>
+								<source>
+									<location>resources/serverlog.log</location>
+								</source>
+							</sources>
 						</mapping>
 
 					</mappings>

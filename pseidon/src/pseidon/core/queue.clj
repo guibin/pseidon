@@ -95,9 +95,11 @@
 
 (defn- consume-messages [^BlockingChannelImpl channel ^IFn f]
     (loop [it (.getIterator channel)]
-      (while (and (not (.hasNext it)) (not (Thread/interrupted))) (Thread/sleep 100))
-      (f (.next it))
-      (recur it)))
+        (while (and (not (.hasNext it)) (not (Thread/interrupted))) (Thread/sleep 100))
+      
+        (if it 
+          (f (.next it)))
+        (recur it)))
       
 
 (defn consume [^BlockingChannelImpl channel f]

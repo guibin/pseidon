@@ -78,8 +78,14 @@
     ([^Meter meter ^Long n]
       (.mark meter n)))
   
-  (defn inc-counter[^Counter counter]
-    (.inc counter))
+  (defn inc-counter
+    ([^Counter counter ^long v]
+       (.inc counter v))
+    ([^Counter counter]
+       (.inc counter)))
   
-  (defn dec-counter[^Counter counter]
-    (.dec counter))
+  (defn dec-counter
+    ([^Counter counter ^long v]
+       (.dec counter v))
+    ([^Counter counter]
+       (.dec counter)))

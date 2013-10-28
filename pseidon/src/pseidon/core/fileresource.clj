@@ -1,7 +1,7 @@
 (ns pseidon.core.fileresource
    (:require [pseidon.core.tracking :refer [with-txn]]
              [pseidon.core.utils :refer [apply-f]]
-             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time]])
+             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer add-counter inc-counter dec-counter measure-time]])
    (:use clojure.tools.logging 
          pseidon.core.watchdog
          pseidon.core.conf)
@@ -11,16 +11,31 @@
             (org.apache.hadoop.conf Configurable Configuration)
             (org.streams.commons.status Status)
             (org.streams.commons.compression CompressionPool CompressionPoolFactory)
-            (org.streams.commons.compression.impl CompressionPoolFactoryImpl))
-  )
+            (org.streams.commons.compression.impl CompressionPoolFactoryImpl)
+            (java.util.concurrent.atomic AtomicInteger)
+  ))
 
 
 ;post-roll is a sequence of functions that will be applied only after the file is rolled
 (defrecord FileRS [name output codec compressor file post-roll])
 (defrecord TopicConf [key codec])
 
+;keeps track of the counters atmoms for the CompressionPoolFactory
+(def compressor-pool-counters (ref {}))
 
-(def ^CompressionPoolFactory compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 (reify Status (setCounter [self name i] ))))
+(defn get-compressor-pool-counter [lbl]
+  "If the counter exists return else create a new counter, add to the compressor-pool-counters map and return"
+  (dosync 
+    (if-let [v (get compressor-pool-counters lbl nil)]
+      v
+      (let [ v (AtomicInteger. 1) ] ;else create counter and assoc to map
+        (add-gauge (str "compressor-pool-" lbl) #(.get v) ) ; create a guage to show the count
+        (commute compressor-pool-counters assoc lbl v)
+        v))))
+    
+(def ^CompressionPoolFactory compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 (reify Status 
+                                                                                            (setCounter [self lbl i] 
+                                                                                              (.set (get-compressor-pool-counter lbl) i)))))
 
 (def global-on-roll-callbacks (ref {}))
 
@@ -91,7 +106,7 @@
  (defn add-agent [topic key]
    
   (let [codec (get-codec topic) 
-        ^CompressionPool compressor (-> compressor-pool-factory (.get codec) )
+        ^CompressionPool compressor (delay (-> compressor-pool-factory (.get codec) )) ;transactions can be retried, this method is not retryable
         file-name (create-file-name (clojure.string/join "/" [(get-topic-basedir topic) key]) codec)
         agnt 
            (agent 
@@ -120,13 +135,15 @@
        (if-let [parent (.getParentFile file)] (.mkdirs parent) (info "File has no parent " file) )
        (.createNewFile file)
        (if (.exists file) (info "Created " file) (throw (java.io.IOException. (str "Failed to create " file)))  )
+       
+       (if-not compressor
+         (throw (RuntimeException. (str "The compressor cannot be null here file: " file " please check the compressor pool"))))
+       
        (let [ fileout (java.io.FileOutputStream. file)
-              output  
-              (.create compressor fileout 1000 java.util.concurrent.TimeUnit/MILLISECONDS)
+              output (.create compressor fileout 1000 java.util.concurrent.TimeUnit/MILLISECONDS)
              ]
-         output
+         output))
         
-      ))
      
 
 (defn write-to-frs [^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn ^FileRS frs]
@@ -145,7 +162,7 @@
                          (create-file 
                            (:file frs) 
                            codec 
-                           (:compressor frs) 
+                           (force (:compressor frs)) 
                            )  
                          codec 
                          (:compressor frs) 
@@ -173,8 +190,8 @@
     )))
 
 (defn close-roll-agent [^FileRS frs]
-  (when (and (not (nil? frs)) (not (nil? (:output frs) ) ) ) 
-    (.closeAndRelease (:compressor frs) (:output frs) ) 
+  (when (and (not (nil? frs))) 
+    (.closeAndRelease (force (:compressor frs)) (:output frs) ) 
     ;find rename the file by removing the last \.([a-zA-Z0-9])+_([0-9]+) piece of the filename and appending (group2).(group1)
   
 	  (let [
@@ -258,6 +275,5 @@
       (close-agent k agnt)
       (await-for 10000 agnt)      
       )
-   (info "Closed all file agents")  
-)
+   (info "Closed all file agents"))
 
