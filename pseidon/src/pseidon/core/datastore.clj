@@ -3,7 +3,9 @@
         pseidon.core.conf
         )
   
-  (:import [org.apache.commons.lang StringUtils])
+  (:import [org.apache.commons.lang StringUtils]
+           [org.apache.zookeeper KeeperException$NodeExistsException]
+           [org.apache.curator.framework CuratorFramework])
   )
 
 (def client (ref nil))
@@ -58,23 +60,24 @@
   ([ns path]
     (clean-path (str ns "/" path))))      
    
+(defn- _create-zk-path [^CuratorFramework client dirs dir]
+  "Create a path, ignores NodeExistsExceptions and returns the joined dirs / dir path"
+         (let [p2 (StringUtils/join [dirs dir] \/)]
+           (try 
+                (if (not (-> client .checkExists (.forPath p2))) 
+                  (-> client .create
+                    (.withMode (org.apache.zookeeper.CreateMode/PERSISTENT)) 
+                    (.withACL org.apache.zookeeper.ZooDefs$Ids/OPEN_ACL_UNSAFE)
+                    (.forPath p2)))
+                (catch KeeperException$NodeExistsException e (warn e)))
+           p2))
+     
 
-(defn ensure-path [^org.apache.curator.framework.CuratorFramework client ns path]
+(defn ensure-path [^CuratorFramework client ns path]
   (let [p (clean-path (join-path ns path)) ]
-  (when (not (-> client .checkExists (.forPath p)))
-     (do 
-       (def create (fn  [dirs dir]
-                       
-                       (let [p2 (clojure.string/join "/" [dirs dir])]
-                                   (if (not (-> client .checkExists (.forPath p2))) (-> client .create (.withMode (org.apache.zookeeper.CreateMode/PERSISTENT)) (.withACL org.apache.zookeeper.ZooDefs$Ids/OPEN_ACL_UNSAFE) 
-                                                                                      (.forPath p2) 
-                                      ))
-                                     p2
-                       )))
-       (reduce create (clojure.string/split p #"/"))
-     ))
-     p ;return the path
-  ))
+	  (when (not (-> client .checkExists (.forPath p)))
+	       (reduce (partial _create-zk-path client) (StringUtils/split p \/)))
+	     p))
 
 (defn set-data! [ns id value]
   "Set a data structure's value the value must be a String or Number type"
@@ -91,7 +94,7 @@
     The first argument must always begin with '/'
     Create all the directories if the do not exist
   "
-  (let [p (clojure.string/join "/" dirs)
+  (let [p (StringUtils/join dirs \/)
         bclient (get-client)]
         (ensure-path bclient ns p)
         ))
@@ -122,11 +125,13 @@
      (f (get-client))
   ))
 
-(defn delete! [ns path]
+(defn delete!
   "Deletes from the datastore an absolute path starting with the name-space ns"
-  (-> (get-client) .delete .guaranteed (.forPath (join-path ns path)) )
-  true
-  )
+  ([path]
+    (delete! "/" path))
+  ([ns path]
+  (-> (get-client) .delete .guaranteed (.forPath (clean-path (join-path ns path))) )
+  true))
 
 (defn get-data-str [ns id]
   "Gets the value of a data as a string encoded in utf-8"

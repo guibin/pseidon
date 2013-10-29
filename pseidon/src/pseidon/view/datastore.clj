@@ -1,5 +1,5 @@
 (ns pseidon.view.datastore
-  (:require [pseidon.core.datastore :refer [list-dirs set-data! get-data-str]]
+  (:require [pseidon.core.datastore :refer [list-dirs set-data! get-data-str delete!]]
             [clojure.tools.logging :refer [info ]]
             [pseidon.view.utils :refer [write-json]])
   (:import [org.apache.commons.lang StringUtils]))
@@ -23,7 +23,12 @@
         
         (write-json (iterate-dirs "/" depth path))))
        
-		   
+(defn datastore-delete [{:keys [query-params]}]
+    (let [path (get query-params "path" "/pseidon")]
+      (if path 
+        (delete! path))
+      (write-json {:deleted path})))
+      
 
 (defn datastore-create [{:keys [query-params]}]
      (let [path (get query-params "path" "/pseidon")
