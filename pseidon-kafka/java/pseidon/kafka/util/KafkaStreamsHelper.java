@@ -84,7 +84,7 @@ public final class KafkaStreamsHelper {
 	}
 
 
-	private static final List<KafkaStream<byte[], byte[]>> flatten(
+	public static final List<KafkaStream<byte[], byte[]>> flatten(
 			ConsumerConnector conn, Map<String, Integer> topicMap) {
 		try {
 			LOG.info("!!!!!!!!!!!!!!!!!!!!!! Get streams from topicMap " + topicMap);
