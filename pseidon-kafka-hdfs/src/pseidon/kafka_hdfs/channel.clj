@@ -28,9 +28,9 @@
   (let [consume-meter-map (into {} (map (fn [n] [n (add-meter (str "pseidon.kafka_hdfs.channel-" n))]) topics))]
 	  (while (not (Thread/interrupted))
 	    (let [rdr-seq (apply (force kafka-reader) topics)]
-	      (doseq [{:keys [offset topic partition value] :as msg } rdr-seq]
+	      (doseq [{:keys [offset topic partition value] } rdr-seq]
 	        (let [msg-id (str topic ":" partition ":" offset)]
-	          (update-meter (get consume-meter-map topic))
+	          ;(update-meter (get consume-meter-map topic))
 	          (try
              (do
                (publish data-queue (create-message value ch-dsid msg-id "pseidon.kafka-hdfs.processor" true (System/currentTimeMillis) 1))

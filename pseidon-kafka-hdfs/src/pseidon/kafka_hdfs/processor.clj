@@ -4,8 +4,8 @@
             [pseidon.core.queue :refer [publish]]
             [pseidon.core.app :refer [data-queue]]
             [pseidon.core.message :refer [create-message]]
-            [pseidon.core.message :refer [create-message]]
-            [pseidon.core.registry :refer [register ->Processor reg-get-wait] ]
+	    [pseidon.core.metrics :refer [add-meter update-meter] ]
+	    [pseidon.core.registry :refer [register ->Processor reg-get-wait] ]
             [clj-time.coerce :refer [from-long to-long]]
             [clj-time.format :refer [unparse formatter]]
             [pseidon.core.fileresource :refer [write register-on-roll-callback]]
@@ -16,6 +16,7 @@
      (:import [org.apache.commons.lang StringUtils])
   )
 
+(def exec-meter (add-meter (str "pseidon.kafka_hdfs.processor" )))
 
 (def ^:private dateformat (formatter "yyyyMMddHH"))
 
@@ -55,7 +56,9 @@
                (fn [out] (exec-write out bdata))
                (fn [file_name]
                  ;setting the batchid to done
-                 )))))
+                 )))
+         (update-meter exec-meter)))
+         
 
 (defn ^:dynamic start []
   (def dsid "pseidon.kafka-hdfs.processor")
