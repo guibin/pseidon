@@ -58,7 +58,6 @@
              (doPut [this e timeout] "Puts an element on the queue potentially blocking")
              (getIterator [this] "Gets an interator from which to consume")
              (close [this])
-             (size [this])
              )
 
 (defrecord BlockingChannelImpl [^QueuePersistor persistor ^long limit]
@@ -77,8 +76,6 @@
                 (.iterator persistor))
            (close [this]
                 (.close persistor))
-           (size [this]
-             (.size persistor))
            )
 
 (defn close-channel [^BlockingChannelImpl channel]

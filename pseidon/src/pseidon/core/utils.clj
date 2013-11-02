@@ -5,6 +5,9 @@
   (:import (clojure.lang ArityException))
   )
 
+(defn not-interrupted []
+  (not (Thread/interrupted)))
+
 (defn merge-distinct-vects[v1 v2]
   "
    Merge the two vectors with only distinct elements remaining
