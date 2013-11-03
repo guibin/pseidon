@@ -6,7 +6,7 @@
 
 
 (facts "Test chronicle queue implementation"
-      (comment
+      
       (fact "Test offer and get no limit or segment overflow"
              
              (let [limit 10000
@@ -59,13 +59,13 @@
                ;block again
                (offer q (.getBytes (str "abc")) 100) => false 
              ))
-         )
-          (fact "Test offer, roll on segment 100 times, read verify data"
+         
+          (fact "Test offer, roll on segment 10 times, read verify data"
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
                    q (create-queue path limit :segment-limit 20)
                    write-read (fn [n] [(doall
-                                         (for [i (range 10)]
+                                         (for [i (range n)]
                                            (let [msg (str "msg-" i)]
                                              (offer q (.getBytes msg) 100)
                                              msg
@@ -85,5 +85,58 @@
                    
              ))
 
+          (fact "Test offer, roll on segment 5 times, leave data to copy during each roll"
+             (let [limit 10
+                   path (create-tmp-dir "chronicle" :delete-on-exit true)
+                   q (create-queue path limit :segment-limit 20)
+                   write-read (fn [x write-n read-n] [(doall
+                                         (for [i (range write-n)]
+                                           (let [msg (str "msg-" x "-" i)]
+                                             (offer q (.getBytes msg) 100)
+                                             msg
+                                           )))
+                                       
+                                       (doall
+                                         (map #(String. %) (filter (complement nil?) (repeatedly read-n #(poll q 100) ) ))
+                                         )])
+                                
+                                       
+                   ]
+                   
+                   (doall
+                     (dotimes [i 10]
+                       (let [[w r] (write-read 0 10 5)]
+                         r => ["msg-0-0" "msg-0-1" "msg-0-2" "msg-0-3" "msg-0-4"])
+                       (let [[w r] (write-read 0 10 5)] 
+                         r => ["msg-0-5" "msg-0-6" "msg-0-7" "msg-0-8" "msg-0-9"])))
+                   
+             ))
+          
+           (fact "Test offer, roll on segment 5 times, leave data to copy during each roll"
+             (let [limit 10
+                   path (create-tmp-dir "chronicle" :delete-on-exit true)
+                   q (create-queue path limit :segment-limit 20)
+                   write-read (fn [x write-n read-n] [(doall
+                                         (for [i (range write-n)]
+                                           (let [msg (str "msg-" x "-" i)]
+                                             (if (offer q (.getBytes msg) 100) msg nil)
+                                           )))
+                                       
+                                       (doall
+                                         (map #(String. %) (filter (complement nil?) (repeatedly read-n #(poll q 100) ) ))
+                                         )])
+                                
+                                       
+                   ]
+                   
+                   (let [[w r] (write-read 0 10 5)]
+                         r => ["msg-0-0" "msg-0-1" "msg-0-2" "msg-0-3" "msg-0-4"])
+                   
+                   (let [[w r] (write-read 0 20 0)]
+                     ;we expect the write to timeout and only return the messages that it could send.
+                     (count (filter (complement nil?) w)) => 6)
+                       
+                   
+             ))
        )
 

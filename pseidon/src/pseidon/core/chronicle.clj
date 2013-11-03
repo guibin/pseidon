@@ -70,7 +70,6 @@
 (defn block-on-size [^AtomicInteger size limit]
   (while (> (.get size) limit)
     (do 
-      ;(info "blocking in write: " (.get size))
       (Thread/sleep 200))))
 
 (defn copy-ch [read-ch new-chronicle i]
@@ -94,6 +93,7 @@
         ;we must read all left over messages from the old channel into the new one
         
         (let [len (copy-ch read-ch new-chronicle 0)]
+          (info "copied left over from previous chronicle " len)
           (.set segment-size len)
           (.set queue-size len))
         
