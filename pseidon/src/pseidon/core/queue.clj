@@ -1,6 +1,7 @@
 (ns pseidon.core.queue
   (:require [clojure.tools.logging :refer [info]]
             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time add-meter update-meter]])
+            [pseidon.core.chronicle :refer []]
   (:use pseidon.core.conf)
   (:import 
           [reactor.queue QueuePersistor IndexedChronicleQueuePersistor]
