@@ -6,7 +6,7 @@
 
 
 (facts "Test chronicle queue implementation"
-      
+      (comment
       (fact "Test offer and get no limit or segment overflow"
              
              (let [limit 10000
@@ -54,11 +54,36 @@
                ;write twice no blocking
                (doall
                  (dotimes [i 2]
-                   (prn "write " i)
                    (offer q (.getBytes "msg") 100) => true))
                
                ;block again
                (offer q (.getBytes (str "abc")) 100) => false 
+             ))
+         )
+          (fact "Test offer, roll on segment 100 times, read verify data"
+             (let [limit 10
+                   path (create-tmp-dir "chronicle" :delete-on-exit true)
+                   q (create-queue path limit :segment-limit 20)
+                   write-read (fn [n] [(doall
+                                         (for [i (range 10)]
+                                           (let [msg (str "msg-" i)]
+                                             (offer q (.getBytes msg) 100)
+                                             msg
+                                           )))
+                                       
+                                       (doall
+                                         (map #(String. %) (filter (complement nil?) (repeatedly n #(poll q 100) ) ))
+                                         )])
+                                
+                                       
+                   ]
+                   
+                   (doall
+                     (dotimes [i 10]
+		                   (let [[w r] (write-read 10)]
+                       ;(prn w r)
+		                     r => w)))
+                   
              ))
 
        )

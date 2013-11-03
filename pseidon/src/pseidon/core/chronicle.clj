@@ -149,14 +149,22 @@
           
           (write-to-chronicle @chronicle-ref msg))))
     
-    (go (while (not-interrupted)
-        (let [{tailer :tailer} @chronicle-ref]
-          (loop [t tailer]
-            (if (.nextIndex t)
-              (do 
-                (>! read-ch (read-from-chronicle tailer))
-                (.decrementAndGet queue-size)))
-            (recur t)))))
+    ;we loop forever, get a reference value from the chronicle-ref
+    ;and get the tailer, loop through the tailer until it returns no values
+    ;then go back and derefence the chronicle-ref again to get a new tailer, or the same.
+    ;If the chronicle was rolled the current tailer will stop returning values and 
+    ;the chronicle-ref will have a new chronicle instance with tailer assigned.
+    (go 
+      (while (not-interrupted)
+        (try
+          (let [{tailer :tailer} @chronicle-ref]
+            (loop [t tailer]
+              (if (.nextIndex t) 
+                (do 
+                  (>! read-ch (read-from-chronicle tailer))
+                  (.decrementAndGet queue-size)
+                  (recur t)))))
+          (catch Exception e (error e e)))))
           
     ; ChronicleQueueImpl [write-ch read-ch]
     (ChronicleQueueImpl. write-ch read-ch chronicle-ref)))
