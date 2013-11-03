@@ -79,9 +79,8 @@
                    ]
                    
                    (doall
-                     (dotimes [i 10]
+                     (dotimes [i 20]
 		                   (let [[w r] (write-read 10)]
-                       ;(prn w r)
 		                     r => w)))
                    
              ))
