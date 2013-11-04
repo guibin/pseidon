@@ -3,10 +3,12 @@
             [clojure.java.io :refer [file]]
             [clojure.tools.logging :refer [info error]]
             [pseidon.core.utils :refer [not-interrupted]])
-  (:import [net.openhft.chronicle IndexedChronicle ChronicleConfig]
+  (:import [net.openhft.chronicle IndexedChronicle ChronicleConfig ExcerptTailer ExcerptAppender]
            [java.util.concurrent.atomic AtomicInteger]
            [org.apache.commons.io FileUtils]
-           [java.io File])
+           [java.io File]
+           [java.util Iterator]
+           [pseidon.util Bytes])
   )
 
 (declare write-to-chronicle)
@@ -21,9 +23,11 @@
   (offer [this msg timeout-msg])
   (close [this])
   (poll! [this])
-  (poll [this timeout-ms]))
+  (poll [this timeout-ms])
+  (create-iterator [this])
+  (get-size [this]))
 
-(defrecord ChronicleQueueImpl [write-ch read-ch chronicle-ref]
+(defrecord ChronicleQueueImpl [write-ch read-ch chronicle-ref queue-size]
   ChronicleQueue
   (offer! [this msg]
     (>!! write-ch msg))
@@ -41,11 +45,27 @@
     (let [[v _] (alts!! [read-ch (timeout timeout-ms)])]
           v))
           
+  (create-iterator [this]
+    (reify Iterator
+      (hasNext [this]
+        "Always returns true"
+        true)
+      (next [this]
+        "Blocks till a value is available"
+        (<!! read-ch))
+      (remove [this]
+        "Does nothing"
+        )
+    ))
+  
   (close [this]
     (let [{:keys [chronicle appender tailer]} @chronicle-ref]
       (.close appender)
       (.close tailer)
       (.close chronicle)))
+  
+  (get-size [this]
+    (.get queue-size))
     )
 
 (defn ^File get-latest-chronicle-dir [parent-dir]
@@ -108,16 +128,18 @@
         (dosync (ref-set chronicle-ref new-chronicle))))))
 
     
-(defn write-to-chronicle [{:keys [^IndexedChronicle chronicle appender tailer]} ^bytes msg]
+(def byte-array-cls (Class/forName "[B"))
+
+(defn write-to-chronicle [{:keys [^IndexedChronicle chronicle ^ExcerptAppender appender ^ExcerptTailer tailer]} ^bytes msg]
   "Write the bytes message to the chronicle appender"
-  (doto 
-    appender
-    .startExcerpt
-    (.writeInt (count msg))
-    (.write msg)
-    .finish))
+    (doto 
+      appender
+      .startExcerpt
+      (.writeInt (count msg))
+      (.write msg)
+      .finish))
  
- (defn ^bytes read-from-chronicle [tailer]
+ (defn ^bytes read-from-chronicle [^ExcerptTailer tailer]
    "Read a bytes message from tailer"
    (let [size (.readInt tailer)
          ^bytes bts (byte-array size)]
@@ -128,7 +150,7 @@
   "Returns a ChronicleQueue with background writters and readers enabled"
   (let [segment-limit2 (if (> segment-limit limit) segment-limit (do (info "segment limit cannot be smaller than the limit setting to 2 * limit") 
                                                                    (* 2 limit)))
-        write-ch (if (> buffer 0) (chan buffer) (chan))
+        write-ch (if (pos? buffer) (chan buffer) (chan))
         read-ch (chan)
         chronicle-ref (ref (if-let [p (load-chronicle-path path)] (create-chronicle p) (create-chronicle (new-chronicle-path path)  )))
         queue-size (AtomicInteger.)
@@ -157,15 +179,14 @@
     (go 
       (while (not-interrupted)
         (try
-          (let [{tailer :tailer} @chronicle-ref]
-            (loop [t tailer]
-              (if (.nextIndex t) 
+          (let [{:keys [^ExcerptTailer tailer]} @chronicle-ref]
+            (loop []
+              (if (.nextIndex tailer) 
                 (do 
                   (>! read-ch (read-from-chronicle tailer))
                   (.decrementAndGet queue-size)
-                  (recur t)))))
+                  (recur)))))
           (catch Exception e (error e e)))))
           
-    ; ChronicleQueueImpl [write-ch read-ch]
-    (ChronicleQueueImpl. write-ch read-ch chronicle-ref)))
+    (ChronicleQueueImpl. write-ch read-ch chronicle-ref queue-size)))
 

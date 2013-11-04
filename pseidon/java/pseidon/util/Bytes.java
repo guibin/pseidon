@@ -71,7 +71,7 @@ public final class Bytes {
 				(byte) (0xff & (v >> 16)), (byte) (0xff & (v >> 8)),
 				(byte) (0xff & v) };
 	}
-
+	
 	/**
 	 * Read the number from bts (this can be a 4 length int or a 8 length long)
 	 * and returns the incremented value.

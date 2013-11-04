@@ -1,13 +1,15 @@
 (ns pseidon.core.queue
-  (:require [clojure.tools.logging :refer [info]]
-            [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time add-meter update-meter]])
-            [pseidon.core.chronicle :refer []]
+  (:require [clojure.tools.logging :refer [info error]]
+            [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time add-meter update-meter]]
+            [pseidon.core.chronicle :as chronicle])
+  
   (:use pseidon.core.conf)
   (:import 
-          [reactor.queue QueuePersistor IndexedChronicleQueuePersistor]
           [java.util.concurrent ThreadFactory BlockingQueue Callable ThreadPoolExecutor SynchronousQueue TimeUnit ExecutorService ThreadPoolExecutor$CallerRunsPolicy]
           [clojure.lang IFn]
-          [java.util.concurrent TimeoutException])
+          [java.util Iterator]
+          [java.util.concurrent TimeoutException]
+          [pseidon.util Bytes Encoder Decoder DefaultEncoder DefaultDecoders])
   )
 
 (def topic-services (ref {}))
@@ -56,67 +58,73 @@
     (.submit service callable))))
 
 (defprotocol IBlockingChannel 
-             (doPut [this e timeout] "Puts an element on the queue potentially blocking")
-             (getIterator [this] "Gets an interator from which to consume")
+             (doPut [this e timeout])
+             (getIterator [this])
+             (getSize [this])
              (close [this])
+            
              )
 
-(defrecord BlockingChannelImpl [^QueuePersistor persistor ^long limit]
+(defrecord BlockingChannelImpl [chronicle]
            IBlockingChannel
            (doPut [this msg timeout]
-                ;sleep while the queue is full
-                  (locking persistor
-                    (let [s (System/currentTimeMillis)]
-	                    (while (and (>= (.size persistor) limit) (not (Thread/interrupted)))
-	                      (Thread/sleep 500)
-	                      (if (> (- (System/currentTimeMillis) s) timeout)
-                         (throw (TimeoutException. (str "Timined out waiting for queue " timeout))))
-	                      )))
-                (-> persistor .offer (.apply msg)))
+             (chronicle/offer chronicle msg timeout))
            (getIterator [this ]
-                (.iterator persistor))
+                (chronicle/create-iterator chronicle))
+           (getSize [this]
+             (chronicle/get-size chronicle))
            (close [this]
-                (.close persistor))
+                (chronicle/close chronicle))
            )
 
 (defn close-channel [^BlockingChannelImpl channel]
   (.close channel))
 
-(defn get-worker-queue []
-  (let [path  (get-conf2 :pseidon-queue-path (str "/tmp/data/pseidonqueue/" (System/currentTimeMillis)))]
+(defn ^BlockingChannelImpl get-worker-queue [& {:keys [limit buffer] :or {limit (get-conf2 :psedon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)} }]
+  (let [path  (get-conf2 :pseidon-queue-path (str "/tmp/data/pseidonqueue/" (System/currentTimeMillis)))
+       segment-limit (get-conf2 :pseidon-queue-segment-limit 1000000)
+       
+       queue (chronicle/create-queue path limit :buffer buffer :segment-limit segment-limit)
+       ]
     (info "Creating queue with path " path)
-    (IndexedChronicleQueuePersistor. path)))
+    (BlockingChannelImpl. queue)))
 
-(defn ^BlockingChannelImpl channel [^String name & {:keys [limit] :or {limit 50}}] 
-  (prn "Creating channel " name " :psedon-queue-limit " (get-conf2 :psedon-queue-limit limit))
+(defn ^BlockingChannelImpl channel [^String name & {:keys [limit buffer] :or {limit (get-conf2 :psedon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)} }] 
+  (info "Creating channel " name " :psedon-queue-limit " limit " buffer " buffer)
   (let [
-        ^QueuePersistor queue (get-worker-queue)]
-        (add-gauge (str "pseidon.core.queue." name ".size") #(.size queue))
-        (BlockingChannelImpl. queue (get-conf2 :psedon-queue-limit limit))
-        ))
+        ^BlockingChannelImpl queue (get-worker-queue :limit limit :buffer buffer)]
+        (add-gauge (str "pseidon.core.queue." name ".size") #(getSize queue))
+        queue))
 
 (defn- consume-messages [^BlockingChannelImpl channel ^IFn f]
-    (loop [it (.getIterator channel)]
+    (loop [^Iterator it (.getIterator channel)]
         (while (and (not (.hasNext it)) (not (Thread/interrupted))) (Thread/sleep 100))
-      
         (if it 
           (f (.next it)))
         (recur it)))
       
 
-(defn consume [^BlockingChannelImpl channel f]
+(defn consume [^BlockingChannelImpl channel f & {:keys [^Decoder decoder] :or {^Decoder decoder DefaultDecoders/BYTES_DECODER} }]
   "Consumes asynchronously from the channel"
   (let [ 
-        ^Runnable runnable #(consume-messages channel f)    
+        ^Runnable runnable #(try 
+                              (consume-messages channel (comp f (fn [^bytes bts] (.decode decoder bts))))
+                              (catch Exception e (error e e)))
                                  ]
         (.submit queue-master runnable)))
 
-(defn publish [^BlockingChannelImpl channel msg & {:keys [timeout] :or {timeout (Long/MAX_VALUE)}} ]
-  (update-meter queue-publish-meter)
-  (.doPut channel msg timeout))
 
-(defn publish-seq [^BlockingChannelImpl channel xs]
- (doseq [msg xs] (publish channel msg))
+(defn publish-bytes [^BlockingChannelImpl channel ^bytes msg & {:keys [timeout] :or {timeout (Integer/MAX_VALUE)}} ]
+  (update-meter queue-publish-meter)
+  (if-not (doPut channel msg timeout)
+    (throw (TimeoutException. (str "publish-bytes timeout after " timeout " ms"))))
+  )
+
+(defn publish [^BlockingChannelImpl channel msg & {:keys [timeout ^Encoder  encoder] :or {timeout (Integer/MAX_VALUE) ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }} ]
+  (publish-bytes channel (.encode encoder msg) :timeout timeout))
+
+(defn publish-seq [^BlockingChannelImpl channel xs & {:keys [timeout ^Encoder  encoder] :or {timeout (Integer/MAX_VALUE) ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }}]
+ (doseq [msg xs] (publish channel msg :timeout timeout :encoder encoder ))
  )
  
   

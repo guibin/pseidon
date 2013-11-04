@@ -25,6 +25,26 @@
                   (close read-queue)))
              
              )
+      
+       (fact "Test offer and get no limit or segment overflow using iterator"
+             
+             (let [limit 10000
+                   path (create-tmp-dir "chronicle" :delete-on-exit true)
+                   q (create-queue path limit :segment-limit (* limit 2))] 
+               (doall
+                 (dotimes [i 100]
+                   (dotimes [n 100]
+                     (offer! q (.getBytes (str "msg " i "-" n))))))
+                 
+               (close q)
+                (let [read-queue (create-queue path limit)
+                      iterator (create-iterator read-queue)]
+                  (dotimes [i 100]
+                    (dotimes [n 100]
+                      (String. (.next iterator)) => (str "msg " i "-" n)))
+                  (close read-queue)))
+             
+             )
        (fact "Test offer write block on limit "
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
