@@ -3,6 +3,7 @@
 (use '[pseidon.core.queue :as q])
 (use '[pseidon.core.registry :as r])
 (use '[pseidon.core.watchdog :as w])
+(use '[pseidon.core.message :as m])
 
 ;This module contains methods that help with the worker delegation from the queue and consumption.
 
@@ -24,6 +25,7 @@
 
 (defn start-consume [channel]
   "Start consuming from the channel this method runs async"
-    (consume channel (submit (w/watch-msg-error delegate-msg) ))
+    (consume channel (submit (w/watch-msg-error delegate-msg) )
+             :decoder m/MESSAGE-DECODER)
    true
   )

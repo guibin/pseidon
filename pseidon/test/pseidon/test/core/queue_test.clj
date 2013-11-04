@@ -1,6 +1,7 @@
 (ns pseidon.test.core.queue-test
   
-  (:require [pseidon.core.queue :refer :all])
+  (:require [pseidon.core.queue :refer :all]
+            [pseidon.core.message :as msg])
   (:use midje.sweet)
   (:import [java.util.concurrent Executors TimeUnit TimeoutException]
            [pseidon.util Bytes DefaultDecoders])
@@ -8,7 +9,31 @@
   )
 
 (facts "Test pub sub"
-       
+       (fact "Test send and read message instance"
+             (let [ch (channel "test")
+                   ;create-message [bytes-f ds ids topic accept ts priority]
+                   msg (msg/create-message (Bytes/toBytes "hi") "ds" "ids" "hi" true 0 1)
+                   received-msgs (ref [])
+                   ]
+                 (consume ch (fn [msg]
+                             (dosync
+                               (commute received-msgs conj msg))
+                             )
+                             :decoder msg/MESSAGE-DECODER)
+
+                 (publish ch msg)
+                 (Thread/sleep 500)
+                 (String. (:bytes-seq msg)) => (String. (:bytes-seq (first @received-msgs)))
+                 (:ds msg) => (:ds (first @received-msgs))
+                 (:topic msg) => (:topic (first @received-msgs))
+                 (:ids msg) => (:ids (first @received-msgs))
+                 (:ts msg) => (:ts (first @received-msgs))
+                 (:accept msg) => (:accept (first @received-msgs))
+                 (:priority msg) => (:priority (first @received-msgs))
+                 
+                 
+             ))
+
        (fact "Test pub sub timeout"
 
              (let [
@@ -88,7 +113,8 @@
                (count @received-msgs) => 10000
                (close-channel ch)
                
-               )))
+               ))
+       )
       
        
                

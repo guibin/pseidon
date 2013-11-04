@@ -2,11 +2,27 @@
   (:require [pseidon.test.core.utils :refer [create-tmp-dir]]
             [pseidon.core.chronicle :refer [offer poll poll! offer! close create-queue]])
   (:use midje.sweet
-        pseidon.core.chronicle))
+        pseidon.core.chronicle)
+  (:import [java.io File]))
 
 
 (facts "Test chronicle queue implementation"
-      
+       (fact "Test directory discovery return nil if no subdirs"
+             (let [path (create-tmp-dir "chronicle" :delete-on-exit true)] 
+               (load-chronicle-path path) => nil))
+       
+       (fact "Test directory discovery return latest dir"
+             (let [
+                   path (create-tmp-dir "chronicle" :delete-on-exit true)
+                   path2 (File. path "b")
+                   path3 (File. path "a");names are reverse order to ensure ordering is by ts.
+                   ]
+               (.mkdirs path2)
+               (Thread/sleep 1000)
+               (.mkdirs path3)
+               (load-chronicle-path path) => path3))
+       
+      (comment
       (fact "Test offer and get no limit or segment overflow"
              
              (let [limit 10000
@@ -158,5 +174,6 @@
                        
                    
              ))
+           )
        )
 

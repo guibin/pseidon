@@ -69,6 +69,8 @@ Open in a browser:
 | ------ | --------- |
 | pseidon-queue-path | Psiedon uses chronicle to store its internal queue messages, this path is used to store locally|
 | psedon-queue-limit | the limit to use default is 50 |
+| pseidon-queue-segment-limit | In disk backed queue will roll its files on this message limit default 1000000 |
+| pseidon-queue-buff | The internal queue buffering default is -1 |
 | worker-threads | each topic is assigned its own thread pool, this is the limit to use on each thread pool, default is the number of processors on the box|
 | worker-$topic-threads | overrides worker-threads on a per topic basis |
 | java-library-path | the java.library.path directory from where native libraries are laoded default "/opt/hadoopgpl/native/Linux-amd64-64/" |

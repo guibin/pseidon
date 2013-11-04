@@ -1,7 +1,8 @@
 (ns pseidon.core.queue
   (:require [clojure.tools.logging :refer [info error]]
             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time add-meter update-meter]]
-            [pseidon.core.chronicle :as chronicle])
+            [pseidon.core.chronicle :as chronicle]
+            [pseidon.core.watchdog :as watchdog])
   
   (:use pseidon.core.conf)
   (:import 
@@ -51,6 +52,10 @@
 (defn submit [f]
   "Submits a function to a thread pool"
   (fn [msg]
+    
+    (if-not (:topic msg)
+      (throw (RuntimeException. (str "Topic cannot be nil for message " msg " check that you've registered the MSG-DECODER with the consumer"))))
+    
     (let [^Callable callable (fn[] (try (measure-time exec-timer #(f msg)) 
                                                           (finally (update-meter queue-consume-meter))))
           ^ExecutorService service (get-exec-service (:topic msg))]
@@ -104,12 +109,12 @@
         (recur it)))
       
 
-(defn consume [^BlockingChannelImpl channel f & {:keys [^Decoder decoder] :or {^Decoder decoder DefaultDecoders/BYTES_DECODER} }]
+(defn consume [^BlockingChannelImpl channel f & {:keys [^Decoder decoder] :or {decoder DefaultDecoders/BYTES_DECODER} }]
   "Consumes asynchronously from the channel"
   (let [ 
         ^Runnable runnable #(try 
                               (consume-messages channel (comp f (fn [^bytes bts] (.decode decoder bts))))
-                              (catch Exception e (error e e)))
+                              (catch Exception e (watchdog/handle-critical-error e "Error while consuming")))
                                  ]
         (.submit queue-master runnable)))
 

@@ -1,4 +1,9 @@
-(ns pseidon.core.message)
+(ns pseidon.core.message
+  (:require  [taoensso.nippy :as nippy])
+  (:import [pseidon.util Encodable Decoder])
+  )
+
+(declare create-message)
 
 ;bytes-f returns a byte array Do not create this record directly 
 ;rather use the methods provided in the ns, you'll be shielded from future changes.
@@ -7,10 +12,19 @@
 ;bytes-seq is a sequence of byte array items.
 (defrecord Message [bytes-seq ^String ds ids ^String topic  accept ^long ts ^long priority] 
   
-  java.lang.Comparable
+  Comparable
      (compareTo [this m] 
        (compare (:priority this) (:priority m)))
+  Encodable
+      (getBytes [this]
+        (nippy/freeze [bytes-seq ds ids topic accept ts priority]))
   )
+
+(def MESSAGE-DECODER (reify 
+                       Decoder
+                       (decode [this ^bytes bts]
+                         (let [ [bytes-seq ds ids topic accept ts priority] (nippy/thaw bts)]
+                           (create-message bytes-seq ds ids topic accept ts priority))))) 
 
 (defn change-bytes [^Message m ^clojure.lang.IFn bytes-f]
   (->Message  bytes-f (:ds m) (:ids m) (:topic m) (:accept m) (:ts m) (:priority m))
@@ -33,6 +47,7 @@
          (or (seq? bytes-seq) (vector? bytes-seq)) bytes-seq
          :else [bytes-seq])
   )
+
 
 (defn batched-seq [rdr size] 
   "

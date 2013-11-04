@@ -13,10 +13,11 @@ public class DefaultEncoder implements Encoder<Object>{
 
 	public static final Encoder<Object> DEFAULT_ENCODER = new DefaultEncoder();
 	
-	@Override
 	public byte[] encode(Object obj) {
 		if(obj == null)
 			return new byte[0];
+		else if(obj instanceof Encodable)
+			return ((Encodable)obj).getBytes();
 	    else if(obj instanceof Long)
 			return Bytes.toBytes(((Long)obj).longValue());
 		else if(obj instanceof Integer)

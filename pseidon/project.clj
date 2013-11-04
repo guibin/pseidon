@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [
                  [org.clojure/clojure "1.5.1"]
-                 [org.projectreactor/reactor-core "1.0.0.BUILD-SNAPSHOT"]
+                 [com.taoensso/nippy "2.4.1"] 
                  [net.openhft/chronicle "2.1-SNAPSHOT"]
                  [goat "0.1.0-SNAPSHOT"]
                  [commons-net "3.2"]

@@ -2,7 +2,8 @@
   (:require [clojure.core.async :refer [go chan alts!! >!! <!! close! <! >! timeout]]
             [clojure.java.io :refer [file]]
             [clojure.tools.logging :refer [info error]]
-            [pseidon.core.utils :refer [not-interrupted]])
+            [pseidon.core.utils :refer [not-interrupted]]
+            [pseidon.core.watchdog :refer [handle-critical-error]])
   (:import [net.openhft.chronicle IndexedChronicle ChronicleConfig ExcerptTailer ExcerptAppender]
            [java.util.concurrent.atomic AtomicInteger]
            [org.apache.commons.io FileUtils]
@@ -70,9 +71,9 @@
 
 (defn ^File get-latest-chronicle-dir [parent-dir]
   "Takes as argument the parent directory of the chronicle indexes and looks for the 
-   latest directory"
+   latest directory" 
   (last
-    (sort-by #(.lastModified %) (file-seq (file parent-dir)))))
+    (sort-by #(.lastModified %)(filter #(.isDirectory %) (rest (file-seq (file parent-dir)))))))
 
 (defn load-chronicle-path [path]
   (get-latest-chronicle-dir path))
@@ -81,7 +82,7 @@
   (str (path-to-str path) "/" (System/currentTimeMillis) "/queue"))
            
 (defn ^IndexedChronicle create-chronicle [path]
-    (let [ chronicle (IndexedChronicle. (path-to-str path) (ChronicleConfig/SMALL))
+    (let [ chronicle (IndexedChronicle. (path-to-str path) (ChronicleConfig/DEFAULT))
            appender (.createAppender chronicle)
            tailer (.createTailer chronicle)]
       (info "Creating chronicle dir " path  )
@@ -132,13 +133,14 @@
 
 (defn write-to-chronicle [{:keys [^IndexedChronicle chronicle ^ExcerptAppender appender ^ExcerptTailer tailer]} ^bytes msg]
   "Write the bytes message to the chronicle appender"
-    (doto 
-      appender
-      .startExcerpt
-      (.writeInt (count msg))
-      (.write msg)
-      .finish))
- 
+  (let [cnt (count msg)]
+	    (doto 
+	      appender
+	      (.startExcerpt (+ cnt 10))
+	      (.writeInt cnt)
+	      (.write msg)
+	      .finish)))
+	 
  (defn ^bytes read-from-chronicle [^ExcerptTailer tailer]
    "Read a bytes message from tailer"
    (let [size (.readInt tailer)
@@ -157,19 +159,21 @@
         segment-size (AtomicInteger.)
         ]
     (go 
-      (while (not-interrupted)
-        
-        (let [^bytes msg (<! write-ch)]
-          ;(info "on write-ch " (String. msg))
-          (.incrementAndGet queue-size) ;the current queue size
-          (.incrementAndGet segment-size) ; count before rolling on a segment
-          
-          (block-on-size queue-size limit)
-          ;(info "after block-on-size on write-ch " (String. msg))
-          
-          (check-roll-chronicle! chronicle-ref path read-ch queue-size segment-size segment-limit2)
-          
-          (write-to-chronicle @chronicle-ref msg))))
+      (try 
+	      (while (not-interrupted)
+	        
+	        (let [^bytes msg (<! write-ch)]
+	          ;(info "on write-ch " (String. msg))
+	          (.incrementAndGet queue-size) ;the current queue size
+	          (.incrementAndGet segment-size) ; count before rolling on a segment
+	          
+	          (block-on-size queue-size limit)
+	          ;(info "after block-on-size on write-ch " (String. msg))
+	          
+	          (check-roll-chronicle! chronicle-ref path read-ch queue-size segment-size segment-limit2)
+	          
+	          (write-to-chronicle @chronicle-ref msg)))
+            (catch Exception e (handle-critical-error e "Error writing to chronicle") )))
     
     ;we loop forever, get a reference value from the chronicle-ref
     ;and get the tailer, loop through the tailer until it returns no values
@@ -186,7 +190,7 @@
                   (>! read-ch (read-from-chronicle tailer))
                   (.decrementAndGet queue-size)
                   (recur)))))
-          (catch Exception e (error e e)))))
+          (catch Exception e (handle-critical-error e "Error reading from chronicle")))))
           
     (ChronicleQueueImpl. write-ch read-ch chronicle-ref queue-size)))
 

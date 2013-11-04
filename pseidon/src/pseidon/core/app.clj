@@ -10,7 +10,7 @@
 (use '[pseidon.core.tracking :rename  {start tracking-start shutdown tracking-shutdown}])
 (use '[pseidon.core.watchdog :as e])
 (use '[pseidon.view.server :as view])
-
+(use '[pseidon.core.message :as msg])
 (set! *warn-on-reflection* true)
 
 (declare data-queue)
@@ -40,7 +40,7 @@
   )
 
 (defn start-app []
-  (def data-queue (q/channel "message"))
+  (def data-queue (q/channel "message" :decoder msg/MESSAGE-DECODER))
 
   (tracking-start)
   (refresh-plugins)
