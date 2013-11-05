@@ -6,7 +6,7 @@
          pseidon.core.watchdog
          pseidon.core.conf)
    
-   (:import (clojure.lang ArityException)
+   (:import (clojure.lang ArityException Agent)
             (org.apache.hadoop.io.compress CompressionCodec Compressor)
             (org.apache.hadoop.conf Configurable Configuration)
             (org.streams.commons.status Status)
@@ -182,11 +182,11 @@
 ; this means each FileRS will have a collection of post-roll-fn(s) and each is applied on roll-over.
 ; if any error on these functions the rolled file is deleted and the status in the tracking db setup back.
 (defn write 
-  ([topic key ^clojure.lang.IFn writer]
-   (write topic key writer nil))
-  ([topic key ^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn]
+  ([topic key ^clojure.lang.IFn writer & {:keys [executor]}]
+   (write topic key writer nil :executor executor))
+  ([topic key ^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn & {:keys [executor] :or {executor Agent/soloExecutor}}]
    (let [agent ((watch-critical-error get-agent topic key))]
-     (dosync (send-off agent (watch-critical-error write-to-frs writer post-roll-fn) ) )
+     (dosync (send-via executor agent (watch-critical-error write-to-frs writer post-roll-fn) ) )
     )))
 
 (defn close-roll-agent [^FileRS frs]
