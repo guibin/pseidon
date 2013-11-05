@@ -4,13 +4,15 @@
            [pseidon.core.utils :refer [buffered-select fixdelay]]
            [clojure.tools.logging :refer [info error]]
            )
- (:import [org.apache.commons.lang StringUtils])
+ (:import [org.apache.commons.lang StringUtils]
+          [java.sql Timestamp]
+          [java.util Date])
   )
 
 (def status-run "run")
 (def status-done "done")
 
-(defn now [] (java.util.Date.))
+(defn ^Date now [] (Date.))
 
 
 
@@ -90,13 +92,20 @@
 (defn delete-message! [dsid]
     (sql/delete-rows :messagetracking ["dsid=?" dsid]))
   
-(defn insert-message! [{:keys [dsid status ts]}]
+(defn- parse-ts [ts]
+  (cond 
+    (instance? Timestamp ts) ts
+    (instance? Date ts) ts
+    (instance? Number ts) (Timestamp. (.longValue ^Number ts))
+    :else (Timestamp. ts)))
+
+(defn insert-message! [{:keys [dsid status ^Long ts]}]
   "Insert data into the table"
   [dsid status ts]
   (clojure.java.jdbc/insert-values
    :messagetracking
    [:dsid :status :ts]
-   [dsid status ts]))
+   [dsid status (parse-ts ts)]))
 
 
 
@@ -132,7 +141,6 @@
   ([^String where ^long from ^long max]
     (query (create-query-paging {:tbl "messagetracking" :predicate where :properties ["*"] :from from :max max} ) (+ from max))))
 
-
 (defn update-check-message! [dsid f-check params]
   "This method updates a blog entry, but before updating and checks the current message first"
   [dsid params]
@@ -156,6 +164,8 @@
    :messagetracking
    ["dsid=?" dsid]
    params))
+(defn- util-join [v]
+  (StringUtils/join v \u0001))
 
 (defn mark-done! 
   [^String ds ids ^clojure.lang.IFn f & {:keys [db] :or {db @dbspec}}]
@@ -170,7 +180,7 @@
      (do
       (doseq [id (if (sequential? ids) ids [ids])]
 				      (update-check-message!  
-				            (StringUtils/join [ds id] \u0001)
+				            (util-join [ds id])
                     (fn [msg] (= (:status msg) status-run))
 					          {:status status-done}))
         ))
@@ -187,7 +197,7 @@
 (defn expire-old-messages [^Long ts & {:keys [db] :or {db @dbspec}}]
   "Runs a delete query on the current db to remove records older than ts"
   (with-txn db
-    (sql/delete-rows "messagetracking" ["ts <= ?" ts])))
+    (sql/delete-rows "messagetracking" ["ts <= ?" (Timestamp. ts)])))
 
 
 (defn message-statuscount [dsid & {:keys [db max] :or {db @dbspec max 100}}]

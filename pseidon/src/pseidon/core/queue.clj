@@ -64,6 +64,7 @@
 
 (defprotocol IBlockingChannel 
              (doPut [this e timeout])
+             (doPut! [this e]) 
              (getIterator [this])
              (getSize [this])
              (close [this])
@@ -74,6 +75,9 @@
            IBlockingChannel
            (doPut [this msg timeout]
              (chronicle/offer chronicle msg timeout))
+           (doPut! [this msg]
+             (chronicle/offer! chronicle msg)
+             true)
            (getIterator [this ]
                 (chronicle/create-iterator chronicle))
            (getSize [this]
@@ -119,16 +123,18 @@
         (.submit queue-master runnable)))
 
 
-(defn publish-bytes [^BlockingChannelImpl channel ^bytes msg & {:keys [timeout] :or {timeout (Integer/MAX_VALUE)}} ]
+(defn publish-bytes [^BlockingChannelImpl channel ^bytes msg & {:keys [timeout] :or {timeout -1}} ]
   (update-meter queue-publish-meter)
-  (if-not (doPut channel msg timeout)
-    (throw (TimeoutException. (str "publish-bytes timeout after " timeout " ms"))))
+  (if (pos? timeout)
+    (if-not (doPut channel msg timeout)
+      (throw (TimeoutException. (str "publish-bytes timeout after " timeout " ms"))))
+    (doPut! channel msg))
   )
 
-(defn publish [^BlockingChannelImpl channel msg & {:keys [timeout ^Encoder  encoder] :or {timeout (Integer/MAX_VALUE) ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }} ]
+(defn publish [^BlockingChannelImpl channel msg & {:keys [timeout ^Encoder  encoder] :or {timeout -1 ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }} ]
   (publish-bytes channel (.encode encoder msg) :timeout timeout))
 
-(defn publish-seq [^BlockingChannelImpl channel xs & {:keys [timeout ^Encoder  encoder] :or {timeout (Integer/MAX_VALUE) ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }}]
+(defn publish-seq [^BlockingChannelImpl channel xs & {:keys [timeout ^Encoder  encoder] :or {timeout -1 ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }}]
  (doseq [msg xs] (publish channel msg :timeout timeout :encoder encoder ))
  )
  

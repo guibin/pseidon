@@ -1,5 +1,5 @@
 (ns pseidon.core.chronicle
-  (:require [clojure.core.async :refer [go chan alts!! >!! <!! close! <! >! timeout]]
+  (:require [clojure.core.async :refer [go chan alt!! >!! <!! close! <! >! timeout]]
             [clojure.java.io :refer [file]]
             [clojure.tools.logging :refer [info error]]
             [pseidon.core.utils :refer [not-interrupted]]
@@ -34,9 +34,7 @@
     (>!! write-ch msg))
   (offer [this msg timeout-ms]
     "Blocks till the message can be placed on the queue and returns true otherwise returns false"
-    (not 
-       (nil? 
-         (first (alts!! [(go (>! write-ch msg) msg) (timeout timeout-ms)])))))
+    (alt!! [[write-ch msg] true (timeout timeout-ms) false]))
 
   (poll! [this]
     "Poll for a value and blocks untill a value is available"
