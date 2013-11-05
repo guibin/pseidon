@@ -13,6 +13,7 @@
  
  :pseidon-queue-path "/data/pseidon/queue" ;the internal persistent queue storage. 
  :psedon-queue-limit 30
+ :psiedon-queue-type "chronicle"
  :repl-port 7112
  
  :zk-url "192.168.56.101:2181"

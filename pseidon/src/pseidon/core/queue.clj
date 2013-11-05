@@ -9,7 +9,7 @@
           [java.util.concurrent ThreadFactory BlockingQueue Callable ThreadPoolExecutor SynchronousQueue TimeUnit ExecutorService ThreadPoolExecutor$CallerRunsPolicy]
           [clojure.lang IFn]
           [java.util Iterator]
-          [java.util.concurrent TimeoutException]
+          [java.util.concurrent TimeoutException ArrayBlockingQueue]
           [pseidon.util Bytes Encoder Decoder DefaultEncoder DefaultDecoders])
   )
 
@@ -86,22 +86,46 @@
                 (chronicle/close chronicle))
            )
 
+(defrecord ArrayBlockingQueueChannel [^ArrayBlockingQueue queue]
+  IBlockingChannel
+  (doPut [this msg timeout]
+    (.offer queue msg timeout TimeUnit/MILLISECONDS))
+  (doPut! [this msg]
+    (.put queue msg)
+    true)
+  (getIterator [this]
+    (reify Iterator
+      (hasNext [this] true)
+      (remove [this])
+      (next [this]
+        (take queue))))
+  (getSize [this]
+     (.size queue))
+  (close [this]
+    ))
+
+(defn create-blocking-array-queue [limit]
+  (ArrayBlockingQueueChannel. (ArrayBlockingQueue. limit)))
+
 (defn close-channel [^BlockingChannelImpl channel]
   (.close channel))
 
-(defn ^BlockingChannelImpl get-worker-queue [& {:keys [limit buffer] :or {limit (get-conf2 :psedon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)} }]
+(defn get-worker-queue [& {:keys [limit buffer queue-type] :or {limit (get-conf2 :pseidon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)
+                                                                                     queue-type (get-conf2 :psiedon-queue-type "chronicle")} }]
   (let [path  (get-conf2 :pseidon-queue-path (str "/tmp/data/pseidonqueue/" (System/currentTimeMillis)))
        segment-limit (get-conf2 :pseidon-queue-segment-limit 1000000)
        
-       queue (chronicle/create-queue path limit :buffer buffer :segment-limit segment-limit)
+       queue (cond (= queue-type "blocking-array") (create-blocking-array-queue  limit)
+                   :else (BlockingChannelImpl. (chronicle/create-queue path limit :buffer buffer :segment-limit segment-limit)))
        ]
-    (info "Creating queue with path " path)
-    (BlockingChannelImpl. queue)))
+    (info "Creating queue with path " path " queue class " (type queue))
+    queue
+    ))
 
-(defn ^BlockingChannelImpl channel [^String name & {:keys [limit buffer] :or {limit (get-conf2 :psedon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)} }] 
+(defn channel [^String name & {:keys [limit buffer] :or {limit (get-conf2 :pseidon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)} }] 
   (info "Creating channel " name " :psedon-queue-limit " limit " buffer " buffer)
   (let [
-        ^BlockingChannelImpl queue (get-worker-queue :limit limit :buffer buffer)]
+        queue (get-worker-queue :limit limit :buffer buffer)]
         (add-gauge (str "pseidon.core.queue." name ".size") #(getSize queue))
         queue))
 
@@ -113,7 +137,7 @@
         (recur it)))
       
 
-(defn consume [^BlockingChannelImpl channel f & {:keys [^Decoder decoder] :or {decoder DefaultDecoders/BYTES_DECODER} }]
+(defn consume [channel f & {:keys [^Decoder decoder] :or {decoder DefaultDecoders/BYTES_DECODER} }]
   "Consumes asynchronously from the channel"
   (let [ 
         ^Runnable runnable #(try 
@@ -123,7 +147,7 @@
         (.submit queue-master runnable)))
 
 
-(defn publish-bytes [^BlockingChannelImpl channel ^bytes msg & {:keys [timeout] :or {timeout -1}} ]
+(defn publish-bytes [ channel ^bytes msg & {:keys [timeout] :or {timeout -1}} ]
   (update-meter queue-publish-meter)
   (if (pos? timeout)
     (if-not (doPut channel msg timeout)
@@ -131,10 +155,10 @@
     (doPut! channel msg))
   )
 
-(defn publish [^BlockingChannelImpl channel msg & {:keys [timeout ^Encoder  encoder] :or {timeout -1 ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }} ]
+(defn publish [ channel msg & {:keys [timeout ^Encoder  encoder] :or {timeout -1 ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }} ]
   (publish-bytes channel (.encode encoder msg) :timeout timeout))
 
-(defn publish-seq [^BlockingChannelImpl channel xs & {:keys [timeout ^Encoder  encoder] :or {timeout -1 ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }}]
+(defn publish-seq [ channel xs & {:keys [timeout ^Encoder  encoder] :or {timeout -1 ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }}]
  (doseq [msg xs] (publish channel msg :timeout timeout :encoder encoder ))
  )
  
