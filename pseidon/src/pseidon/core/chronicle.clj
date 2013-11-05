@@ -155,7 +155,7 @@
                                                                    (* 2 limit)))
         write-ch (if (pos? buffer) (chan buffer) (chan))
         read-ch (chan)
-        chronicle-ref (ref (if-let [p (load-chronicle-path path)] (create-chronicle p) (create-chronicle (new-chronicle-path path)  )))
+        chronicle-ref (ref (if-let [p (load-chronicle-path path)] (create-chronicle (str p "/queue")) (create-chronicle (new-chronicle-path path)  )))
         queue-size (AtomicInteger.)
         segment-size (AtomicInteger.)
         ]

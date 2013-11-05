@@ -7,7 +7,7 @@
 
 
 (facts "Test chronicle queue implementation"
-       (comment
+       
        (fact "Test directory discovery return nil if no subdirs"
              (let [path (create-tmp-dir "chronicle" :delete-on-exit true)] 
                (load-chronicle-path path) => nil))
@@ -61,7 +61,7 @@
                   (close read-queue)))
              
              )
-      )
+      
        (fact "Test write close, open write again"
              
              (let [limit 100000
