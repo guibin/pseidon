@@ -13,6 +13,7 @@
             (org.streams.commons.compression CompressionPool CompressionPoolFactory)
             (org.streams.commons.compression.impl CompressionPoolFactoryImpl)
             (java.util.concurrent.atomic AtomicInteger)
+            (java.util.concurrent ThreadPoolExecutor SynchronousQueue ThreadPoolExecutor$CallerRunsPolicy TimeUnit)
   ))
 
 
@@ -22,6 +23,7 @@
 
 ;keeps track of the counters atmoms for the CompressionPoolFactory
 (def compressor-pool-counters (ref {}))
+(def agent-executor (ref {}))
 
 (defn get-compressor-pool-counter [lbl]
   "If the counter exists return else create a new counter, add to the compressor-pool-counters map and return"
@@ -182,11 +184,11 @@
 ; this means each FileRS will have a collection of post-roll-fn(s) and each is applied on roll-over.
 ; if any error on these functions the rolled file is deleted and the status in the tracking db setup back.
 (defn write 
-  ([topic key ^clojure.lang.IFn writer & {:keys [executor]}]
-   (write topic key writer nil :executor executor))
-  ([topic key ^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn & {:keys [executor] :or {executor Agent/soloExecutor}}]
+  ([topic key ^clojure.lang.IFn writer]
+   (write topic key writer nil))
+  ([topic key ^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn]
    (let [agent ((watch-critical-error get-agent topic key))]
-     (dosync (send-via executor agent (watch-critical-error write-to-frs writer post-roll-fn) ) )
+     (dosync (send-off agent (watch-critical-error write-to-frs writer post-roll-fn) ) )
     )))
 
 (defn close-roll-agent [^FileRS frs]
@@ -250,10 +252,23 @@
     )
   )
 
+(defn- create-exec-service []
+  (let [threads (get-conf2 :file-write-threads 100)]
+    (info "Creating file write thread pool limit = " threads)
+      (doto (ThreadPoolExecutor. 0 threads 60 TimeUnit/SECONDS (SynchronousQueue.))
+        (.setRejectedExecutionHandler  (ThreadPoolExecutor$CallerRunsPolicy.)))))
+
 (defn start-services [] 
   
   ;start executor only if no null else return the same executor
   (dosync
+    (alter agent-executor (fn [p]
+                            (if (nil? p)
+                                 (let [service (create-exec-service)]
+                                   (set-agent-send-off-executor! service)
+                                   service)
+                                 p)))
+                                
     (alter file-resource-exec-service (fn [p] 
                           (if (nil? p) 
                              (let [service  (java.util.concurrent.Executors/newScheduledThreadPool 1)]
@@ -275,5 +290,10 @@
       (close-agent k agnt)
       (await-for 10000 agnt)      
       )
+   
+   (dosync 
+     (if @agent-executor
+     (.shutdown @agent-executor)))
+   
    (info "Closed all file agents"))
 

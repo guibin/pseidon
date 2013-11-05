@@ -39,6 +39,7 @@
  :hdfs-base-dir "/log/raw"
   
  :default-codec org.apache.hadoop.io.compress.GzipCodec ;com.hadoop.compression.lzo.LzopCodec
+ :file-write-threads 100 ;number of threads to dedicate to async file write
  
  :java-library-path "/opt/hadoopgpl/native/Linux-amd64-64/"
  
