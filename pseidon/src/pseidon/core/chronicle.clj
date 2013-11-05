@@ -40,7 +40,7 @@
     "Poll for a value and blocks untill a value is available"
     (<!! read-ch))
   (poll [this timeout-ms]
-    "Retursn nil if timeout otherwise return a value"
+    "Returns nil if timeout otherwise return a value"
     (let [[v _] (alts!! [read-ch (timeout timeout-ms)])]
           v))
           
@@ -58,10 +58,11 @@
     ))
   
   (close [this]
-    (let [{:keys [^IndexedChronicle chronicle ^ExcerptAppender appender ^ExcerptTailer tailer]} @chronicle-ref]
+    (let [{:keys [^IndexedChronicle chronicle ^ExcerptAppender appender ^ExcerptTailer tailer ^IndexedChronicle chronicle-index]} @chronicle-ref]
       (.close appender)
       (.close tailer)
-      (.close chronicle)))
+      (.close chronicle)
+      (.close chronicle-index)))
   
   (get-size [this]
     (.get queue-size))
@@ -79,12 +80,29 @@
 (defn ^String new-chronicle-path [path]
   (str (path-to-str path) "/" (System/currentTimeMillis) "/queue"))
            
-(defn ^IndexedChronicle create-chronicle [path]
-    (let [ chronicle (IndexedChronicle. (path-to-str path) (ChronicleConfig/DEFAULT))
+(defn read-chronicle-start-index [^IndexedChronicle chronicle]
+  (let [^ExcerptTailer tailer (-> chronicle (.createTailer) (.toStart))
+        start-index (.readLong tailer)]
+    (info "read-chronicle-start-index " start-index)
+    start-index))
+
+(defn create-chronicle [path & {:keys [new] :or {new true}}]
+    (let [ chronicle (doto (IndexedChronicle. (path-to-str path) (ChronicleConfig/DEFAULT)))
+           chronicle-index (IndexedChronicle. (str (path-to-str path) "-reader") (ChronicleConfig/SMALL))
            appender (.createAppender chronicle)
-           tailer (.createTailer chronicle)]
+           tailer (let [tailer (.createTailer chronicle)]
+                    (info "NEW INDEX? " new)
+                    (if-not new
+                      (do
+                        (info "Tailing to index " (read-chronicle-start-index chronicle-index))
+                        (.index tailer (read-chronicle-start-index chronicle-index)))
+                      )
+                    tailer)
+                      
+           ]
       (info "Creating chronicle dir " path  )
-      {:chronicle chronicle :appender appender :tailer tailer :queue-path path}))
+      ;ChronicleQueueImpl [write-ch read-ch chronicle-ref queue-size chronicle-index]
+      {:chronicle chronicle :appender appender :tailer tailer :queue-path path :chronicle-index chronicle-index}))
         
 (defn block-on-size [^AtomicInteger size limit]
   (while (> (.get size) limit)
@@ -97,7 +115,6 @@
   (let [[v ch] (alts!! [read-ch (timeout 200)])]
     (if (= ch read-ch)
       (do 
-        ;(info "copy " i)
         (write-to-chronicle new-chronicle v)
         (recur read-ch new-chronicle (inc i) ))
         i)))
@@ -129,15 +146,23 @@
     
 (def byte-array-cls (Class/forName "[B"))
 
-(defn write-to-chronicle [{:keys [^IndexedChronicle chronicle ^ExcerptAppender appender ^ExcerptTailer tailer]} ^bytes msg]
+(defn update-read-index [^IndexedChronicle chronicle index]
+  (let [e (-> chronicle (.createExcerpt) (.toStart))]
+    (doto 
+      e 
+      (.startExcerpt 8)
+      (.writeLong index)
+      .finish)))
+
+(defn write-to-chronicle [{:keys [^ExcerptAppender appender]} ^bytes msg]
   "Write the bytes message to the chronicle appender"
   (let [cnt (count msg)]
-	    (doto 
-	      appender
-	      (.startExcerpt (+ cnt 10))
-	      (.writeInt cnt)
-	      (.write msg)
-	      .finish)))
+	    (doto
+           appender
+                 (.startExcerpt (+ cnt 10))
+                 (.writeInt cnt)
+                 (.write msg)
+                 .finish)))
 	 
  (defn ^bytes read-from-chronicle [^ExcerptTailer tailer]
    "Read a bytes message from tailer"
@@ -146,16 +171,19 @@
      (.read tailer bts)
      bts))
 
-(defn next-chornicle? [^ExcerptTailer tailer]
+(defn- next-chornicle? [^ExcerptTailer tailer]
   (.nextIndex tailer))
 
+(defn- get-tailer-index[^ExcerptTailer tailer]
+  (.index tailer))
+        
 (defn create-queue [path limit & {:keys [segment-limit buffer] :or {segment-limit (* 2 limit) buffer -1}}]
   "Returns a ChronicleQueue with background writters and readers enabled"
   (let [segment-limit2 (if (> segment-limit limit) segment-limit (do (info "segment limit cannot be smaller than the limit setting to 2 * limit") 
                                                                    (* 2 limit)))
         write-ch (if (pos? buffer) (chan buffer) (chan))
         read-ch (chan)
-        chronicle-ref (ref (if-let [p (load-chronicle-path path)] (create-chronicle (str p "/queue")) (create-chronicle (new-chronicle-path path)  )))
+        chronicle-ref (ref (if-let [p (load-chronicle-path path)] (create-chronicle (str p "/queue") :new false) (create-chronicle (new-chronicle-path path)  )))
         queue-size (AtomicInteger.)
         segment-size (AtomicInteger.)
         ]
@@ -184,11 +212,12 @@
     (go 
       (while (not-interrupted)
         (try
-          (let [{:keys [^ExcerptTailer tailer]} @chronicle-ref]
+          (let [{:keys [^ExcerptTailer tailer ^IndexedChronicle chronicle-index]} @chronicle-ref]
             (loop []
               (if (next-chornicle? tailer)
                 (do 
                   (>! read-ch (read-from-chronicle tailer))
+                  (update-read-index chronicle-index (get-tailer-index tailer)) 
                   (.decrementAndGet queue-size)
                   (recur)))))
           (catch Exception e (handle-critical-error e "Error reading from chronicle")))))
