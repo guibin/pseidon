@@ -60,7 +60,7 @@
     ))
   
   (close [this]
-    (let [{:keys [chronicle appender tailer]} @chronicle-ref]
+    (let [{:keys [^IndexedChronicle chronicle ^ExcerptAppender appender ^ExcerptTailer tailer]} @chronicle-ref]
       (.close appender)
       (.close tailer)
       (.close chronicle)))
@@ -148,6 +148,9 @@
      (.read tailer bts)
      bts))
 
+(defn next-chornicle? [^ExcerptTailer tailer]
+  (.nextIndex tailer))
+
 (defn create-queue [path limit & {:keys [segment-limit buffer] :or {segment-limit (* 2 limit) buffer -1}}]
   "Returns a ChronicleQueue with background writters and readers enabled"
   (let [segment-limit2 (if (> segment-limit limit) segment-limit (do (info "segment limit cannot be smaller than the limit setting to 2 * limit") 
@@ -185,7 +188,7 @@
         (try
           (let [{:keys [^ExcerptTailer tailer]} @chronicle-ref]
             (loop []
-              (if (.nextIndex tailer) 
+              (if (next-chornicle? tailer)
                 (do 
                   (>! read-ch (read-from-chronicle tailer))
                   (.decrementAndGet queue-size)
