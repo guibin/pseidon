@@ -7,6 +7,7 @@
 
 
 (facts "Test chronicle queue implementation"
+       (comment
        (fact "Test directory discovery return nil if no subdirs"
              (let [path (create-tmp-dir "chronicle" :delete-on-exit true)] 
                (load-chronicle-path path) => nil))
@@ -22,7 +23,7 @@
                (.mkdirs path3)
                (load-chronicle-path path) => path3))
        
-      (comment
+      
       (fact "Test offer and get no limit or segment overflow"
              
              (let [limit 10000
@@ -42,7 +43,7 @@
              
              )
       
-       (fact "Test offer and get no limit or segment overflow using iterator"
+      (fact "Test offer and get no limit or segment overflow"
              
              (let [limit 10000
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
@@ -53,21 +54,37 @@
                      (offer! q (.getBytes (str "msg " i "-" n))))))
                  
                (close q)
-                (let [read-queue (create-queue path limit)
-                      iterator (create-iterator read-queue)]
+                (let [read-queue (create-queue path limit)]
                   (dotimes [i 100]
                     (dotimes [n 100]
-                      (String. (.next iterator)) => (str "msg " i "-" n)))
+                      (String. (poll! read-queue)) => (str "msg " i "-" n)))
                   (close read-queue)))
              
              )
-       (fact "Test offer write block on limit "
+      )
+       (fact "Test write close, open write again"
+             
+             (let [limit 100000
+                   path (create-tmp-dir "chronicle" :delete-on-exit true)
+                   write-close (fn []
+                                 (let [q (create-queue path limit :segment-limit (* limit 2))]
+                                   (doall
+											                 (dotimes [i 100]
+                                               (offer! q (.getBytes (str "msg " i)))))
+	               
+                                   (close q)))
+                  ]
+               
+                  (dotimes [i 10]
+                    (write-close))))
+       
+          (fact "Test offer write block on limit "
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
                    q (create-queue path limit)]
                (doall
                  (dotimes [i 11]
-                   (offer! q (.getBytes (str "msg-" i)))))
+                   (offer q (.getBytes (str "msg-" i)) 100)))
                ;the following should block,timeout and return false
                (offer q (.getBytes (str "abc")) 100) => false 
                
@@ -174,6 +191,6 @@
                        
                    
              ))
-           )
+           
        )
 
