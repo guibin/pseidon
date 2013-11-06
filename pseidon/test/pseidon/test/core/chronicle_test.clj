@@ -1,13 +1,15 @@
 (ns pseidon.test.core.chronicle-test
   (:require [pseidon.test.core.utils :refer [create-tmp-dir]]
-            [pseidon.core.chronicle :refer [offer poll poll! offer! close create-queue]])
+            [pseidon.core.chronicle :refer [offer poll poll! offer! close create-queue]]
+            [clojure.tools.logging :refer [info]])
   (:use midje.sweet
         pseidon.core.chronicle)
-  (:import [java.io File]))
+  (:import [java.io File]
+           [pseidon.util DefaultEncoder DefaultDecoders]))
 
 
 (facts "Test chronicle queue implementation"
-       (comment 
+       (comment
        (fact "Test directory discovery return nil if no subdirs"
              (let [path (create-tmp-dir "chronicle" :delete-on-exit true)] 
                (load-chronicle-path path) => nil))
@@ -28,54 +30,81 @@
              
              (let [limit 10000
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
-                   q (create-queue path limit :segment-limit (* limit 2))] 
+                   q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER :segment-limit (* limit 2))] 
                (doall
-                 (dotimes [i 100]
+                 (dotimes [i 10]
                    (dotimes [n 100]
-                     (offer! q (.getBytes (str "msg " i "-" n))))))
+                     (offer! q (str "msg " i "-" n) ))))
                  
                (close q)
-                (let [read-queue (create-queue path limit)]
-                  (dotimes [i 100]
+               (info "starting to read")
+                (let [read-queue (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER)]
+                  (dotimes [i 10]
                     (dotimes [n 100]
-                      (String. (poll! read-queue)) => (str "msg " i "-" n)))
+                      (poll! read-queue) => (str "msg " i "-" n)))
                   (close read-queue)))
              
              )
+     
+      (fact "Test offer and get half, close, open and get other half"
+             
+             (let [limit 10000
+                   path (create-tmp-dir "chronicle" :delete-on-exit true)
+                   q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER :segment-limit (* limit 2))
+                   z 10] 
+               (doall
+                 (dotimes [i 1]
+                   (dotimes [n z]
+                     (offer! q (str "msg " i "-" n)))))
+                 
+               (close q)
+                (let [read-queue (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER)]
+                  (dotimes [i 2]
+                    (dotimes [n (/ z 2)]
+                      (poll! read-queue) => (str "msg 0-" (+ (* (/ z 2) i) n))))
+                  (close read-queue))
+                
+                
+             
+             )
+             
+             )
       
+       
       (fact "Test offer and get no limit or segment overflow"
              
              (let [limit 10000
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
-                   q (create-queue path limit :segment-limit (* limit 2))] 
+                   q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER :segment-limit (* limit 2))] 
                (doall
                  (dotimes [i 100]
                    (dotimes [n 100]
-                     (offer! q (.getBytes (str "msg " i "-" n))))))
+                     (offer! q (str "msg " i "-" n)))))
                  
                (close q)
-                (let [read-queue (create-queue path limit)]
+                (let [read-queue (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER)]
                   (dotimes [i 100]
                     (dotimes [n 100]
-                      (String. (poll! read-queue)) => (str "msg " i "-" n)))
+                      (poll! read-queue) => (str "msg " i "-" n)))
                   (close read-queue)))
              
              )
       
       
+       
        (fact "Test write close, open write again"
              
              (let [limit 100000
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
                    write-close (fn [n]
-                                 (let [q (create-queue path limit :segment-limit (* limit 2))]
+                                 (let [q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER :segment-limit (* limit 2))]
                                    (doall
 											                 (dotimes [i n]
-                                               (offer! q (.getBytes (str "msg " i)))))
+                                               (offer! q (str "msg " i))))
 	               
                                    (close q)))
                    read (fn [n]
-                          (let [q (create-queue path limit :segment-limit (* limit 2))
+                          (let [q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER :segment-limit (* limit 2))
                                 v (doall
                                          (map #(String. %) (filter (complement nil?) (repeatedly n #(poll q 100) ) ))
                                          )]
@@ -100,24 +129,25 @@
           (fact "Test offer write block on limit "
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
-                   q (create-queue path limit)]
+                   q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER)]
                (doall
                  (dotimes [i 11]
-                   (offer q (.getBytes (str "msg-" i)) 100)))
+                   (offer q (str "msg-" i) 100)))
                ;the following should block,timeout and return false
-               (offer q (.getBytes (str "abc")) 100) => false 
+               (offer q (str "abc") 100) => false 
                
              ))
        
+        
          (fact "Test offer write block on limit read the recover from limit block again"
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
-                   q (create-queue path limit)]
+                   q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER)]
                (doall
                  (dotimes [i 11]
-                   (offer! q (.getBytes (str "msg-" i)))))
+                   (offer! q (str "msg-" i))))
                ;the following should block,timeout and return false
-               (offer q (.getBytes (str "abc")) 100) => false 
+               (offer q (str "abc") 100) => false 
                ;read two items
                (doall
                  (dotimes [i 3]
@@ -126,26 +156,27 @@
                ;write twrice no blocking
                (doall
                  (dotimes [i 3]
-                   (offer q (.getBytes "msg") 100) => true))
+                   (offer q "msg" 100) => true))
                
                ;block again
-               (offer q (.getBytes (str "abc")) 100) => false 
+               (offer q (str "abc") 100) => false 
                
              ))
          )
+          
           (fact "Test offer, roll on segment 10 times, read verify data"
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
-                   q (create-queue path limit :segment-limit 20)
+                   q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER :segment-limit 20)
                    write-read (fn [n] [(doall
                                          (for [i (range n)]
                                            (let [msg (str "msg-" i)]
-                                             (offer! q (.getBytes msg))
+                                             (offer! q msg)
                                              msg
                                            )))
                                        
                                        (doall
-                                         (map #(String. %) (filter (complement nil?) (repeatedly n #(poll q 100) ) ))
+                                         (map #(String. %) (filter (complement nil?) (repeatedly n #(poll q 500) ) ))
                                          )])
                                 
                                        
@@ -154,38 +185,54 @@
                    (doall
                      (dotimes [i 20]
 		                   (let [[w r] (write-read 10)]
+                         (info w " => " r)
 		                     r => w)))
                    
              ))
           
-
+ (comment
+       
           (fact "Test offer, roll on segment 5 times, leave data to copy during each roll"
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
-                   q (create-queue path limit :segment-limit 20)
+                   q (create-queue path limit :segment-limit 20 :buffer 100)
                    write-read (fn [x write-n read-n] [(doall
                                          (for [i (range write-n)]
                                            (let [msg (str "msg-" x "-" i)]
-                                             (offer q (.getBytes msg) 500)
+                                             (offer! q (.getBytes msg))
                                              msg
                                            )))
                                        
                                        (doall
-                                         (map #(String. %) (filter (complement nil?) (repeatedly read-n #(poll q 100) ) ))
+                                         (map #(String. %) (filter (complement nil?) (repeatedly read-n #(poll q 1000) ) ))
                                          )])
                                 
                                        
                    ]
                    
-                   (doall
-                     (dotimes [i 10]
-                       (let [[w r] (write-read 0 10 5)]
-                         r => ["msg-0-0" "msg-0-1" "msg-0-2" "msg-0-3" "msg-0-4"])
-                       (let [[w r] (write-read 0 10 5)] 
-                         r => ["msg-0-5" "msg-0-6" "msg-0-7" "msg-0-8" "msg-0-9"])))
+                       (let [[w r] (write-read 'a 20 5)]
+                         (count r) => 5)
+                       (let [[w r] (write-read 'b 20 5)]
+                         (count r) => 5)
+                       (let [[w r] (write-read 'c 20 5)]
+                         (count r) => 5)
+                   
+                       (let [[w r] (write-read 'd 0 10)]
+                         (count r) => 10)
+                       (let [[w r] (write-read 'e 0 10)]
+                         (count r) => 10)
+                       (let [[w r] (write-read 'f 0 10)]
+                         (count r) => 10)
+                       (let [[w r] (write-read 'g 0 10)]
+                         (count r) => 10)
+                       (let [[w r] (write-read 'h 0 5)]
+                         (count r) => 5)
+                       (let [[w r] (write-read 'h 0 2)]
+                         (count r) => 0)
+                   
                    
              ))
-          (comment
+          
            (fact "Test offer, roll on segment 5 times, leave data to copy during each roll"
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
@@ -211,7 +258,8 @@
                      (count (filter (complement nil?) w)) => 6)
                        
                    
-             ))
-           )
-       )
+             )))
+      )
+           
+       
 

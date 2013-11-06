@@ -78,7 +78,7 @@
            (doPut! [this msg]
              (chronicle/offer! chronicle msg)
              true)
-           (getIterator [this ]
+           (getIterator [this]
                 (chronicle/create-iterator chronicle))
            (getSize [this]
              (chronicle/get-size chronicle))
@@ -110,22 +110,26 @@
 (defn close-channel [^BlockingChannelImpl channel]
   (.close channel))
 
-(defn get-worker-queue [& {:keys [limit buffer queue-type] :or {limit (get-conf2 :pseidon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)
-                                                                                     queue-type (get-conf2 :psiedon-queue-type "chronicle")} }]
+(defn get-worker-queue [& {:keys [limit buffer queue-type decoder encoder] :or {limit (get-conf2 :pseidon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)
+                                                                                     queue-type (get-conf2 :psiedon-queue-type "chronicle")
+                                                                                     decoder DefaultDecoders/BYTES_DECODER
+                                                                                     encoder DefaultEncoder/DEFAULT_ENCODER} }]
   (let [path  (get-conf2 :pseidon-queue-path (str "/tmp/data/pseidonqueue/" (System/currentTimeMillis)))
        segment-limit (get-conf2 :pseidon-queue-segment-limit 1000000)
        
        queue (cond (= queue-type "blocking-array") (create-blocking-array-queue  limit)
-                   :else (BlockingChannelImpl. (chronicle/create-queue path limit :buffer buffer :segment-limit segment-limit)))
+                   :else (BlockingChannelImpl. (chronicle/create-queue path limit decoder encoder :buffer buffer :segment-limit segment-limit)))
        ]
     (info "Creating queue with path " path " queue class " (type queue))
     queue
     ))
 
-(defn channel [^String name & {:keys [limit buffer] :or {limit (get-conf2 :pseidon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)} }] 
+(defn channel [^String name & {:keys [limit buffer decoder encoder] :or {limit (get-conf2 :pseidon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)
+                                                                         decoder DefaultDecoders/BYTES_DECODER
+                                                                         encoder DefaultEncoder/DEFAULT_ENCODER}} ] 
   (info "Creating channel " name " :psedon-queue-limit " limit " buffer " buffer)
   (let [
-        queue (get-worker-queue :limit limit :buffer buffer)]
+        queue (get-worker-queue :limit limit :buffer buffer :decoder decoder :encoder encoder)]
         (add-gauge (str "pseidon.core.queue." name ".size") #(getSize queue))
         queue))
 
@@ -147,19 +151,16 @@
         (.submit queue-master runnable)))
 
 
-(defn publish-bytes [ channel ^bytes msg & {:keys [timeout] :or {timeout -1}} ]
-  (update-meter queue-publish-meter)
-  (if (pos? timeout)
-    (if-not (doPut channel msg timeout)
-      (throw (TimeoutException. (str "publish-bytes timeout after " timeout " ms"))))
-    (doPut! channel msg))
-  )
+(defn publish [ channel msg & {:keys [timeout] :or {timeout -1}} ]
+   (update-meter queue-publish-meter)
+   (if (pos? timeout)
+     (if-not (doPut channel msg timeout)
+       (throw (TimeoutException. (str "publish-bytes timeout after " timeout " ms"))))
+     (doPut! channel msg)))
+  
 
-(defn publish [ channel msg & {:keys [timeout ^Encoder  encoder] :or {timeout -1 ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }} ]
-  (publish-bytes channel (.encode encoder msg) :timeout timeout))
-
-(defn publish-seq [ channel xs & {:keys [timeout ^Encoder  encoder] :or {timeout -1 ^Encoder encoder DefaultEncoder/DEFAULT_ENCODER }}]
- (doseq [msg xs] (publish channel msg :timeout timeout :encoder encoder ))
+(defn publish-seq [ channel xs & {:keys [timeout] :or {timeout -1}}]
+ (doseq [msg xs] (publish channel msg :timeout timeout ))
  )
  
   
