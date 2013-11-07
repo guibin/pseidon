@@ -71,6 +71,9 @@
   )
 
 (defn shutdown[]
+  (info "!!!!!!!!!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> clean shutdown")
+  (prn "!!!!!!!!!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> clean shutdown")
+  
   (stop-app)
   )
 
@@ -88,7 +91,7 @@
 
 (defn send-shutdown []
   "we need to connect to the repl"
-   (with-open [conn (repl/connect :port (get-conf2 :repl-port 7111))]
+  (with-open [conn (repl/connect :port (get-conf2 :repl-port 7111))]
       (-> (repl/client conn 1000) (repl/message {:op :eval :code "(do (pseidon.core/shutdown) )"  })
           (repl/response-values)
                                   )))
@@ -103,11 +106,11 @@
      (try (if-let [opts (check-opts (cmd args) ) ]
        (do
           
-          (prn "Opts " opts   " is repl " (:repl opts))
+          (info "Opts " opts   " is repl " (:repl opts) " is stop " (:stop opts))
 		      (cond
                  (:repl opts) (run-repl (:port opts))
 		             (:refresh-plugins opts) (send-refresh)
-		             (:stop opts) (send-shutdown)
+		             (:stop opts) (do (load-config opts) (send-shutdown) (System/exit 0))
 		             (contains? opts :get-cp) (.println System/out (get-classpath))
 		              :else
 		               (do 

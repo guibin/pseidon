@@ -35,7 +35,7 @@
       (.shutdownNow service))))
 
 ;on jvm shutdown we shutdown all threads
-(doto (Runtime/getRuntime) (.addShutdownHook (Thread. shutdown-threads)))
+;(doto (Runtime/getRuntime) (.addShutdownHook (Thread. shutdown-threads)))
 
 (defn- create-exec-service [topic]
   (let [threads (get-conf2 (keyword (str "worker-" topic "-threads")) (get-conf2 :worker-threads (-> (Runtime/getRuntime) .availableProcessors)))]
@@ -83,6 +83,7 @@
            (getSize [this]
              (chronicle/get-size chronicle))
            (close [this]
+                (info "calling chronicle close >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>")
                 (chronicle/close chronicle))
            )
 
@@ -108,7 +109,8 @@
   (ArrayBlockingQueueChannel. (ArrayBlockingQueue. limit)))
 
 (defn close-channel [^BlockingChannelImpl channel]
-  (.close channel))
+  (info "call close on channel")
+  (close channel))
 
 (defn get-worker-queue [& {:keys [limit buffer queue-type decoder encoder] :or {limit (get-conf2 :pseidon-queue-limit 100) buffer (get-conf2 :pseidon-queue-buff 100)
                                                                                      queue-type (get-conf2 :psiedon-queue-type "chronicle")

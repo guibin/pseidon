@@ -26,23 +26,25 @@
          (e/handle-critical-error clojure.core/*e (str clojure.core/*e) ))
    ))
 
+(defn safe-call [ v ]
+  "Calls each function in the sequence and catches any exceptions, all functions are garaunteed to be called"
+  (pcalls (map #(try (%) (catch Exception e (error e e))) v)))
 
 (defn stop-app []
-  (try
-   (do 
-     (info "Stopping")
+   (info "Stopping")
+       
+     (shutdown-threads)
+	  
+     (q/close-channel data-queue)
 	   (r/stop-all)
 	   (frs/close-all)
-	   (await-for 10000)
-	   (shutdown-agents)
+	    
+     (shutdown-agents)
 	   (ds/shutdown)
 	   (tracking-shutdown)
-	   (shutdown-threads)
-   )
-   (finally
-     (q/close-channel data-queue)))
-   (info "<<<< Stopped App >>>>")
-  )
+	   (await-for 1000)
+     (info "14<<<< Stopped App >>>>")
+)
 
 (defn start-app []
   (def data-queue (q/channel "message" :decoder msg/MESSAGE-DECODER))
@@ -58,6 +60,7 @@
   (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (do  
                                                                                      (info "<<< Shutdown from System.exit or kill !!!!  >>>> ")
                                                                                      (try 
+                                                                                       (q/close-channel data-queue)
                                                                                        (stop-app)
                                                                                        (catch Exception e (error e e)) 
                                                                                          )))))))

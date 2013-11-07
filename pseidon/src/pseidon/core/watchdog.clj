@@ -6,6 +6,7 @@
 (defn handle-critical-error [ t & msg]
   (error t (clojure.string/join msg))
   ;any shutdown logic should be handled by JVM shutdown hooks
+  (info "calling system exit !!!!!!!!!!!!!!!!: ")
   (java.lang.System/exit -1)
   )
 

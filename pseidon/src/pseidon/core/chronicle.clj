@@ -137,8 +137,13 @@
 		                          (if array-queue
 		                            (while (next-chornicle? tailer)
 		                              (do 
-		                                (offer-queue array-queue (read-from-chronicle tailer decoder))
-		                                (.incrementAndGet size)  
+                                    (try
+                                      (do 
+                                        (offer-queue array-queue (read-from-chronicle tailer decoder))
+                                        )
+                                      (catch Exception e (error e e)))
+                                    (.incrementAndGet size) 
+                                      
 		                                ))))))
                       )
                       (do 
@@ -250,7 +255,7 @@
     (thread
       (try 
 	      (while (not-interrupted)
-	        (let [ msg (<!! write-ch)]
+	        (if-let [msg (<!! write-ch)]
            (let [chronicle @chronicle-ref]
 	          
                (if (should-roll? chronicle segment-limit2)
