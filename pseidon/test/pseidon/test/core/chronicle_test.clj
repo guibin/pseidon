@@ -9,7 +9,7 @@
 
 
 (facts "Test chronicle queue implementation"
-       (comment
+       
        (fact "Test directory discovery return nil if no subdirs"
              (let [path (create-tmp-dir "chronicle" :delete-on-exit true)] 
                (load-chronicle-path path) => nil))
@@ -68,7 +68,7 @@
              
              )
              
-             )
+             
       
        
       (fact "Test offer and get no limit or segment overflow"
@@ -91,7 +91,7 @@
              )
       
       
-       
+       )
        (fact "Test write close, open write again"
              
              (let [limit 100000
@@ -112,17 +112,16 @@
                             v))
                   ]
                
-                  (dotimes [i 2]
-                    (write-close 10)
-                    (read 10)
+                    (dotimes [i 2]
+                     (write-close 10)
+                     (read 10)
                     )
 
-                  (read 10) => '()
+                   (read 10) => '()
                    
                    (write-close 10)
                    (prn ">>>>> " (count (read 5)))
                    (count (read 5)) => 5
-                   
                   
                   ))
        
@@ -162,7 +161,7 @@
                (offer q (str "abc") 100) => false 
                
              ))
-         )
+         
           
           (fact "Test offer, roll on segment 10 times, read verify data"
              (let [limit 10
@@ -190,16 +189,16 @@
                    
              ))
           
- (comment
+ 
        
           (fact "Test offer, roll on segment 5 times, leave data to copy during each roll"
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
-                   q (create-queue path limit :segment-limit 20 :buffer 100)
+                   q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER :segment-limit 20 :buffer 100)
                    write-read (fn [x write-n read-n] [(doall
                                          (for [i (range write-n)]
                                            (let [msg (str "msg-" x "-" i)]
-                                             (offer! q (.getBytes msg))
+                                             (offer! q msg)
                                              msg
                                            )))
                                        
@@ -232,15 +231,15 @@
                    
                    
              ))
-          
+         
            (fact "Test offer, roll on segment 5 times, leave data to copy during each roll"
              (let [limit 10
                    path (create-tmp-dir "chronicle" :delete-on-exit true)
-                   q (create-queue path limit :segment-limit 20)
+                   q (create-queue path limit DefaultDecoders/STR_DECODER DefaultEncoder/DEFAULT_ENCODER :segment-limit 20)
                    write-read (fn [x write-n read-n] [(doall
                                          (for [i (range write-n)]
                                            (let [msg (str "msg-" x "-" i)]
-                                             (if (offer q (.getBytes msg) 100) msg nil)
+                                             (if (offer q msg 100) msg nil)
                                            )))
                                        
                                        (doall
@@ -259,7 +258,7 @@
                        
                    
              )))
-      )
+      
            
        
 

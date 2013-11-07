@@ -69,13 +69,13 @@
        (finally (stop-time timer-ctx)))))
    
  
-  (defn update-histogram [^Histogram h val]
+  (defn update-histogram [^Histogram h ^long val]
     (.update h val))
   
   (defn update-meter
     ([^Meter meter]
       (.mark meter))
-    ([^Meter meter ^Long n]
+    ([^Meter meter ^long n]
       (.mark meter n)))
   
   (defn inc-counter

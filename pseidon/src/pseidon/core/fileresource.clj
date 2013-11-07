@@ -263,11 +263,10 @@
   ;start executor only if no null else return the same executor
   (dosync
     (alter agent-executor (fn [p]
-                            (if (nil? p)
                                  (let [service (create-exec-service)]
                                    (set-agent-send-off-executor! service)
                                    service)
-                                 p)))
+                                 ))
                                 
     (alter file-resource-exec-service (fn [p] 
                           (if (nil? p) 

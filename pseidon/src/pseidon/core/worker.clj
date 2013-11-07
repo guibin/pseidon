@@ -25,7 +25,6 @@
 
 (defn start-consume [channel]
   "Start consuming from the channel this method runs async"
-    (consume channel (submit (w/watch-msg-error delegate-msg) )
-             :decoder m/MESSAGE-DECODER)
+    (consume channel (submit (w/watch-msg-error delegate-msg)))
    true
   )

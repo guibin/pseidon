@@ -13,6 +13,8 @@ PSEIDON_HOME=/opt/pseidon
 export CONF_DIR=$PSEIDON_HOME/conf
 
 #source environment variables
+SOURCE="/etc/sysconfig/pseidon"
+test -f $SOURCE && source $SOURCE
 
 # some Java parameters
 if [ "$JAVA_HOME" != "" ]; then
@@ -29,8 +31,17 @@ JAVA=$JAVA_HOME/bin/java
 
 
 if [ -z $JAVA_HEAP ]; then
-export JAVA_HEAP="-Xmx4096m -Xms1024m"
+export JAVA_HEAP="-Xmx4096m -Xms1024m -XX:MaxDirectMemorySize=2048M"
 fi
+
+if [ -z $JAVA_GC ]; then
+export JAVA_GC="-XX:+UseCompressedOops -XX:+UseG1GC"
+fi
+
+if [ -z $JAVA_OPTS]; then
+export JAVA_OPTS="-Djava.library.path="$STREAMS_HOME/lib/native/Linux-amd64-64/"
+fi
+
 
 # check envvars which might override default args
 # CLASSPATH initially contains $CONF_DIR
@@ -53,7 +64,7 @@ fi
 
 CLASSPATH="$CONF_DIR:$CONF_DIR/META_INF:$cp"
 
-#profiling -agentpath:/root/yjp-2013-build-13048/bin/linux-x86-64/libyjpagent.so=port=8183,alloceach=1000,usedmem=90,onexit=memory,sampling
+#profiling  -agentpath:/opt/yjp-2013-build-13048/bin/linux-x86-64/libyjpagent.so=port=8183,alloceach=1000,usedmem=90,onexit=memory,sampling
 
 echo $CLASSPATH
-$JAVA -server -XX:+UseCompressedOops -XX:MaxDirectMemorySize=2048M -XX:+UseConcMarkSweepGC -XX:+UseParNewGC -XX:SurvivorRatio=8 -XX:NewRatio=3 -XX:+DisableExplicitGC $JAVA_HEAP $JAVA_OPTS -Djava.library.path="$STREAMS_HOME/lib/native/Linux-amd64-64/" -classpath "$CLASSPATH" $CLIENT_CLASS $@
+$JAVA -server $JAVA_GC $JAVA_HEAP $JAVA_OPTS -classpath "$CLASSPATH" $CLIENT_CLASS $@

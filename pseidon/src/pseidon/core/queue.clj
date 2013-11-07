@@ -141,11 +141,11 @@
         (recur it)))
       
 
-(defn consume [channel f & {:keys [^Decoder decoder] :or {decoder DefaultDecoders/BYTES_DECODER} }]
+(defn consume [channel f]
   "Consumes asynchronously from the channel"
   (let [ 
         ^Runnable runnable #(try 
-                              (consume-messages channel (comp f (fn [^bytes bts] (.decode decoder bts))))
+                              (consume-messages channel f)
                               (catch Exception e (watchdog/handle-critical-error e "Error while consuming")))
                                  ]
         (.submit queue-master runnable)))

@@ -13,6 +13,22 @@ https://sourceforge.net/projects/pseidon/files
 
 ## Doc
 
+### Startup Configuration 
+
+There are three environment variables that can be set.
+
+The file sources in pseidon.sh is /etc/sysconfig/pseidon
+
+The variables are:
+
+| Name | Description |
+| ---- | ----------- |
+| JAVA_HOME | error if not set |
+| JAVA_HEAP | default is -Xmx4096m -Xms1024m -XX:MaxDirectMemorySize=2048M |
+| JAVA_GC   | default is -XX:+UseCompressedOops -XX:+UseG1GC |
+| JAVA_OPTS | default is empty |
+
+
 ### Classpath setup and including new plugins
 
 The classpath for pseidon is set using the classpath property in the pseidon.edn file

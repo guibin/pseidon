@@ -28,15 +28,20 @@
 
 
 (defn stop-app []
-   (info "Stopping")
-   (r/stop-all)
-   (frs/close-all)
-   (await-for 10000)
-   (shutdown-agents)
-   (ds/shutdown)
-   (tracking-shutdown)
-   (shutdown-threads)
-   (info "Stopped")
+  (try
+   (do 
+     (info "Stopping")
+	   (r/stop-all)
+	   (frs/close-all)
+	   (await-for 10000)
+	   (shutdown-agents)
+	   (ds/shutdown)
+	   (tracking-shutdown)
+	   (shutdown-threads)
+   )
+   (finally
+     (q/close-channel data-queue)))
+   (info "<<<< Stopped App >>>>")
   )
 
 (defn start-app []
@@ -54,10 +59,10 @@
                                                                                      (info "<<< Shutdown from System.exit or kill !!!!  >>>> ")
                                                                                      (try 
                                                                                        (stop-app)
-                                                                                       (finally 
-                                                                                         (q/close-channel data-queue)))
-                                                                                     (info "<<<< Stopped App >>>>")
-                                                                                     ))) )))
+                                                                                       (catch Exception e (error e e)) 
+                                                                                         )))))))
+                                                                                     
+                                                                                     
   (view/start)
   (info "View started")
   )

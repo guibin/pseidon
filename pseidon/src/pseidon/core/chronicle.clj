@@ -14,6 +14,8 @@
   )
 
 (declare write-to-chronicle)
+(declare update-read-index)
+         
 (defn read-from-chronicle [^ExcerptTailer tailer ^Decoder decoder]
    "Read a bytes message from tailer"
    (let [size (.readInt tailer)
@@ -81,6 +83,9 @@
   
   (close [this]
     (let [{:keys [^IndexedChronicle chronicle ^ExcerptAppender appender ^ExcerptTailer tailer ^IndexedChronicle chronicle-index]} @chronicle-ref]
+      (info "!!!!!!!!!! closing chronicle index >>>>>>>>>>>>>>>>>>>>>>> ")
+      (close! write-ch)
+      (Thread/sleep 200)
       (.close appender)
       (.close tailer)
       (.close chronicle)
@@ -108,33 +113,42 @@
     (info "read-chronicle-start-index " start-index)
     start-index))
 
-(defn create-chronicle [path decoder & {:keys [new] :or {new true}}]
+(defn create-chronicle [path limit ^Decoder decoder & {:keys [new] :or {new true}}]
     (let [ chronicle (doto (IndexedChronicle. (path-to-str path) (ChronicleConfig/DEFAULT)))
            chronicle-index (IndexedChronicle. (str (path-to-str path) "-reader") (ChronicleConfig/SMALL))
            size (AtomicLong. 0)
-           read-index (AtomicLong. 0)
+           read-index (AtomicLong. (read-chronicle-start-index chronicle-index))
            array-queue (LinkedTransferQueue.)
-           appender (.createAppender chronicle)
+           appender (-> chronicle (.createAppender) (.toEnd))
            tailer (let [tailer (.createTailer chronicle)]
                     (info "NEW INDEX? " new)
                     (if-not new
                       (do
-                        (let [index (read-chronicle-start-index chronicle-index)]
-                          (info "Tailing to index " index)
-                          (.index tailer (dec index)))
-                          ;copy into array-queue
-                          (if array-queue
-                            (while (next-chornicle? tailer)
-                              (do 
-                                (offer-queue array-queue (read-from-chronicle tailer decoder))
-                                (.incrementAndGet read-index)
-                                (.incrementAndGet size)  
-                                )))
-                      ))
+                        (let [index (read-chronicle-start-index chronicle-index)
+                              last-written-index (.findTheLastIndex chronicle)]
+                          (if (> (- last-written-index index) (* 3 limit))
+                            (do
+                              (error "The queue data appears corrupted, we will not recover from the tail")
+                              (.set read-index last-written-index))
+                            (do 
+		                          (info "Tailing to index " index)
+		                          (.index tailer (dec index))
+		                          ;copy into array-queue
+		                          (if array-queue
+		                            (while (next-chornicle? tailer)
+		                              (do 
+		                                (offer-queue array-queue (read-from-chronicle tailer decoder))
+		                                (.incrementAndGet size)  
+		                                ))))))
+                      )
+                      (do 
+                        (update-read-index chronicle-index 0)
+                        (.set read-index 0))
+                      )
                     tailer)
                       
            ]
-      (info "Creating chronicle dir " path  )
+      (info "Creating chronicle dir " path  " read index " (.get read-index))
       ;ChronicleQueueImpl [write-ch read-ch chronicle-ref queue-size chronicle-index]
       {:chronicle chronicle :appender appender :tailer tailer :queue-path path :chronicle-index chronicle-index
        :array-queue array-queue
@@ -156,11 +170,11 @@
         (recur read-ch new-chronicle encoder (inc i) ))
         i)))
 
-(defn roll-chronicle! [chronicle path read-ch ^Encoder encoder ^Decoder decoder]
+(defn roll-chronicle! [chronicle path read-ch limit ^Encoder encoder ^Decoder decoder]
   "This function will create a new chronicle, copy any data left in the previous chronicle and deletes the previous
    Returns the new chornicle"
       (let [{:keys [chronicle appender tailer queue-path]} chronicle
-            new-chronicle (-> path (new-chronicle-path) (create-chronicle decoder))]
+            new-chronicle (-> path (new-chronicle-path) (create-chronicle limit decoder))]
           ;we must read all left over messages from the old channel into the new one
         
           (.close appender)
@@ -229,7 +243,7 @@
                                                                    (* 2 limit)))
         write-ch (if (pos? buffer) (chan buffer) (chan))
         read-ch (chan)
-        chronicle-ref (ref (if-let [p (load-chronicle-path path)] (create-chronicle (str p "/queue") decoder :new false) (create-chronicle (new-chronicle-path path) decoder )))
+        chronicle-ref (ref (if-let [p (load-chronicle-path path)] (create-chronicle (str p "/queue") limit decoder :new false) (create-chronicle (new-chronicle-path path) limit decoder )))
         
         ]
    
@@ -241,7 +255,7 @@
 	          
                (if (should-roll? chronicle segment-limit2)
                    (dosync (ref-set chronicle-ref 
-                                    (roll-chronicle! chronicle path read-ch encoder decoder))))
+                                    (roll-chronicle! chronicle path read-ch limit encoder decoder))))
                
                
                (while (should-block? chronicle limit)
