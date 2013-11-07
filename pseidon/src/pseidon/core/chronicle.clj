@@ -272,8 +272,8 @@
         
         ]
     
-    #after reading we need to push a roll here to solve the SIGSEV errors
-    #that happen when chronicle is shutdown and restarted
+    ;after reading we need to push a roll here to solve the SIGSEV errors
+    ;that happen when chronicle is shutdown and restarted
     (dosync (ref-set chronicle-ref 
                                     (roll-chronicle! @chronicle-ref path read-ch limit encoder decoder)))
     (thread
