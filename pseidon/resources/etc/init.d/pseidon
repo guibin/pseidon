@@ -87,6 +87,8 @@ stop() {
 
   if [ $RETVAL = $OK_STAT ]; then
     echo -n "Stopping pseidon: "
+    /opt/pseidon/bin/pseidon.sh -stop
+    sleep 2s
     kill_proc
       
     counter=0

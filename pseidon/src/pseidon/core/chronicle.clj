@@ -113,6 +113,18 @@
     (info "read-chronicle-start-index " start-index)
     start-index))
 
+(defn should-delete? [path]
+  "Returns true if the read index is equal to the last written index"
+  (let [chronicle (doto (IndexedChronicle. (path-to-str path) (ChronicleConfig/DEFAULT)))
+        chronicle-index (IndexedChronicle. (str (path-to-str path) "-reader") (ChronicleConfig/SMALL))
+        index (read-chronicle-start-index chronicle-index)
+        last-written-index (.findTheLastIndex chronicle)
+        ]
+    (info "!!!!!!!!!!!! should delete ? " index " " last-written-index)
+    (= (long index) (long last-written-index))))
+    
+           
+
 (defn create-chronicle [path limit ^Decoder decoder & {:keys [new] :or {new true}}]
     (let [ chronicle (doto (IndexedChronicle. (path-to-str path) (ChronicleConfig/DEFAULT)))
            chronicle-index (IndexedChronicle. (str (path-to-str path) "-reader") (ChronicleConfig/SMALL))
@@ -248,10 +260,20 @@
                                                                    (* 2 limit)))
         write-ch (if (pos? buffer) (chan buffer) (chan))
         read-ch (chan)
-        chronicle-ref (ref (if-let [p (load-chronicle-path path)] (create-chronicle (str p "/queue") limit decoder :new false) (create-chronicle (new-chronicle-path path) limit decoder )))
+        chronicle-ref (ref (if-let [p (load-chronicle-path path)] 
+                             (do 
+                               (if (should-delete? (str p "/queue"))
+                                 (do
+                                   (info ">>>>>>>>>>>>>>>> deleting chronicle " p)
+                                   (-> p (file ) (FileUtils/deleteDirectory))))
+                               
+                               (create-chronicle (str p "/queue") limit decoder :new false))
+                             (create-chronicle (new-chronicle-path path) limit decoder )))
         
         ]
-   
+    
+    (dosync (ref-set chronicle-ref 
+                                    (roll-chronicle! @chronicle-ref path read-ch limit encoder decoder)))
     (thread
       (try 
 	      (while (not-interrupted)
