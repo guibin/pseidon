@@ -46,13 +46,14 @@
      (info "14<<<< Stopped App >>>>")
 )
 
-(defn start-app []
+(defn start-app [& { :keys [start-plugins] :or {start-plugins true}}]
   (def data-queue (q/channel "message" :decoder msg/MESSAGE-DECODER))
 
   (tracking-start)
   (refresh-plugins)
   (Thread/sleep 1000)
-  (r/start-all)
+  (if start-plugins
+        (r/start-all))
   (Thread/sleep 1000)
   (w/start-consume data-queue)  
   (frs/start-services)

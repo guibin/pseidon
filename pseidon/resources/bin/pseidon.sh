@@ -39,7 +39,7 @@ export JAVA_GC="-XX:+UseCompressedOops -XX:+UseG1GC"
 fi
 
 if [ -z $JAVA_OPTS]; then
-export JAVA_OPTS="-Djava.library.path="$STREAMS_HOME/lib/native/Linux-amd64-64/"
+export JAVA_OPTS="-Djava.library.path=$STREAMS_HOME/lib/native/Linux-amd64-64/"
 fi
 
 
