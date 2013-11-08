@@ -1,6 +1,6 @@
 (ns pseidon.core.metrics
   (:import [com.codahale.metrics MetricRegistry Gauge Counter Meter MetricFilter Metric
-            Histogram Timer Timer$Context JmxReporter CsvReporter]
+            Histogram Timer Timer$Context JmxReporter CsvReporter ConsoleReporter]
            [java.util.concurrent TimeUnit]
            [java.io File]
            [java.util Locale]
@@ -15,6 +15,14 @@
       (.convertRatesTo TimeUnit/SECONDS)
       (.convertDurationsTo TimeUnit/MILLISECONDS)
       (.build file)
+      (.start frequency TimeUnit/SECONDS)))
+
+(defn start-console-reporter [^Integer frequency]
+  "Start a ConsoleReporter"
+  (-> (ConsoleReporter/forRegistry registry)
+      (.convertRatesTo TimeUnit/SECONDS)
+      (.convertDurationsTo TimeUnit/MILLISECONDS)
+      (.build)
       (.start frequency TimeUnit/SECONDS)))
 
 (defn list-metrics []
