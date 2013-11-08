@@ -1,142 +1,151 @@
-(ns pseidon.core.fileresource
-   (:require [pseidon.core.tracking :refer [with-txn]]
-             [pseidon.core.utils :refer [apply-f]]
-             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer add-counter inc-counter dec-counter measure-time]])
-   (:use clojure.tools.logging 
-         pseidon.core.watchdog
-         pseidon.core.conf)
-   
-   (:import (clojure.lang ArityException Agent)
-            (org.apache.hadoop.io.compress CompressionCodec Compressor)
-            (org.apache.hadoop.conf Configurable Configuration)
-            (org.streams.commons.status Status)
-            (org.streams.commons.compression CompressionPool CompressionPoolFactory)
-            (org.streams.commons.compression.impl CompressionPoolFactoryImpl)
-            (java.util.concurrent.atomic AtomicInteger)
-            (java.util.concurrent ThreadPoolExecutor SynchronousQueue ThreadPoolExecutor$CallerRunsPolicy TimeUnit)
-  ))
+	(ns pseidon.core.fileresource
+	   (:require [pseidon.core.tracking :refer [with-txn]]
+		     [pseidon.core.utils :refer [apply-f]]
+		     [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer add-counter inc-counter dec-counter measure-time]]
+	             [clojure.java.io :refer [make-parents]])
+	   (:use clojure.tools.logging 
+		 pseidon.core.watchdog
+		 pseidon.core.conf)
+	   
+	   (:import (clojure.lang ArityException Agent)
+		    (org.apache.hadoop.io.compress CompressionCodec Compressor)
+		    (org.apache.hadoop.conf Configurable Configuration)
+		    (org.streams.commons.status Status)
+		    (org.streams.commons.compression CompressionPool CompressionPoolFactory)
+		    (org.streams.commons.compression.impl CompressionPoolFactoryImpl)
+		    (java.util.concurrent.atomic AtomicInteger)
+		    (java.util.concurrent ThreadPoolExecutor SynchronousQueue ThreadPoolExecutor$CallerRunsPolicy TimeUnit)
+	  ))
 
 
-;post-roll is a sequence of functions that will be applied only after the file is rolled
-(defrecord FileRS [name output codec compressor file post-roll])
-(defrecord TopicConf [key codec])
+	;post-roll is a sequence of functions that will be applied only after the file is rolled
+	(defrecord FileRS [name output codec compressor file post-roll])
+	(defrecord TopicConf [key codec])
 
-;keeps track of the counters atmoms for the CompressionPoolFactory
-(def compressor-pool-counters (ref {}))
-(def agent-executor (ref {}))
+	;keeps track of the counters atmoms for the CompressionPoolFactory
+	(def compressor-pool-counters (ref {}))
+	(def agent-executor (ref {}))
 
-(defn get-compressor-pool-counter [lbl]
-  "If the counter exists return else create a new counter, add to the compressor-pool-counters map and return"
-  (dosync 
-    (if-let [v (get compressor-pool-counters lbl nil)]
-      v
-      (let [ v (AtomicInteger. 1) ] ;else create counter and assoc to map
-        (add-gauge (str "compressor-pool-" lbl) #(.get v) ) ; create a guage to show the count
-        (commute compressor-pool-counters assoc lbl v)
-        v))))
-    
-(def ^CompressionPoolFactory compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 (reify Status 
-                                                                                            (setCounter [self lbl i] 
-                                                                                              (.set (get-compressor-pool-counter lbl) i)))))
+	(defn get-compressor-pool-counter [lbl]
+	  "If the counter exists return else create a new counter, add to the compressor-pool-counters map and return"
+	  (dosync 
+	    (if-let [v (get compressor-pool-counters lbl nil)]
+	      v
+	      (let [ v (AtomicInteger. 1) ] ;else create counter and assoc to map
+		(add-gauge (str "compressor-pool-" lbl) #(.get v) ) ; create a guage to show the count
+		(commute compressor-pool-counters assoc lbl v)
+		v))))
+	    
+	(def ^CompressionPoolFactory compressor-pool-factory (CompressionPoolFactoryImpl. 100 100 (reify Status 
+												    (setCounter [self lbl i] 
+												      (.set (get-compressor-pool-counter lbl) i)))))
 
-(def global-on-roll-callbacks (ref {}))
+	(def global-on-roll-callbacks (ref {}))
 
-(defn register-on-roll-callback [^String name ^clojure.lang.IFn f]
-  (info "register global call back " f)
-  "Adds the callback function to a map with the given id the"
-       (dosync
-         (commute global-on-roll-callbacks (fn [m]  (assoc m name f) ))))
+	(defn register-on-roll-callback [^String name ^clojure.lang.IFn f]
+	  (info "register global call back " f)
+	  "Adds the callback function to a map with the given id the"
+	       (dosync
+		 (commute global-on-roll-callbacks (fn [m]  (assoc m name f) ))))
 
-(def file-resource-exec-service (ref nil))
+	(def file-resource-exec-service (ref nil))
 
-(def fileMap (ref {}))
+	(def fileMap (ref {}))
 
-;(def file-write-time (add-timer "pseidon.core.fileresource.file-write-time"))
-(def open-files-gauge (add-gauge "pseidon.core.fileresource.open-files" #(count @fileMap)))
+	;(def file-write-time (add-timer "pseidon.core.fileresource.file-write-time"))
+	(def open-files-gauge (add-gauge "pseidon.core.fileresource.open-files" #(count @fileMap)))
 
-;used to configuration codecs that are marked as Configurable codecs like LZO require the hadoop configuration to be set.
-(def hadoop-conf (Configuration.))
-
-
-(defn ^CompressionCodec configure-codec [^CompressionCodec codec ^Configuration hadoop-conf]
-  (if (instance? Configurable codec)
-      (doto codec (.setConf hadoop-conf))
-      codec))
-
-(defn default-codec [] 
-										   (let [codec (configure-codec (if-let [codec (get-conf2 :default-codec nil)]
-										    (-> (Thread/currentThread) .getContextClassLoader (.loadClass (.getName codec)) .newInstance)
-										    (org.apache.hadoop.io.compress.GzipCodec.))  hadoop-conf)]
-               (prn "!!! Using codec " codec " conf " (.getConf codec))
-               codec))
-
-(defn ^CompressionCodec get-codec [topic]
-  (if-let [ codec (get  (get-conf2 :topic-codecs {}) topic)]
-     (configure-codec codec hadoop-conf)
-     (default-codec) ))
+	;used to configuration codecs that are marked as Configurable codecs like LZO require the hadoop configuration to be set.
+	(def hadoop-conf (Configuration.))
 
 
-(defn get-writer-basedir [] 
-  (get-conf2 :writer-basedir "target")
-  )
+	(defn ^CompressionCodec configure-codec [^CompressionCodec codec ^Configuration hadoop-conf]
+	  (if (instance? Configurable codec)
+	      (doto codec (.setConf hadoop-conf))
+	      codec))
 
-(defn get-topic-basedir [topic] 
-  "Returns the base directories for a topic and if not defined uses the writer base dir"
-  (get (get-conf2 :topic-basedirs {}) topic (get-writer-basedir))
-  )
+	(defn default-codec [] 
+											   (let [codec (configure-codec (if-let [codec (get-conf2 :default-codec nil)]
+											    (-> (Thread/currentThread) .getContextClassLoader (.loadClass (.getName codec)) .newInstance)
+											    (org.apache.hadoop.io.compress.GzipCodec.))  hadoop-conf)]
+		       (prn "!!! Using codec " codec " conf " (.getConf codec))
+		       codec))
+
+	(defn ^CompressionCodec get-codec [topic]
+	  (if-let [ codec (get  (get-conf2 :topic-codecs {}) topic)]
+	     (configure-codec codec hadoop-conf)
+	     (default-codec) ))
 
 
-;returns the complete file name with extension adding an extra '_' suffix
-(defn ^String create-file-name [key, ^CompressionCodec codec]
-   (str key (.getDefaultExtension codec) "_" (System/nanoTime)))
+	(defn get-writer-basedir [] 
+	  (get-conf2 :writer-basedir "target")
+	  )
+
+	(defn get-topic-basedir [topic] 
+	  "Returns the base directories for a topic and if not defined uses the writer base dir"
+	  (get (get-conf2 :topic-basedirs {}) topic (get-writer-basedir))
+	  )
 
 
-(defn ^String create-rolled-file-name [^String file-name]
-  "Split the filename by . and _, then swap the last two values and joint the list with ."
-  (def last-nth (fn [xs n] (xs (- (count xs) n))))
+	;returns the complete file name with extension adding an extra '_' suffix
+	(defn ^String create-file-name [key, ^CompressionCodec codec]
+	   (str key (.getDefaultExtension codec) "_" (System/nanoTime)))
 
-  (let [s (clojure.string/split file-name #"[_|\.]")
-        s-count (count s)
-        ]
+
+	(defn ^String create-rolled-file-name [^String file-name]
+	  "Split the filename by . and _, then swap the last two values and joint the list with ."
+	  (def last-nth (fn [xs n] (xs (- (count xs) n))))
+
+	  (let [s (clojure.string/split file-name #"[_|\.]")
+		s-count (count s)
+		]
+	  
+	     (clojure.string/join "." (assoc s (dec s-count) (last-nth s 2) (- s-count 2) (last-nth s 1) ) )
+	     
+	  ))
+
+
+	 ;alter the fileMap to contain the  agent
+	 (defn add-agent [topic key]
+	   
+	  (let [codec (get-codec topic) 
+		^CompressionPool compressor (delay (-> compressor-pool-factory (.get codec) )) ;transactions can be retried, this method is not retryable
+		file-name (create-file-name (clojure.string/join "/" [(get-topic-basedir topic) key]) codec)
+		agnt 
+		   (agent 
+		     (->FileRS 
+		       file-name 
+		       nil 
+		       codec 
+		       compressor 
+		       (java.io.File. file-name) 
+		       [] ;no post roll yet
+		       )
+		     )
+		   ]
+		(set-error-handler! agnt agent-error-handler)
+		(alter fileMap (fn [p] (assoc p key agnt )))
+		agnt
+	  ))
+	 
+	;get an agent and if it doesnt exist create one with a FileRS instance as value
+	(defn get-agent [topic key]
+	 (dosync (if-let [agnt (get @fileMap key) ]  agnt (add-agent topic key) )
+	  ))
+
+	;create a file using the codec
+	(defn create-file [^java.io.File file ^org.apache.hadoop.io.compress.CompressionCodec codec ^CompressionPool compressor]
+            (if nil? file
+                (throw (RuntimeException. (str "File cannot be null here codec " codec " compressor " compressor))))
   
-     (clojure.string/join "." (assoc s (dec s-count) (last-nth s 2) (- s-count 2) (last-nth s 1) ) )
-     
-  ))
+	    (info "file " file " codec " codec " compressor " compressor)   
 
+            (try
+                (make-parents file) 
+               (catch Exception e (error e e)))
 
- ;alter the fileMap to contain the  agent
- (defn add-agent [topic key]
-   
-  (let [codec (get-codec topic) 
-        ^CompressionPool compressor (delay (-> compressor-pool-factory (.get codec) )) ;transactions can be retried, this method is not retryable
-        file-name (create-file-name (clojure.string/join "/" [(get-topic-basedir topic) key]) codec)
-        agnt 
-           (agent 
-             (->FileRS 
-               file-name 
-               nil 
-               codec 
-               compressor 
-               (java.io.File. file-name) 
-               [] ;no post roll yet
-               )
-             )
-           ]
-        (set-error-handler! agnt agent-error-handler)
-        (alter fileMap (fn [p] (assoc p key agnt )))
-        agnt
-  ))
- 
-;get an agent and if it doesnt exist create one with a FileRS instance as value
-(defn get-agent [topic key]
- (dosync (if-let [agnt (get @fileMap key) ]  agnt (add-agent topic key) )
-  ))
-
-;create a file using the codec
-(defn create-file [^java.io.File file ^org.apache.hadoop.io.compress.CompressionCodec codec ^CompressionPool compressor]
-       (if-let [parent (.getParentFile file)] (.mkdirs parent) (info "File has no parent " file) )
-       (.createNewFile file)
-       (if (.exists file) (info "Created " file) (throw (java.io.IOException. (str "Failed to create " file)))  )
+            (.createNewFile file)
+            (if (.exists file) (info "Created " file) (throw (java.io.IOException. (str "Failed to create " file)))  )
        
        (if-not compressor
          (throw (RuntimeException. (str "The compressor cannot be null here file: " file " please check the compressor pool"))))
