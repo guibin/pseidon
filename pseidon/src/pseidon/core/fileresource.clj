@@ -1,29 +1,27 @@
 	(ns pseidon.core.fileresource
 	   (:require [pseidon.core.tracking :refer [with-txn]]
-		     [pseidon.core.utils :refer [apply-f]]
+		     [pseidon.core.utils :refer [fixdelay apply-f]]
 		     [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer add-counter inc-counter dec-counter measure-time]]
 	             [clojure.java.io :refer [make-parents]])
 	   (:use clojure.tools.logging 
 		 pseidon.core.watchdog
 		 pseidon.core.conf)
 	   
-	   (:import (clojure.lang ArityException Agent)
-		    (org.apache.hadoop.io.compress CompressionCodec Compressor)
+	   (:import (clojure.lang ArityException Agent IFn)
+		    (org.apache.hadoop.io.compress CompressionCodec Compressor CompressionOutputStream)
 		    (org.apache.hadoop.conf Configurable Configuration)
 		    (org.streams.commons.status Status)
 		    (org.streams.commons.compression CompressionPool CompressionPoolFactory)
 		    (org.streams.commons.compression.impl CompressionPoolFactoryImpl)
-		    (java.util.concurrent.atomic AtomicInteger)
+		    (java.util.concurrent.atomic AtomicInteger AtomicBoolean)
 		    (java.util.concurrent ThreadPoolExecutor SynchronousQueue ThreadPoolExecutor$CallerRunsPolicy TimeUnit)
+        (java.io OutputStream File)
 	  ))
 
+  
+ (def hadoop-conf (Configuration.))
 
-	;post-roll is a sequence of functions that will be applied only after the file is rolled
-	(defrecord FileRS [name output codec compressor file post-roll])
-	(defrecord TopicConf [key codec])
-
-	;keeps track of the counters atmoms for the CompressionPoolFactory
-	(def compressor-pool-counters (ref {}))
+ (def compressor-pool-counters (ref {}))
 	(def agent-executor (ref {}))
 
 	(defn get-compressor-pool-counter [lbl]
@@ -47,29 +45,20 @@
 	  "Adds the callback function to a map with the given id the"
 	       (dosync
 		 (commute global-on-roll-callbacks (fn [m]  (assoc m name f) ))))
-
-	(def file-resource-exec-service (ref nil))
-
-	(def fileMap (ref {}))
-
-	;(def file-write-time (add-timer "pseidon.core.fileresource.file-write-time"))
-	(def open-files-gauge (add-gauge "pseidon.core.fileresource.open-files" #(count @fileMap)))
-
-	;used to configuration codecs that are marked as Configurable codecs like LZO require the hadoop configuration to be set.
-	(def hadoop-conf (Configuration.))
-
-
+ 
+ 
 	(defn ^CompressionCodec configure-codec [^CompressionCodec codec ^Configuration hadoop-conf]
 	  (if (instance? Configurable codec)
 	      (doto codec (.setConf hadoop-conf))
 	      codec))
 
 	(defn default-codec [] 
-											   (let [codec (configure-codec (if-let [codec (get-conf2 :default-codec nil)]
-											    (-> (Thread/currentThread) .getContextClassLoader (.loadClass (.getName codec)) .newInstance)
-											    (org.apache.hadoop.io.compress.GzipCodec.))  hadoop-conf)]
-		       (prn "!!! Using codec " codec " conf " (.getConf codec))
-		       codec))
+			 (let [codec (configure-codec 
+                  (if-let [codec (get-conf2 :default-codec nil)]
+                    (-> (Thread/currentThread) .getContextClassLoader (.loadClass (.getName codec)) .newInstance)
+                    (org.apache.hadoop.io.compress.GzipCodec.))  hadoop-conf)]
+       (info "Using codec " codec " conf " (.getConf codec))
+		   codec))
 
 	(defn ^CompressionCodec get-codec [topic]
 	  (if-let [ codec (get  (get-conf2 :topic-codecs {}) topic)]
@@ -91,129 +80,105 @@
 	(defn ^String create-file-name [key, ^CompressionCodec codec]
 	   (str key (.getDefaultExtension codec) "_" (System/nanoTime)))
 
+  (def last-nth (fn [xs n] (xs (- (count xs) n))))
 
-	(defn ^String create-rolled-file-name [^String file-name]
+	(defn ^String create-rolled-file-name [^File file-name]
 	  "Split the filename by . and _, then swap the last two values and joint the list with ."
-	  (def last-nth (fn [xs n] (xs (- (count xs) n))))
+	  (let [s (clojure.string/split (.getAbsolutePath file-name) #"[_|\.]")
+          s-count (count s)]
+     (clojure.string/join "." (assoc s (dec s-count) (last-nth s 2) (- s-count 2) (last-nth s 1)))))
+ 
+ (defrecord FileData [^CompressionOutputStream output  ^CompressionCodec codec ^CompressionPool compressor ^File file])
 
-	  (let [s (clojure.string/split file-name #"[_|\.]")
-		s-count (count s)
-		]
-	  
-	     (clojure.string/join "." (assoc s (dec s-count) (last-nth s 2) (- s-count 2) (last-nth s 1) ) )
-	     
-	  ))
+ (defn new-file-data [ & {:keys [output codec compressor file]} ]
+      (FileData. output codec compressor file))   
+ 
+ ;contains a map of the agents, each agent in turn contains a map of FileData
+ (def master-agent (let [agnt (agent {})] 
+                     (set-error-handler! agnt agent-error-handler) 
+                     agnt))
+ 
+ 
+ (def open-files-gauge (add-gauge "pseidon.core.fileresource.open-files" #(count (-> @master-agent (deref)  ) )))
 
-
-	 ;alter the fileMap to contain the  agent
-	 (defn add-agent [topic key]
-	   
-	  (let [codec (get-codec topic) 
-		^CompressionPool compressor (delay (-> compressor-pool-factory (.get codec) )) ;transactions can be retried, this method is not retryable
-		file-name (create-file-name (clojure.string/join "/" [(get-topic-basedir topic) key]) codec)
-		agnt 
-		   (agent 
-		     (->FileRS 
-		       file-name 
-		       nil 
-		       codec 
-		       compressor 
-		       (java.io.File. file-name) 
-		       [] ;no post roll yet
-		       )
-		     )
-		   ]
-		(set-error-handler! agnt agent-error-handler)
-		(alter fileMap (fn [p] (assoc p key agnt )))
-		agnt
-	  ))
-	 
-	;get an agent and if it doesnt exist create one with a FileRS instance as value
-	(defn get-agent [topic key]
-	 (dosync (if-let [agnt (get @fileMap key) ]  agnt (add-agent topic key) )
-	  ))
-
-	;create a file using the codec
-	(defn create-file [^java.io.File file ^org.apache.hadoop.io.compress.CompressionCodec codec ^CompressionPool compressor]
-            (if nil? file
-                (throw (RuntimeException. (str "File cannot be null here codec " codec " compressor " compressor))))
-  
-	    (info "file " file " codec " codec " compressor " compressor)   
-
-            (try
-                (make-parents file) 
-               (catch Exception e (error e e)))
-
-            (.createNewFile file)
-            (if (.exists file) (info "Created " file) (throw (java.io.IOException. (str "Failed to create " file)))  )
-       
-       (if-not compressor
-         (throw (RuntimeException. (str "The compressor cannot be null here file: " file " please check the compressor pool"))))
-       
-       (let [ fileout (java.io.FileOutputStream. file)
-              output (.create compressor fileout 1000 java.util.concurrent.TimeUnit/MILLISECONDS)
-             ]
-         output))
-        
-     
-
-(defn write-to-frs [^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn ^FileRS frs]
-  (let [codec (:codec frs) 
-        frs-t 
-             (if-not 
-                 (nil? (:output frs))
-                  
-               (if (nil? post-roll-fn) 
-                 frs 
-                 (assoc frs :post-roll (conj (:post-roll frs) post-roll-fn
-                                             ) 
-                        ) 
-                 ) ; we add the post roll function
-               (->FileRS (:name frs) 
-                         (create-file 
-                           (:file frs) 
-                           codec 
-                           (force (:compressor frs)) 
-                           )  
-                         codec 
-                         (:compressor frs) 
-                         (:file frs) 
-                         (if (nil? post-roll-fn) (:post-roll frs) (conj (:post-roll frs) post-roll-fn))
-                         )
-               )
-        ]
-         
-      (writer (:output frs-t))
+ (defn get-create [m k f create-f & args]
+   (if-let [v (get m k)]
+     (do 
+       (apply f v args)
+       m)
+     (let [v (apply create-f args)]
+       (apply f v args)
+       (assoc m k v))))
+ 
+ (defn ^FileData create-file-data [topic file-key ^clojure.lang.IFn writer]
+   "Load a codec, compressor, compose the filename, create parent dirs and the file itself, then return an instance of FileData"
+    (let [codec (get-codec topic) 
+		      ^CompressionPool compressor (-> compressor-pool-factory (.get codec) )
+		      file-name (create-file-name (clojure.string/join "/" [(get-topic-basedir topic) file-key]) codec)
+          ^File file (File. file-name)]
       
-      ;we always return a FileRS instance
-      frs-t))
-
-; will do an async function send to that will call the writer (writer output-stream)
-; post-roll-fn can be nill if not its applied only when the FileRS is rolled.
-; this means each FileRS will have a collection of post-roll-fn(s) and each is applied on roll-over.
-; if any error on these functions the rolled file is deleted and the status in the tracking db setup back.
-(defn write 
-  ([topic key ^clojure.lang.IFn writer]
-   (write topic key writer nil))
-  ([topic key ^clojure.lang.IFn writer ^clojure.lang.IFn post-roll-fn]
-   (let [agent ((watch-critical-error get-agent topic key))]
-     (dosync (send-off agent (watch-critical-error write-to-frs writer post-roll-fn) ) )
-    )))
-
-(defn close-roll-agent [^FileRS frs]
-  (when (and (not (nil? frs))) 
-    (.closeAndRelease (force (:compressor frs)) (:output frs) ) 
-    ;find rename the file by removing the last \.([a-zA-Z0-9])+_([0-9]+) piece of the filename and appending (group2).(group1)
-  
-	  (let [
-	        post-roll (apply conj (:post-roll frs) (vals @global-on-roll-callbacks))
-	        file (:file frs)  
-	        ^java.io.File new-file  (java.io.File. (create-rolled-file-name (:name frs) ))
-	        renamed (.renameTo file new-file)
-	        ]
-	     (if renamed 
-	       (do  
+      (make-parents file)
+      (.createNewFile file)
+      (if (.exists file) (info "Created " file) (throw (java.io.IOException. (str "Failed to create " file)))  )
+      
+      (if-not compressor
+         (throw (RuntimeException. (str "The compressor cannot be null here file: " file " please check the compressor pool" @compressor-pool-counters))))
+       
+      (let [ fileout (java.io.FileOutputStream. file)
+             output (.create compressor fileout 10000 java.util.concurrent.TimeUnit/MILLISECONDS)
+             ]
+        (if (nil? output)
+          (throw (RuntimeException. (str "The output cannot be null here file: " file " please check the compressor pool" @compressor-pool-counters))))
+        
+        (let [file-data (FileData. output codec compressor file)]
+          (info "created " file-data)
+          file-data)
+        )))
+ 
+ (defn write-to-file [^FileData file-data topic file-key ^IFn writer]
+   "Calls the writer on the output of the file-data map"
+   (writer (:output file-data)))
+ 
+ (defn send-off-to-topic [topic-agent topic file-key ^IFn writer]
+   "Pass the call through get-create and send the result filedata to write-to-file"
+   (send-off 
+         topic-agent
+         get-create
+         file-key
+         write-to-file
+         create-file-data
+         topic
+         file-key
+         writer))
+ 
+ (def ^AtomicBoolean is-shutdown (AtomicBoolean. false))
+ 
+ (defn write [topic file-key ^IFn writer]
+   "Pass the call throuh get-create and pass the result (agent {}) to send-off-to-topic"
+   (if (.get is-shutdown)
+     (throw (RuntimeException. "No writting is allowed after shutdown")))
+   
+   (send master-agent
+         get-create 
+         topic
+         send-off-to-topic
+         (fn [& args] (let [agnt (agent {})] (set-error-handler! agnt agent-error-handler) agnt ))
+         topic
+         file-key
+         writer))
+ 
+ 
+ (defn close-file [{:keys [^File file ^CompressionOutputStream output ^CompressionPool compressor] :as file-data}]
+   (info "closing " file-data)
+   (.closeAndRelease compressor output)
+   (let [post-roll (vals @global-on-roll-callbacks)
+          ^File new-file  (java.io.File. (create-rolled-file-name file ))
+           renamed (.renameTo file new-file)
+         ]
+        (if renamed
+          (do  
 	           (try 
+               (info "closed file " (.getAbsolutePath new-file))
 	             (with-txn pseidon.core.tracking/dbspec (doall (pmap (fn [prf] 
                                                                     (apply-f prf new-file)) post-roll)))
 	             (catch Exception e (do 
@@ -221,34 +186,13 @@
 	                                  (.delete new-file)
 	                                  (.delete file)
 	                                  (throw e)
-	                                  ) 
-	               ) 
-	             )
-	         )
-	       (throw (Exception. (str "Unable to roll file from " file " to " new-file)))
-	       )
-	     )
-   )
-  )
-  
-
-
-(defn close-agent [k ^clojure.lang.Agent agnt]
-  (dosync
-   (send agnt (watch-critical-error close-roll-agent) ) 
-   (alter fileMap (fn [p] (dissoc p k))) )
-  )
-
-(defn check-roll[^clojure.lang.IFn f-check]
-  "Receives a function f-check parameter FileRS that should return true or false"
-   (doseq [[k agnt]  @fileMap]
-      (send agnt (watch-critical-error  (fn [frs] (when (not (nil? frs)) (if (f-check frs) (close-agent k agnt))  )  frs )))
-      ))
-
-
-(defn default-roll-check [{:keys [^java.io.File file ^java.io.OutputStream output]} ]
+	                                  ))))
+	         (throw (Exception. (str "Unable to roll file from " file " to " new-file))))
+     ))
+ 
+ (defn default-roll-check [{:keys [^java.io.File file ^CompressionOutputStream output]} ]
     "Checks the file size and roll on size"
-    (.flush output)
+    (if output (.flush output))
     (or 
       (>= (.length file) (get-conf2 :roll-size 10485760))
       (let [ file-last-modified (.lastModified file) 
@@ -257,51 +201,61 @@
              diff-ms (- now-ms file-last-modified)
              ]
            (>= diff-ms roll-timeout)
-        )
-    )
-  )
+        )))
 
-(defn- create-exec-service []
-  (let [threads (get-conf2 :file-write-threads 100)]
-    (info "Creating file write thread pool limit = " threads)
-      (doto (ThreadPoolExecutor. 0 threads 60 TimeUnit/SECONDS (SynchronousQueue.))
-        (.setRejectedExecutionHandler  (ThreadPoolExecutor$CallerRunsPolicy.)))))
 
-(defn start-services [] 
+ (defn close-topic-file [file-map topic file-key]
+   "get s the file-key from file-map, call close and dissoc the key"
+   (if-let [file-data (get file-map file-key)]
+     (do
+       (close-file file-data)
+       (dissoc file-map file-key)
+       )
+     file-map))
+ 
+ (defn send-off-close-topic [topic-agent topic file-key]
+   "Pass the call through get-create and send the result filedata to write-to-file"
+   (if topic-agent
+		   (send-off topic-agent
+		         close-topic-file
+		         topic
+		         file-key
+		         )))
+
+  (defn close-roll [topic file-key]
+    (send master-agent
+          get-create
+          topic
+          send-off-close-topic
+          (fn [& args] nil)
+          topic
+          file-key))
   
-  ;start executor only if no null else return the same executor
-  (dosync
-    (alter agent-executor (fn [p]
-                                 (let [service (create-exec-service)]
-                                   (set-agent-send-off-executor! service)
-                                   service)
-                                 ))
-                                
-    (alter file-resource-exec-service (fn [p] 
-                          (if (nil? p) 
-                             (let [service  (java.util.concurrent.Executors/newScheduledThreadPool 1)]
-                               (.scheduleWithFixedDelay service #(check-roll default-roll-check) 1000 1000 java.util.concurrent.TimeUnit/MILLISECONDS)
-                               service
-                               )
-                              p
-                             )
-                          )
-           )
-    )
-  )
-
-(defn close-all [] 
-  (dosync (if @file-resource-exec-service
-    (.shutdown @file-resource-exec-service)
-   ))
-   (doseq [[k agnt]  @fileMap]
-      (close-agent k agnt)
-      (await-for 10000 agnt)      
-      )
+	(defn roll-check []
+	   (let [file-agents @master-agent]
+	     (doseq [[topic file-map] file-agents]
+	       (doseq [[file-key file-data] @file-map]
+	         ;do roll check if the file should be rolled send close-roll message
+	         (try
+	           (if (default-roll-check file-data)
+	             (close-roll topic file-key))
+	           (catch Exception e (error e e)))
+	         ))))
+ 
+   (defn start-services [& {:keys [roll-check-freq] :or {roll-check-freq 5000} }]
+     "This method starts the roll check in a separate thread"
+     (fixdelay roll-check-freq (roll-check)))
+ 
+   (defn close-all []
+     (doseq [[topic file-map] @master-agent]
+	       (doseq [[file-key file-data] @file-map]
+          (close-roll topic file-key))
+         (await-for 500 file-map)
+          )
+        )
    
-   (dosync 
-     (if @agent-executor
-     (.shutdown @agent-executor)))
-   
-   (info "Closed all file agents"))
-
+   (defn shutdown-services []
+     (.set ^AtomicBoolean is-shutdown true)
+     (close-all)
+     )
+          

@@ -37,7 +37,7 @@
 	  
      (q/close-channel data-queue)
 	   (r/stop-all)
-	   (frs/close-all)
+	   (frs/shutdown-services)
 	    
      (shutdown-agents)
 	   (ds/shutdown)

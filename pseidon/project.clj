@@ -63,6 +63,7 @@
 	       "http://repo.springsource.org/libs-snapshot"}
   
   :java-source-paths ["java"]
+  :jvm-opts ["-Xmx1g"]
   
   :plugins [
          [lein-rpm "0.0.5"] [lein-midje "3.0.1"] [lein-marginalia "0.7.1"] 
