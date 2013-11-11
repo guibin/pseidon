@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
+
 import org.apache.commons.lang.StringUtils;
 
 /**
@@ -58,6 +59,10 @@ public final class Bytes {
 		return v.getBytes("utf-8");
 	}
 
+	public static final byte[] toLongBytes(final long v){
+		return toBytes(v);
+	}
+	
 	public static final byte[] toBytes(final long v) {
 		return new byte[] { (byte) (0xff & (v >> 56)),
 				(byte) (0xff & (v >> 48)), (byte) (0xff & (v >> 40)),

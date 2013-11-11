@@ -5,7 +5,8 @@
   
   (:import [org.apache.commons.lang StringUtils]
            [org.apache.zookeeper KeeperException$NodeExistsException]
-           [org.apache.curator.framework CuratorFramework])
+           [org.apache.curator.framework CuratorFramework]
+           [pseidon.util Bytes])
   )
 
 (def client (ref nil))
@@ -47,7 +48,7 @@
 
 
 (defn get-bytes [value]
-  (pseidon.util.Bytes/toBytes value))
+  (Bytes/toBytes value))
   
 (defn clean-path [path]
   (->> (StringUtils/replace path "//" "/") 
@@ -79,6 +80,7 @@
 	       (reduce (partial _create-zk-path client) (StringUtils/split p \/)))
 	     p))
 
+
 (defn set-data! [ns id value]
   "Set a data structure's value the value must be a String or Number type"
    (let [
@@ -87,6 +89,9 @@
     (f (get-client))
     value
   ))
+
+(defn set-data-number! [ns id value]
+  (set-data! ns id (Bytes/toLongBytes (long value))))
 
 (defn mkdirs [ns & dirs]
   "

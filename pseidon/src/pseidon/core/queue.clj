@@ -21,7 +21,6 @@
                                        (^Thread newThread [_ ^Runnable r]
                                          (doto (Thread. r) (.setDaemon true))))))
 
-(def exec-timer (add-timer "pseidon.core.queue.exec-timer"))
 (def queue-publish-meter (add-meter "pseidon.core.queue.publish-meter"))
 (def queue-consume-meter (add-meter "pseidon.core.queue.consume-meter"))
 
@@ -56,7 +55,7 @@
     (if-not (:topic msg)
       (throw (RuntimeException. (str "Topic cannot be nil for message " msg " check that you've registered the MSG-DECODER with the consumer"))))
     
-    (let [^Callable callable (fn[] (try (measure-time exec-timer #(f msg)) 
+    (let [^Callable callable (fn[] (try (f msg) 
                                                           (finally (update-meter queue-consume-meter))))
           ^ExecutorService service (get-exec-service (:topic msg))]
      
