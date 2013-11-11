@@ -99,7 +99,7 @@
                      agnt))
  
  
- (def open-files-gauge (add-gauge "pseidon.core.fileresource.open-files" #(count (-> @master-agent (deref)  ) )))
+ (def open-files-gauge (add-gauge "pseidon.core.fileresource.open-files" #(reduce + (map (fn [[k v]] (count @v)) @master-agent))))
 
  (defn get-create [m k f create-f & args]
    (if-let [v (get m k)]
@@ -179,7 +179,7 @@
           (do  
 	           (try 
                (info "closed file " (.getAbsolutePath new-file))
-	             (with-txn pseidon.core.tracking/dbspec (doall (pmap (fn [prf] 
+	             (with-txn pseidon.core.tracking/dbspec (doall (map (fn [prf] 
                                                                     (apply-f prf new-file)) post-roll)))
 	             (catch Exception e (do 
                                     ;if the post-roll messages could not be run, the file is deleted
