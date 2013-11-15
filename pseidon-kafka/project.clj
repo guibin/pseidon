@@ -3,12 +3,11 @@
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :resource-paths ["deps/kafka/kafka-0.7.2-2.8.0.jar"]
 
   :dependencies [
                  [com.yammer.metrics/metrics-core "2.2.0"]
                  [com.yammer.metrics/metrics-annotation "2.2.0"]
-                 [org.apache.kafka/kafka_2.9.2 "0.8.0-beta1"]
+                 [org.apache.kafka/kafka_2.9.2 "0.8.1"]
                  [com.101tec/zkclient "0.3" :exclusions [org.apache.zookeeper/zookeeper]]
                  [com.yammer.metrics/metrics-core "2.2.0" :scope "test"]
                  [com.github.sgroschupf/zkclient "0.1" :scope "test"]
