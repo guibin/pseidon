@@ -1,9 +1,10 @@
 (ns pseidon.kafka.consumer
     (:require [pseidon.kafka.kafka-util :refer [to-clojure as-properties pipe]]
+              [pseidon.core.watchdog :refer [handle-critical-error]]
               [clojure.core.async :refer [chan >!! alts!! thread]]
               [clojure.tools.logging :refer [info error]])
     (:import [kafka.javaapi.consumer ZookeeperConsumerConnector]
-              [kafka.consumer ConsumerConfig Consumer KafkaStream ConsumerConnector]
+              [kafka.consumer ConsumerConfig Consumer KafkaStream ConsumerConnector ConsumerIterator]
               [kafka.api FetchRequest]
               [pseidon.kafka.util KafkaStreamsHelper]
               
@@ -58,26 +59,20 @@ while (!Thread.interrupted()) {
   ;List<KafkaStream<byte[], byte[]>> list = flatten(conn, topicMap);
   (let [streams (KafkaStreamsHelper/flatten consumer (topic-map topics))
 				chs		  (doall 
-                     (for [stream streams]
+                     (for [^KafkaStream stream streams]
 									       (let [ch (chan)]
                             (thread
-												         (while (not (Thread/interrupted))
                                    (try
-													           (let [it (.iterator stream)]
+													           (let [^ConsumerIterator it (.iterator stream)]
 													              (while (not (Thread/interrupted))
 	                                           (try 
 													                      (>!! ch (.next it))
 	                                              (catch java.util.NoSuchElementException ne
 	                                                     (Thread/sleep 100)))))
                                        (catch InterruptedException ie (doto (Thread/currentThread) .interrupt))
-                                       (catch Exception e (error e e)))))
+                                       (catch Exception e (handle-critical-error e "Error while reading from kafka "  ))))
                               ch)))]
            (map to-clojure 
                 (lazy-channels chs))))
-          
-                                        
-;  (let [queue (KafkaStreamsHelper/get_streams consumer (topic-map topics) 100)]
-;		  (map to-clojure 
-;		       (repeatedly #(.take queue)))))
 
 
