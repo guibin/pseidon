@@ -54,9 +54,7 @@
 	      (write topic 
                key
                (fn [out] (exec-write out bdata))
-               (fn [file_name]
-                 ;setting the batchid to done
-                 )))
+                 ))
          (update-meter exec-meter)))
          
 
