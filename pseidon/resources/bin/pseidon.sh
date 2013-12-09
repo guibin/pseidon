@@ -30,15 +30,15 @@ fi
 JAVA=$JAVA_HOME/bin/java
 
 
-if [ -z $JAVA_HEAP ]; then
+if [ -z "$JAVA_HEAP" ]; then
 export JAVA_HEAP="-Xmx4096m -Xms1024m -XX:MaxDirectMemorySize=2048M"
 fi
 
-if [ -z $JAVA_GC ]; then
+if [ -z "$JAVA_GC" ]; then
 export JAVA_GC="-XX:+UseCompressedOops -XX:+UseG1GC"
 fi
 
-if [ -z $JAVA_OPTS]; then
+if [ -z "$JAVA_OPTS" ]; then
 export JAVA_OPTS="-Djava.library.path=$STREAMS_HOME/lib/native/Linux-amd64-64/"
 fi
 
