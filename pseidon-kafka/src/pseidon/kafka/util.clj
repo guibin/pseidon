@@ -70,7 +70,7 @@
                       (if-not @p (run))
                       (if (and (coll? messages) (not (map? messages)))
                              (do (update-meter kafka-datasink-meter (count messages)) 
-                                 (send-messages @p (vec (map create-message messages)))) 
+                                 (send-messages @p (vec (map #(apply create-message %) messages)))) 
                              (do (update-meter kafka-datasink-meter) 
                                  (send-message @p (create-message messages)))))
         ]
