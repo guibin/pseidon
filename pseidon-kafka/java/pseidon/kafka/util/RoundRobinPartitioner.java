@@ -10,7 +10,7 @@ import kafka.utils.VerifiableProperties;
  * Round robin partitioner using a simple thread safe AotmicInteger
  * 
  */
-public class RoundRobinPartitioner implements Partitioner<Object>{
+public class RoundRobinPartitioner implements Partitioner{
     AtomicInteger counter = new AtomicInteger(0);
     
     public RoundRobinPartitioner(VerifiableProperties props){

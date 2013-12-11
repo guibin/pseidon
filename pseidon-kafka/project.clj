@@ -18,7 +18,6 @@
                  [org.scala-lang/scala-library "2.9.2"]
                  [net.sf.jopt-simple/jopt-simple "3.2"]
                  [clj-tuple "0.1.4"]
-                 [fmap-clojure "0.1.1"]
                  [org.clojure/clojure "1.5.1" :scope "provided"]
                  [reply "0.1.0-beta9" :scope "provided"]
                  [jline "2.11" :scope "provided"] ;need for dependency from reply
@@ -31,7 +30,7 @@
           [lein-kibit "0.0.8"] [no-man-is-an-island/lein-eclipse "2.0.0"]
            ]
 
-   :aot [pseidon.kafka.core pseidon.kafka.partition]
+   :aot [pseidon.kafka.core]
    :main pseidon.kafka.core
    :java-source-paths ["java"]
   
