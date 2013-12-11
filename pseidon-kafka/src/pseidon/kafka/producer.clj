@@ -23,7 +23,7 @@
   )
 
 (defn message
-  ([topic value] (message topic nil value))
+  ([topic value] (message topic "1" value))
   ([topic key value] 
                      (KeyedMessage. topic key ^bytes (toBytes value))))
 

@@ -2,6 +2,8 @@ package pseidon.kafka.util;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.log4j.Logger;
+
 import kafka.producer.Partitioner;
 import kafka.utils.VerifiableProperties;
 
@@ -11,10 +13,12 @@ import kafka.utils.VerifiableProperties;
  * 
  */
 public class RoundRobinPartitioner implements Partitioner{
+	private static final Logger log = Logger.getLogger(RoundRobinPartitioner.class);
+	
     AtomicInteger counter = new AtomicInteger(0);
     
     public RoundRobinPartitioner(VerifiableProperties props){
-    	
+    	  log.info("===========>>> Using Round Robin Partitioner");
     }
     
 	public int partition(Object key, int partitions){
