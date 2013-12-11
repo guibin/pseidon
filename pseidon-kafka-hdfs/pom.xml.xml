@@ -45,7 +45,7 @@
 					<copyright>http://www.radiumone.com/</copyright>
 					<distribution>pseidon-kafka-hdfs</distribution>
 					<group>utilties</group>
-					<release>6</release>
+					<release>7</release>
 					<packager>https://github.com/gerritjvv/pseidon</packager>
 					<provides>
 						<provide>pseidon-kafka-hdfs</provide>
