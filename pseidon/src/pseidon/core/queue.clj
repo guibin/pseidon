@@ -98,7 +98,7 @@
       (hasNext [this] true)
       (remove [this])
       (next [this]
-        (take queue))))
+        (.take queue))))
   (getSize [this]
      (.size queue))
   (close [this]
@@ -107,7 +107,7 @@
 (defn create-blocking-array-queue [limit]
   (ArrayBlockingQueueChannel. (ArrayBlockingQueue. limit)))
 
-(defn close-channel [^BlockingChannelImpl channel]
+(defn close-channel [ channel ]
   (info "call close on channel")
   (close channel))
 
@@ -134,7 +134,7 @@
         (add-gauge (str "pseidon.core.queue." name ".size") #(getSize queue))
         queue))
 
-(defn- consume-messages [^BlockingChannelImpl channel ^IFn f]
+(defn- consume-messages [ channel ^IFn f]
     (loop [^Iterator it (.getIterator channel)]
         (while (and (not (.hasNext it)) (not (Thread/interrupted))) (Thread/sleep 100))
         (if it 
