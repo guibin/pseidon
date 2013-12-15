@@ -10,6 +10,9 @@
               
            ))
 
+(defn to-string-conf [m]
+  (into {} 
+        (map (fn [[k v]] [ (if (instance? clojure.lang.Keyword k) (name k) (str k)) v]) m)))
 
 
 (defn consumer
@@ -28,7 +31,7 @@
    auto.commit.interval.ms       : the frequency that the consumed offsets are committed to zookeeper.
    auto.commit.enable            : if set to true, the consumer periodically commits to zookeeper the latest consumed offset of each partition"
   [m]
-  (let [config (ConsumerConfig. (as-properties m))]
+  (let [config (ConsumerConfig. (as-properties (to-string-conf m)))]
     (ZookeeperConsumerConnector. config)))
 
 (defn shutdown

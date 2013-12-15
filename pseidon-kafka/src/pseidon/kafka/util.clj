@@ -5,24 +5,30 @@
             [pseidon.kafka.kafka-util :refer [as-properties with-resource]]
             [pseidon.core.registry :refer [create-datasource create-datasink register]]
             [clojure.tools.logging :refer [info error]]
-            [pseidon.core.metrics :refer [add-meter update-meter]])
+            [pseidon.core.metrics :refer [add-meter update-meter]]
+            [taoensso.nippy :as nippy]
+            [clojure.core.async :refer [chan thread <!! >!!]]
+            [pseidon.core.watchdog :refer [handle-critical-error]])
    (:import 
-            [kafka.message Message])
+            [kafka.message Message]
+            )
   )
+
+
 
 (def kafka-datasink-meter (add-meter "pseidon.kafka.util.datasink.publish"))
 
+             
 (defn get-kafka-conf []
-  (into {} 
-        (map (fn [[k v]] [ (if (instance? clojure.lang.Keyword k) (name k) (str k)) v]) (get-sub-conf :kafka))))
+  (get-sub-conf :kafka))
 
 (defn create-message 
-  ([{:keys [topic k ^bytes val] :as msg}]
+  ([{:keys [topic k val] :as msg}]
       (if k (create-message topic k val)
         (create-message topic val)))
-  ([^String topic ^bytes val]
+  ([^String topic val]
       (message topic val))
-  ([topic k ^bytes val]
+  ([topic k val]
       (message ^String topic k val)))
 
 (defn load-datasource [conf]
@@ -55,24 +61,44 @@
    when run is called with create a producer once
    stop calls shutdown on the producer
    writer returns a function that takes a list of messages and publishes
-          the format of each item must be a KeyedMessage see create-message"
-    
+          the format of each item must be a KeyedMessage see create-message
+   "
+    ;here we use N producers to improve kafka send performance    
     (let [name "pseidon.kafka.util.datasink"
-        p (ref nil) 
+          producer-count (get "producers" conf 6)
+          producers (vec (repeatedly producer-count (partial producer conf))) ;create n producers
+          kafka-ch (chan 1000) 
         ]
+      
+      
+      
     (letfn [
-        (run [] 
-             (dosync
-               (alter p (fn [v conf] (if-not v (producer conf) v)) conf)))
+        (run [])
+        (stop [] 
+              (doseq [p producers]
+                (.close p)))
         
-        (stop [] )
-        (writer  [messages]
-                      (if-not @p (run))
+        (writer [messages]
+                ;called by client, will block if the channel is full
+                (>!! kafka-ch messages))
+        
+        (writer-f  [p messages]
+                   ;called by the asyn thread below, to write to kafka
                       (if (and (coll? messages) (not (map? messages)))
                              (do (update-meter kafka-datasink-meter (count messages)) 
-                                 (send-messages @p (vec (map #(apply create-message %) messages)))) 
+                                 (send-messages p (vec (map #(apply create-message %) messages)))) 
                              (do (update-meter kafka-datasink-meter) 
-                                 (send-message @p (create-message messages)))))
+                                 (send-message p (create-message messages)))))
         ]
+      
+      ;thread that will read from kafka-ch and asynchronously send to kafka
+      (thread 
+        (try
+          (loop [n 0] 
+            (if-let [msg (<!! kafka-ch)]
+              (writer-f (nth producers (rem n producer-count))  msg))
+            (recur (if (= n Long/MAX_VALUE) 0 (inc n))))
+          (catch Exception e (handle-critical-error e e) )))
+      
       (create-datasink {:name name :run run :stop stop :writer writer}))))
 

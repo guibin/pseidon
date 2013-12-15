@@ -104,6 +104,16 @@
 	</repositories>
 	<dependencies>
 		<dependency>
+			<groupId>com.taoensso</groupId>
+			<artifactId>nippy</artifactId>
+			<version>2.5.2</version>
+		</dependency>
+		<dependency>
+			<groupId>kafka.client</groupId>
+			<artifactId>kafka-clj</artifactId>
+			<version>0.1.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
 			<groupId>com.yammer.metrics</groupId>
 			<artifactId>metrics-core</artifactId>
 			<version>2.2.0</version>
@@ -144,7 +154,7 @@
 		<dependency>
 			<groupId>pseidon</groupId>
 			<artifactId>pseidon</artifactId>
-			<version>0.3.1-SNAPSHOT</version>
+			<version>0.4.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>

@@ -3,13 +3,19 @@
   (:import [kafka.javaapi.producer Producer]
            [kafka.producer ProducerConfig KeyedMessage]
            [java.util List]
+           
            [kafka.message Message] )
   )
+
+(defn to-string-conf [m]
+  (into {} 
+        (map (fn [[k v]] [ (if (instance? clojure.lang.Keyword k) (name k) (str k)) v]) m)))
+
 (defn producer
   "Creates a Producer. m is the configuration
    metadata.broker.list : \"server:port,server:port\""
   [m]
-  (Producer. (ProducerConfig. (as-properties m))))
+  (Producer. (ProducerConfig. (as-properties (to-string-conf m)))))
 
 (defprotocol ToBytes
   (toBytes [this]))
@@ -23,9 +29,10 @@
   )
 
 (defn message
-  ([topic value] (message topic "1" value))
+  ([topic value] 
+    (message topic "1" value))
   ([topic key value] 
-                     (KeyedMessage. topic key ^bytes (toBytes value))))
+                     (KeyedMessage. topic key value)))
 
 (defn send-message
   [^Producer producer ^KeyedMessage message]

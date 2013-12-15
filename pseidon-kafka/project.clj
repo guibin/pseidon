@@ -5,6 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [
+                 [kafka.client/kafka-clj "0.1.0-SNAPSHOT"]
                  [com.yammer.metrics/metrics-core "2.2.0"]
                  [com.yammer.metrics/metrics-annotation "2.2.0"]
                  [org.apache.kafka/kafka_2.9.2 "0.8.1"]
@@ -12,7 +13,8 @@
                  [com.yammer.metrics/metrics-core "2.2.0" :scope "test"]
                  [com.github.sgroschupf/zkclient "0.1" :scope "test"]
                  [midje "1.6-alpha2" :scope "test"]
-                 [pseidon "0.3.1-SNAPSHOT" :scope "provided"]
+                 [pseidon "0.4.1-SNAPSHOT" :scope "provided"]
+                 [com.taoensso/nippy "2.5.2"]
                  [night-vision "0.1.0-SNAPSHOT" :scope "test"]
                  [org.apache.zookeeper/zookeeper "3.4.5"]
                  [org.scala-lang/scala-library "2.9.2"]
