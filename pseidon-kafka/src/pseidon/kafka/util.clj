@@ -18,9 +18,12 @@
 
 (def kafka-datasink-meter (add-meter "pseidon.kafka.util.datasink.publish"))
 
-             
+(defn to-string-conf [m]
+  (into {} 
+        (map (fn [[k v]] [ (if (instance? clojure.lang.Keyword k) (name k) (str k)) v]) m)))
+        
 (defn get-kafka-conf []
-  (get-sub-conf :kafka))
+  (to-string-conf (get-sub-conf :kafka)))
 
 (defn create-message 
   ([{:keys [topic k val] :as msg}]
@@ -65,13 +68,13 @@
    "
     ;here we use N producers to improve kafka send performance    
     (let [name "pseidon.kafka.util.datasink"
-          producer-count (get "producers" conf 6)
+          producer-count (get conf "producers" 6)
           producers (vec (repeatedly producer-count (partial producer conf))) ;create n producers
           kafka-ch (chan 1000) 
         ]
       
       
-      
+      (info "Producers: " (count producers)) 
     (letfn [
         (run [])
         (stop [] 

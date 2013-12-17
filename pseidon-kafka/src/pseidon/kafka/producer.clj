@@ -7,15 +7,12 @@
            [kafka.message Message] )
   )
 
-(defn to-string-conf [m]
-  (into {} 
-        (map (fn [[k v]] [ (if (instance? clojure.lang.Keyword k) (name k) (str k)) v]) m)))
 
 (defn producer
   "Creates a Producer. m is the configuration
    metadata.broker.list : \"server:port,server:port\""
   [m]
-  (Producer. (ProducerConfig. (as-properties (to-string-conf m)))))
+  (Producer. (ProducerConfig. (as-properties m))))
 
 (defprotocol ToBytes
   (toBytes [this]))

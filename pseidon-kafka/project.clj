@@ -5,7 +5,6 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [
-                 [kafka.client/kafka-clj "0.1.0-SNAPSHOT"]
                  [com.yammer.metrics/metrics-core "2.2.0"]
                  [com.yammer.metrics/metrics-annotation "2.2.0"]
                  [org.apache.kafka/kafka_2.9.2 "0.8.1"]
