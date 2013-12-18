@@ -26,7 +26,7 @@
   (to-string-conf (get-sub-conf :kafka)))
 
 (defn create-message 
-  ([{:keys [topic k val] :as msg}]
+  ([{:keys [topic k val] }]
       (if k (create-message topic k val)
         (create-message topic val)))
   ([^String topic val]
