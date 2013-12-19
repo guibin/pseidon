@@ -1,12 +1,15 @@
 (ns pseidon.core.metrics
   (:import [com.codahale.metrics MetricRegistry Gauge Counter Meter MetricFilter Metric
             Histogram Timer Timer$Context JmxReporter CsvReporter ConsoleReporter]
+           [com.codahale.metrics.health HealthCheck HealthCheck$Result HealthCheckRegistry]
            [java.util.concurrent TimeUnit]
            [java.io File]
            [java.util Locale]
   ))
 
 (defonce registry (MetricRegistry.))
+(defonce health-registry (HealthCheckRegistry.))
+
 (defonce jmx-reporter (-> registry JmxReporter/forRegistry .build))
 
 (defn start-csv-reporter [^File file ^Integer frequency]
@@ -25,6 +28,30 @@
       (.build)
       (.start frequency TimeUnit/SECONDS)))
 
+(defn coerce-health-result [o]
+  (if (instance? HealthCheck$Result) 
+    o
+    (let [{:keys [^boolean healthy ^String msg ^Throwable error]} o]
+      (cond error (HealthCheck$Result/unhealthy error)
+        healthy (HealthCheck$Result/healthy msg)
+        :else (HealthCheck$Result/unhealthy msg)))))
+
+(defn run-health-checks []
+  "Returns a map key=check-name value=HealthCheck.Result"
+  (.runHealthChecks health-registry))
+
+(defn register-health-check [^String name check-f]
+  "check-f should return a map of {:healthy true/false :msg message :error Throwable],
+   or alternatively a HealhCheck$Result instance"
+  (.register health-registry name
+    (proxy [HealthCheck]
+           []
+		      (check []
+            (try
+              (coerce-health-result (check-f))
+              (catch Exception e (.printStackTrace e)))))))
+
+  
 (defn list-metrics []
  (.getMetrics registry))
 
