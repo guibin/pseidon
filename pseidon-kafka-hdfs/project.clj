@@ -14,7 +14,6 @@
   :dependencies [
                  [com.taoensso/nippy "2.5.2"] 
                  [clj-json "0.5.3"]
-                 [org.clojure/data.json "0.2.3"]
                  [org.clojure/clojure "1.5.1"]]
 
   )

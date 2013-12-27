@@ -31,22 +31,22 @@
                              (System/currentTimeMillis))
                           })
 
-(defn nippy-decoder [^bts bts]
+(defn nippy-decoder [^bytes bts]
   (nippy/thaw bts))
 
 (defn nippy-encoder [msg]
   (nippy/freeze msg))
 
-(defn ^bytes json-encoder [msg]
+(defn  json-encoder [msg]
   (.getBytes (str (json/generate-string msg)) "UTF-8"))
 
 (defn json-decoder [^bytes bts]
   (json/parse-string (String. bts "UTF-8")))
 
-(defn ^bytes default-encoder [^bytes msg]
+(defn ^bytes default-encoder [msg]
   msg)
 
-(defn ^bytes default-decoder [^bytes bts] 
+(defn ^bytes default-decoder [bts] 
     bts)
 
 (defonce ^:constant decoder-map {:default default-decoder
@@ -58,7 +58,7 @@
                                  :json json-encoder})
   
 (defmacro with-info [s body]
-  `(let [x# ~body] (info s " " x#) x#))
+  `(let [x# ~body] (info ~s " " x#) x#))
 
 (def get-decoder (memoize (fn [log-name]
                             (with-info (str "For topic " log-name " using decoder ")
@@ -84,7 +84,7 @@
              ))
 
 (def  get-ts-parser (memoize (fn [topic]
-                               (with-info (str "For topic " log-name " using ts parser ")
+                               (with-info (str "For topic " topic " using ts parser ")
                                         (let [key1 (keyword (str "kafka-hdfs-" topic "ts-parser"))
                                               key2 :kafka-hdfs-ts-parser]
                                          (if-let [parser (get ts-parser (get-conf2 key1 (get-conf2 key2 :now) ))]
@@ -93,12 +93,12 @@
 
 
 (def  get-ts-parser-args (memoize (fn [topic]
-                                    (with-info (str "For topic " log-name " using ts parser args ")
+                                    (with-info (str "For topic " topic " using ts parser args ")
 		                                        (let [key1 (keyword (str "kafka-hdfs-" topic "ts-parser-args"))
 		                                              key2 :kafka-hdfs-ts-parser-args]
 		                                         (if-let [parser-args (get-conf2 key1 (get-conf2 key2 ["ts"]) )]
 		                                           parser-args
-		                                           parser-args))))))
+		                                           ["ts"]))))))
 
                                     
 ;read messages from the logpuller and send to hdfs
