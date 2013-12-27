@@ -79,7 +79,9 @@
         (run [])
         (stop [] 
               (doseq [p producers]
-                (.close p)))
+                (try 
+                  (.close p)
+                  (catch Exception e (error e e)))))
         
         (writer [messages]
                 ;called by client, will block if the channel is full

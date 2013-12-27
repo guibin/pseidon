@@ -5,6 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [
+                 [net.n01se/clojure-jna "1.0.0"]
                  [com.yammer.metrics/metrics-core "2.2.0"]
                  [com.yammer.metrics/metrics-annotation "2.2.0"]
                  [org.apache.kafka/kafka_2.9.2 "0.8.1"]
