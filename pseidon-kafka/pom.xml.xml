@@ -33,7 +33,7 @@
 					<copyright>http://www.apache.org/licenses/LICENSE-2.0</copyright>
 					<distribution>pseidon-kafka</distribution>
 					<group>utilties</group>
-					<release>24</release>
+					<release>28</release>
 					<packager>https://github.com/gerritjvv/pseidon/tree/master/pseidon-kafka</packager>
 					<provides>
 						<provide>pseidon-kafka</provide>
@@ -52,18 +52,6 @@
 							<sources>
 								<source>
 									<location>src</location>
-								</source>
-							</sources>
-						</mapping>
-						<mapping>
-							<directory>/opt/pseidon-kafka/lib</directory>
-							<configuration>true</configuration>
-							<filemode>776</filemode>
-							<username>pseidon</username>
-							<groupname>pseidon</groupname>
-							<sources>
-								<source>
-									<location>target/pseidon-kafka-${project.version}.jar</location>
 								</source>
 							</sources>
 						</mapping>
@@ -103,6 +91,11 @@
 		</repository>
 	</repositories>
 	<dependencies>
+	    <dependency>
+			<groupId>kafka-clj</groupId>
+			<artifactId>kafka-clj</artifactId>
+			<version>0.2.0-SNAPSHOT</version>
+		</dependency>
 		<dependency>
 			<groupId>com.taoensso</groupId>
 			<artifactId>nippy</artifactId>
@@ -119,28 +112,6 @@
 			<version>2.2.0</version>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.kafka</groupId>
-			<artifactId>kafka_2.9.2</artifactId>
-			<version>0.8.1</version>
-		</dependency>
-		<dependency>
-			<groupId>com.101tec</groupId>
-			<artifactId>zkclient</artifactId>
-			<version>0.3</version>
-			<exclusions>
-				<exclusion>
-					<groupId>org.apache.zookeeper</groupId>
-					<artifactId>zookeeper</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>com.github.sgroschupf</groupId>
-			<artifactId>zkclient</artifactId>
-			<version>0.1</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
 			<groupId>midje</groupId>
 			<artifactId>midje</artifactId>
 			<version>1.6-alpha2</version>
@@ -149,7 +120,7 @@
 		<dependency>
 			<groupId>pseidon</groupId>
 			<artifactId>pseidon</artifactId>
-			<version>0.4.1-SNAPSHOT</version>
+			<version>0.4.2-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -157,11 +128,6 @@
 			<artifactId>night-vision</artifactId>
 			<version>0.1.0-SNAPSHOT</version>
 			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.zookeeper</groupId>
-			<artifactId>zookeeper</artifactId>
-			<version>3.4.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.scala-lang</groupId>

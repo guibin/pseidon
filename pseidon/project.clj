@@ -1,4 +1,4 @@
-(defproject pseidon "0.4.1-SNAPSHOT"
+(defproject pseidon "0.4.2-SNAPSHOT"
   :description "BigData Import Framework"
   :url "https://github.com/gerritjvv/pseidon"
   :license {:name "Eclipse Public License"
@@ -19,7 +19,7 @@
                  [http-kit "2.1.8"]
                  [compojure "1.1.5"]
                  [cheshire "5.2.0"]
-                 [org.clojure/core.async "0.1.0-SNAPSHOT"]
+                 [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
                  [org.clojure/tools.cli "0.2.2"]
                  [com.codahale.metrics/metrics-core "3.0.1"]
                  [com.codahale.metrics/metrics-servlets "3.0.1"]
@@ -62,6 +62,7 @@
 	       "spring snapshot"
 	       "http://repo.springsource.org/libs-snapshot"}
   
+  :javac-options ["-target" "1.6" "-source" "1.6" "-Xlint:-options"]
   :java-source-paths ["java"]
   :jvm-opts ["-Xmx1g"]
   

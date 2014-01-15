@@ -1,17 +1,13 @@
 (ns pseidon.kafka.util
   (:require [pseidon.core.conf :refer [get-sub-conf]]
-            [pseidon.kafka.consumer :refer [shutdown consumer messages]]
+            [pseidon.kafka.consumer :refer [messages]]
             [pseidon.kafka.producer :refer [producer send-messages send-message message]]
-            [pseidon.kafka.kafka-util :refer [as-properties with-resource]]
             [pseidon.core.registry :refer [create-datasource create-datasink register]]
             [clojure.tools.logging :refer [info error]]
             [pseidon.core.metrics :refer [add-meter update-meter]]
             [taoensso.nippy :as nippy]
             [clojure.core.async :refer [chan thread <!! >!!]]
             [pseidon.core.watchdog :refer [handle-critical-error]])
-   (:import 
-            [kafka.message Message]
-            )
   )
 
 
@@ -24,6 +20,10 @@
         
 (defn get-kafka-conf []
   (to-string-conf (get-sub-conf :kafka)))
+
+(defn get-kafka-conf2 []
+   (get-sub-conf :kafka))
+
 
 (defn create-message 
   ([{:keys [topic k val] }]
@@ -41,21 +41,19 @@
    list-files returns nil
    reader-seq will returns a function (fn [&topics]) and when called returns a sequence of messages
   "
+  (prn "conf " conf)
   (let [name "pseidon.kafka.util.datasource"
         c (ref nil) 
+        bootstrap-brokers (get conf "bootstrap-brokers")
         ]
     (letfn [
         (run [] 
-              (dosync
-                (alter c (fn [v conf] (if-not v (consumer conf) v)) conf )))
+              )
         (stop []
-               (try 
-                 (if-let [x @c] (shutdown x))
-                 (catch Exception e (error e))))
+               )
         (list-files  [] )
         (reader-seq  [ & topics]
-                      (if-not @c (run))
-                      (apply messages @c topics))
+                     (messages bootstrap-brokers topics conf))
         ]
       (create-datasource {:name name :run run :stop stop :list-files list-files :reader-seq reader-seq}))))
 

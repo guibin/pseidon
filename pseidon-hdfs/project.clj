@@ -10,7 +10,7 @@
     [org.apache.hadoop/hadoop-minicluster "2.0.0-mr1-cdh4.2.0" :scope "test"]
     [pseidon "0.3.1-SNAPSHOT" :scope "provided"]
     [commons-lang "2.6" :scope "provided"]
-    [org.clojure/core.async "0.1.0-SNAPSHOT" :scope "provided"]
+    [org.clojure/core.async "0.1.267.0-0d7780-alpha"] 
     [midje "1.6-alpha2" :scope "test"]
     [org.clojure/data.json "0.2.3"]
 		]

@@ -1,7 +1,7 @@
 (ns pseidon.core.conf
-  (:use clojure.tools.logging
-        [clojure.edn]
-        ))
+  (:require [clojure.tools.logging :refer [info error]]
+            [clojure.edn :as edn]))
+
 ;this module contains the application configuration defaults and all logic that is used to read the configuration
 
 (def ^:dynamic *default-conf* "resources/conf/pseidon.edn")
@@ -14,7 +14,7 @@
   )))
   
 (defn load-props[file]
-  (let [props (clojure.edn/read-string (slurp file)) ]
+  (let [props (edn/read-string (slurp file)) ]
     (if (map? props) props (throw (Exception. (str "The config file " file " must be a map { :kw val :kw2 val2 }") )))
   ))
   
