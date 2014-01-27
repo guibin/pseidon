@@ -4,7 +4,6 @@
 (use '[pseidon.core.queue :as q])
 (use '[pseidon.core.registry :as r])
 (use '[pseidon.core.worker :as w])
-(use '[pseidon.core.fileresource :as frs])
 (use '[pseidon.core.conf :as c])
 (use '[pseidon.core.datastore :as ds])
 (use '[pseidon.core.tracking :rename  {start tracking-start shutdown tracking-shutdown}])
@@ -37,7 +36,6 @@
 	  
      (q/close-channel data-queue)
 	   (r/stop-all)
-	   (frs/shutdown-services)
 	    
      (shutdown-agents)
 	   (ds/shutdown)
@@ -56,7 +54,6 @@
         (r/start-all))
   (Thread/sleep 1000)
   (w/start-consume data-queue)  
-  (frs/start-services)
   (info "Started")
   (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (do  
                                                                                      (info "<<< Shutdown from System.exit or kill !!!!  >>>> ")

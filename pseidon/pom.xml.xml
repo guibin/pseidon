@@ -5,7 +5,7 @@
 	<groupId>pseidon</groupId>
 	<artifactId>pseidon</artifactId>
 	<packaging>jar</packaging>
-	<version>0.4.1-SNAPSHOT</version>
+	<version>0.4.2-SNAPSHOT</version>
 	<name>pseidon</name>
 	<description>BigData Import Framework</description>
 	<url>https://github.com/gerritjvv/pseidon</url>

@@ -172,6 +172,11 @@
       <version>2.1.8</version>
     </dependency>
     <dependency>
+      <groupId>fun-utils</groupId>
+      <artifactId>fun-utils</artifactId>
+      <version>0.3.0</version>
+    </dependency>
+    <dependency>
       <groupId>compojure</groupId>
       <artifactId>compojure</artifactId>
       <version>1.1.5</version>

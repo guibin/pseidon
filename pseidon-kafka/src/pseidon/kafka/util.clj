@@ -1,7 +1,7 @@
 (ns pseidon.kafka.util
   (:require [pseidon.core.conf :refer [get-sub-conf]]
-            [pseidon.kafka.consumer :refer [messages]]
-            [pseidon.kafka.producer :refer [producer send-messages send-message message]]
+            [pseidon.kafka.consumer :refer [messages create-consumer close-consumer2]]
+            [pseidon.kafka.producer :refer [producer send-messages send-message close-producer]]
             [pseidon.core.registry :refer [create-datasource create-datasink register]]
             [clojure.tools.logging :refer [info error]]
             [pseidon.core.metrics :refer [add-meter update-meter]]
@@ -25,15 +25,6 @@
    (get-sub-conf :kafka))
 
 
-(defn create-message 
-  ([{:keys [topic k val] }]
-      (if k (create-message topic k val)
-        (create-message topic val)))
-  ([^String topic val]
-      (message topic val))
-  ([topic k val]
-      (message ^String topic k val)))
-
 (defn load-datasource [conf]
   "Returns a DataSource instance that
    when run is called it will only create a consumer instance the first time its called
@@ -43,17 +34,18 @@
   "
   (prn "conf " conf)
   (let [name "pseidon.kafka.util.datasource"
-        c (ref nil) 
+        c (create-consumer bootstrap-brokers topics conf)
         bootstrap-brokers (get conf "bootstrap-brokers")
         ]
     (letfn [
         (run [] 
               )
         (stop []
+              (close-consumer2 c)
                )
         (list-files  [] )
         (reader-seq  [ & topics]
-                     (messages bootstrap-brokers topics conf))
+                     (messages c))
         ]
       (create-datasource {:name name :run run :stop stop :list-files list-files :reader-seq reader-seq}))))
 
@@ -65,43 +57,22 @@
           the format of each item must be a KeyedMessage see create-message
    "
     ;here we use N producers to improve kafka send performance    
-    (let [name "pseidon.kafka.util.datasink"
-          producer-count (get conf "producers" 6)
-          producers (vec (repeatedly producer-count (partial producer conf))) ;create n producers
-          kafka-ch (chan 1000) 
-        ]
-      
-      
-      (info "Producers: " (count producers)) 
+   (let [name "pseidon.kafka.util.datasink"
+         p    (producer conf)]
+
     (letfn [
         (run [])
-        (stop [] 
-              (doseq [p producers]
-                (try 
-                  (.close p)
-                  (catch Exception e (error e e)))))
-        
-        (writer [messages]
-                ;called by client, will block if the channel is full
-                (>!! kafka-ch messages))
-        
+        (stop []
+              (close-producer p))
+
         (writer-f  [p messages]
                    ;called by the asyn thread below, to write to kafka
                       (if (and (coll? messages) (not (map? messages)))
-                             (do (update-meter kafka-datasink-meter (count messages)) 
-                                 (send-messages p (vec (map #(apply create-message %) messages)))) 
-                             (do (update-meter kafka-datasink-meter) 
-                                 (send-message p (create-message messages)))))
+                             (do (update-meter kafka-datasink-meter (count messages))
+                                 (send-messages p messages))
+                             (do (update-meter kafka-datasink-meter)
+                                 (send-message p messages))))
         ]
-      
-      ;thread that will read from kafka-ch and asynchronously send to kafka
-      (thread 
-        (try
-          (loop [n 0] 
-            (if-let [msg (<!! kafka-ch)]
-              (writer-f (nth producers (rem n producer-count))  msg))
-            (recur (if (= n Long/MAX_VALUE) 0 (inc n))))
-          (catch Exception e (handle-critical-error e e) )))
-      
-      (create-datasink {:name name :run run :stop stop :writer writer}))))
+
+      (create-datasink {:name name :run run :stop stop :writer writer-f}))))
 

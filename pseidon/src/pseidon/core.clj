@@ -108,7 +108,7 @@
           
           (info "Opts " opts   " is repl " (:repl opts) " is stop " (:stop opts))
 		      (cond
-                 (:repl opts) (run-repl (:port opts))
+                 (:repl opts) (do (load-config opts) (run-repl (:port opts)))
 		             (:refresh-plugins opts) (send-refresh)
 		             (:stop opts) (do (load-config opts) (send-shutdown) (System/exit 0))
 		             (contains? opts :get-cp) (.println System/out (get-classpath))

@@ -1,35 +1,23 @@
 (ns pseidon.kafka.producer
-  )
+  (require [kafka-clj.client :refer [create-connector send-msg close]]))
 
 
 (defn producer
   "Creates a Producer. m is the configuration
    metadata.broker.list : \"server:port,server:port\""
-  [m]
-  )
+  [conf]
+  (create-connector (get conf "bootstrap-brokers") {}))
 
-(defprotocol ToBytes
-  (toBytes [this]))
-
-(extend-protocol ToBytes
-  String
-  (toBytes [this] (.getBytes this "UTF-8"))
-  #=(java.lang.Class/forName "[B")
-  (toBytes [this] this)
-  
-  )
-
-(defn message
-  ([topic value] 
-    (message topic "1" value))
-  ([topic key value] 
-    nil))
+(defn close-producers [p]
+  (close p))
 
 (defn send-message
   [producer message]
-  nil)
+   (send-msg producer (:topic message) message))
+
 
 (defn send-messages
   [producer messages]
-  nil)
+  (doseq [msg messages]
+    (send-message producer msg)))
 
