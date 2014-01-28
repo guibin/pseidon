@@ -6,7 +6,7 @@
 
   :dependencies [
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
-                 [kafka-clj "0.2.0-SNAPSHOT"]
+                 [kafka-clj "0.3.0-SNAPSHOT"]
                  [midje "1.6-alpha2" :scope "test"]
                  [pseidon "0.4.2-SNAPSHOT" :scope "provided"]
                  [com.taoensso/nippy "2.5.2"]

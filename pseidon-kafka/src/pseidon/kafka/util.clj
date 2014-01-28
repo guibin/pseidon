@@ -34,18 +34,20 @@
   "
   (prn "conf " conf)
   (let [name "pseidon.kafka.util.datasource"
-        c (create-consumer bootstrap-brokers topics conf)
         bootstrap-brokers (get conf "bootstrap-brokers")
+        c-ref (atom nil)
         ]
     (letfn [
         (run [] 
               )
         (stop []
-              (close-consumer2 c)
-               )
+              (if (nil? @c-ref)
+                 (close-consumer2 @c-ref)))
         (list-files  [] )
         (reader-seq  [ & topics]
-                     (messages c))
+                     (if (not @c-ref)
+                        (swap! c-ref #(if (nil? %) (create-consumer bootstrap-brokers topics conf) %)))
+                     (messages @c-ref))
         ]
       (create-datasource {:name name :run run :stop stop :list-files list-files :reader-seq reader-seq}))))
 
@@ -65,7 +67,7 @@
         (stop []
               (close-producer p))
 
-        (writer-f  [p messages]
+        (writer-f  [messages]
                    ;called by the asyn thread below, to write to kafka
                       (if (and (coll? messages) (not (map? messages)))
                              (do (update-meter kafka-datasink-meter (count messages))

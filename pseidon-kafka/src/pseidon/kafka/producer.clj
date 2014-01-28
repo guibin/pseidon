@@ -8,12 +8,12 @@
   [conf]
   (create-connector (get conf "bootstrap-brokers") {}))
 
-(defn close-producers [p]
+(defn close-producer [p]
   (close p))
 
 (defn send-message
   [producer message]
-   (send-msg producer (:topic message) message))
+   (send-msg producer (:topic message) (:bts message)))
 
 
 (defn send-messages

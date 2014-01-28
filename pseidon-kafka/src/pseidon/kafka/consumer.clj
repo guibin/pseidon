@@ -9,7 +9,7 @@
 (defn lazy-ch [c ]
     (lazy-seq (cons (read-msg c) (lazy-ch c))))
 
-(def close-consumer2 [c]
+(defn close-consumer2 [c]
   (close-consumer))
 
 (defn create-consumer [bootstrap-brokers c topics conf]
