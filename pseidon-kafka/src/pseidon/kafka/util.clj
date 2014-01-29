@@ -14,14 +14,7 @@
 
 (def kafka-datasink-meter (add-meter "pseidon.kafka.util.datasink.publish"))
 
-(defn to-string-conf [m]
-  (into {} 
-        (map (fn [[k v]] [ (if (instance? clojure.lang.Keyword k) (name k) (str k)) v]) m)))
-        
 (defn get-kafka-conf []
-  (to-string-conf (get-sub-conf :kafka)))
-
-(defn get-kafka-conf2 []
    (get-sub-conf :kafka))
 
 
@@ -34,7 +27,7 @@
   "
   (prn "conf " conf)
   (let [name "pseidon.kafka.util.datasource"
-        bootstrap-brokers (get conf "bootstrap-brokers")
+        bootstrap-brokers (get conf :bootstrap-brokers)
         c-ref (atom nil)
         ]
     (letfn [

@@ -12,13 +12,13 @@
 (defn close-consumer2 [c]
   (close-consumer))
 
-(defn create-consumer [bootstrap-brokers c topics conf]
+(defn create-consumer [bootstrap-brokers topics conf]
   (info "!!!!!!!!!!!!!!!!!!!!!! Bootstrap-brokers " bootstrap-brokers " topics " topics)
   (report-consumer-metrics :csv :freq 10 :dir (get conf :kafka-reporting-dir "/tmp/kafka-consumer-metrics"))
    
   (consumer
               bootstrap-brokers
-              topics {:use-earliest true :metadata-timeout 60000 :max-bytes 10485760 :max-wait-time 5000 :min-bytes 1048576
+              topics {:use-earliest true :metadata-timeout 60000
                       :redis-conf (get conf :redis-conf {:redis-host "localhost"}) }))
 
 (defn messages [c ]

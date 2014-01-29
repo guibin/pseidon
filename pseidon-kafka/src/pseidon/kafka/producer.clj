@@ -6,7 +6,7 @@
   "Creates a Producer. m is the configuration
    metadata.broker.list : \"server:port,server:port\""
   [conf]
-  (create-connector (get conf "bootstrap-brokers") {}))
+  (create-connector (get conf :bootstrap-brokers) conf))
 
 (defn close-producer [p]
   (close p))
