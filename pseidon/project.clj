@@ -17,7 +17,7 @@
                  [org.clojure/tools.namespace "0.2.4"]
                  [clj-time "0.5.1"]
                  [http-kit "2.1.8"]
-                 [fun-utils "0.3.1"]
+                 [fun-utils "0.3.2"]
                  [compojure "1.1.5"]
                  [cheshire "5.2.0"]
                  [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
