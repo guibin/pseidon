@@ -25,10 +25,6 @@ Properties
 
 | name | description |
 | ---- | ----------- |
-| :kafka.zk.connect | comma seperated list of zookeeper servers e.g "host1:2181,host2:2181" |
-| :kafka.groupid | consumer group e.g "group1" |
-| :kafka.zk.connectiontimeout.ms | zookeeper connection timeout e.g "10000" |
-| :kafka.partitioner.class | class to use as a message partitioner, use pseidon.kafka.util.RoundRobinPartitioner |
 
 All properties are the standard kafka configuration properties with ':kafka.' prepended to it.
 The ':kafka.' part is removed and the properties are passed in to kafka as is.
