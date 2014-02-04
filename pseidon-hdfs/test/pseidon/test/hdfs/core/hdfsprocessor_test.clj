@@ -1,4 +1,4 @@
-(ns pseidon.test.hdfs.cloudera.core.hdfsprocessor_test
+(ns pseidon.test.hdfs.core.hdfsprocessor_test
   
   (:use [pseidon.hdfs.cloudera.core.hdfsprocessor]
         [midje.sweet]

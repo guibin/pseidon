@@ -5,10 +5,10 @@
 	<groupId>pseidon-kafka</groupId>
 	<artifactId>pseidon-kafka</artifactId>
 	<packaging>jar</packaging>
-	<version>0.4.1-SNAPSHOT</version>
+	<version>0.4.2-SNAPSHOT</version>
 	<name>pseidon-kafka</name>
-	<description>FIXME: write description</description>
-	<url>http://example.com/FIXME</url>
+	<description>Pseidon kafka plugin</description>
+	<url>https://github.com/gerritjvv/pseidon</url>
 	<licenses>
 		<license>
 			<name>Eclipse Public License</name>
@@ -100,16 +100,6 @@
 			<groupId>com.taoensso</groupId>
 			<artifactId>nippy</artifactId>
 			<version>2.5.2</version>
-		</dependency>
-		<dependency>
-			<groupId>com.yammer.metrics</groupId>
-			<artifactId>metrics-core</artifactId>
-			<version>2.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.yammer.metrics</groupId>
-			<artifactId>metrics-annotation</artifactId>
-			<version>2.2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>midje</groupId>

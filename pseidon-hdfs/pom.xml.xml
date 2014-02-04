@@ -3,7 +3,7 @@
   <groupId>pseidon-hdfs</groupId>
   <artifactId>pseidon-hdfs</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.2.0-SNAPSHOT</version>
   <name>pseidon-hdfs</name>
   <description>A pseidon data source, channel and processor for writing to hdfs</description>
   <url>github.com/gerritjvv/pseidon</url>

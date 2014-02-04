@@ -1,4 +1,4 @@
-(ns pseidon.hdfs.cloudera.core.hdfsprocessor
+(ns pseidon.hdfs.core.hdfsprocessor
   
   (:require [pseidon.core.tracking :refer [mark-done!]]
             [pseidon.core.conf :refer [get-conf2]]
@@ -106,15 +106,25 @@
   @fs
   )
 
+(defn- ^String create-temp-file [^String remote-file]
+  (clojure.string/join "/" ["/tmp" "copying" remote-file]))
+
 (defn ^:dynamic file->hdfs [^String ds ^String id ^String local-file ^String remote-file]
   "
    Copy(s) a local file to hdfs,
    any exception is printed and false is returned otherwise true is returned
   "
   (try
-    (do ;copyFromLocalFile(boolean delSrc, boolean overwrite, Path src, Path dst) 
-      (info "Copy " local-file " to hdfs " remote-file " file " hdfs-url)
-      (.copyFromLocalFile (get-fs) false (Path. local-file) (Path. remote-file))
+    (let [^String temp-file (create-temp-file remote-file)
+          ^String temp-path (Path. temp-file)
+          ^FileSystem fs (get-fs)]
+      
+      (info "Copy " local-file " to hdfs " remote-file " file " hdfs-url " temp file " temp-file)
+      
+      ;we need to first copy to a temp location then rename the file 
+      ;once its been copied completely, otherwise the file will be readable halfway through the copy process
+      (.copyFromLocalFile fs false (Path. local-file) temp-path)
+      (.rename fs temp-path (Path. remote-file))
       
       (info "Copy Done [local-file: " local-file "] [ds: " ds "] [id: " id "]")
 
