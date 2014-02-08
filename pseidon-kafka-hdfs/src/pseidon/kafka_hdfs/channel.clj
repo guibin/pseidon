@@ -32,7 +32,7 @@
 	          (update-meter (get consume-meter-map topic))
 	          (try
              (do
-               (publish data-queue (create-message value ch-dsid msg-id "pseidon.kafka-hdfs.processor" true (System/currentTimeMillis) 1))
+               (publish data-queue (create-message bts ch-dsid msg-id "pseidon.kafka-hdfs.processor" true (System/currentTimeMillis) 1))
                )
              (catch java.sql.BatchUpdateException e (info "ignore duplicate message " msg-id)))))))))
 
