@@ -1,4 +1,4 @@
-(defproject pseidon "0.4.2-SNAPSHOT"
+(defproject pseidon "0.4.3-SNAPSHOT"
   :description "BigData Import Framework"
   :url "https://github.com/gerritjvv/pseidon"
   :license {:name "Eclipse Public License"
@@ -17,13 +17,14 @@
                  [org.clojure/tools.namespace "0.2.4"]
                  [clj-time "0.5.1"]
                  [http-kit "2.1.8"]
-                 [fun-utils "0.4.0"]
+                 [fun-utils "LATEST"]
                  [compojure "1.1.5"]
                  [cheshire "5.2.0"]
-                 [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
+                 [org.clojure/core.async "LATEST"]
                  [org.clojure/tools.cli "0.2.2"]
                  [com.codahale.metrics/metrics-core "3.0.1"]
                  [com.codahale.metrics/metrics-servlets "3.0.1"]
+                 [org.xerial.snappy/snappy-java "1.1.1-M1"]
                  [reply "0.1.0-beta9"]
                  [jline "2.11"] ;need for dependency from reply
                  [log4j/log4j "1.2.16" :exclusions [javax.mail/mail

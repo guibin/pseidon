@@ -7,7 +7,6 @@
             [pseidon.core.registry :refer [register ->Channel reg-get-wait] ]
             [pseidon.core.watchdog :refer [watch-critical-error]]
             [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done! deserialize-message]]
-	    [pseidon.core.fileresource :refer [write register-on-roll-callback]]
      	    [clojure.tools.logging :refer [info error]]
 	    [clj-time.coerce :refer [from-long to-long]]
             [clj-time.format :refer [unparse formatter]]
@@ -28,9 +27,9 @@
   (let [consume-meter-map (into {} (map (fn [n] [n (add-meter (str "pseidon.kafka_hdfs.channel-" n))]) topics))]
 	  (while (not (Thread/interrupted))
 	    (let [rdr-seq (apply (force kafka-reader) topics)]
-	      (doseq [{:keys [offset topic partition value] } rdr-seq]
+	      (doseq [{:keys [offset topic partition bts] } rdr-seq]
 	        (let [msg-id (str topic ":" partition ":" offset)]
-	          ;(update-meter (get consume-meter-map topic))
+	          (update-meter (get consume-meter-map topic))
 	          (try
              (do
                (publish data-queue (create-message value ch-dsid msg-id "pseidon.kafka-hdfs.processor" true (System/currentTimeMillis) 1))
@@ -42,15 +41,8 @@
   
   ;this will be called when any file written by this channel has been rolled
   ;we send the rolled file to the hdfs plugin and this plugin will take care of sending the file to hdfs
-  (register-on-roll-callback ch-dsid (fn [file]
-                                                       (let [ds ch-dsid
-                                                             topic "hdfs"
-                                                             id (.getAbsolutePath file)]
-                                                             (mark-run! ds id)
-                                                             (publish data-queue (create-message
-                                                                          (pseidon.util.Bytes/toBytes "1")
-                                                                          ds id topic true (System/currentTimeMillis) 1
-                                                                        ))))))
+
+)
 
 (defn ^:dynamic load-channel []
   (let [topics (get-conf2 :kafka-hdfs-topics [])]

@@ -3,7 +3,7 @@
   <groupId>pseidon</groupId>
   <artifactId>pseidon</artifactId>
   <packaging>jar</packaging>
-  <version>0.4.2-SNAPSHOT</version>
+  <version>0.4.3-SNAPSHOT</version>
   <name>pseidon</name>
   <description>BigData Import Framework</description>
   <url>https://github.com/gerritjvv/pseidon</url>
@@ -174,7 +174,7 @@
     <dependency>
       <groupId>fun-utils</groupId>
       <artifactId>fun-utils</artifactId>
-      <version>0.3.0</version>
+      <version>LATEST</version>
     </dependency>
     <dependency>
       <groupId>compojure</groupId>
@@ -189,7 +189,7 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>core.async</artifactId>
-      <version>0.1.267.0-0d7780-alpha</version>
+      <version>LATEST</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
@@ -205,6 +205,11 @@
       <groupId>com.codahale.metrics</groupId>
       <artifactId>metrics-servlets</artifactId>
       <version>3.0.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.xerial.snappy</groupId>
+      <artifactId>snappy-java</artifactId>
+      <version>1.1.1-M1</version>
     </dependency>
     <dependency>
       <groupId>reply</groupId>

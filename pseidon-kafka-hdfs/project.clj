@@ -1,6 +1,6 @@
-(defproject pseidon-kafka-hdfs "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
-  :url "http://example.com/FIXME"
+(defproject pseidon-kafka-hdfs "0.2.1-SNAPSHOT"
+  :description "Pseidon pluging that copies data from kafka to hdfs"
+  :url "https://github.com/gerritjvv/pseidon"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
@@ -12,7 +12,7 @@
            ]
 
   :dependencies [
-                 [fileape "0.2.0-SNAPSHOT"]
+                 [fileape "0.3.0-SNAPSHOT"]
                  [com.taoensso/nippy "2.5.2"] 
                  [clj-json "0.5.3"]
                  [org.clojure/clojure "1.5.1"]]

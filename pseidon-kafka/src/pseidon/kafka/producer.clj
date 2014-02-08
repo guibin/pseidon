@@ -1,5 +1,6 @@
 (ns pseidon.kafka.producer
-  (require [kafka-clj.client :refer [create-connector send-msg close]]))
+  (require [kafka-clj.client :refer [create-connector send-msg close]]
+	   [clojure.tools.logging :refer [info]]))
 
 
 (defn producer

@@ -220,3 +220,5 @@ file
 (clojure.string/replace (re-find #"\d{4}-\d{2}-\d{2}-\d{2}" file) #"-" "")
 quit
 (use 'pseidon.hdfs.cloudera.core.hdfsprocessor)
+(use 'pseidon.hdfs.core.hdfsprocessor)
+(use 'pseidon.hdfs.core.hdfsprocessor :reload)

@@ -1,14 +1,14 @@
-(defproject pseidon-kafka "0.4.1-SNAPSHOT"
+(defproject pseidon-kafka "0.4.4-SNAPSHOT"
   :description "FIXME: write description"
   :url "Pseidon kafka plugin"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
   :dependencies [
-                 [org.clojure/core.async "0.1.267.0-0d7780-alpha"]
-                 [kafka-clj "0.4.1-SNAPSHOT"]
+                 [org.clojure/core.async "LATEST"]
+                 [kafka-clj "0.4.4-SNAPSHOT"]
                  [midje "1.6-alpha2" :scope "test"]
-                 [pseidon "0.4.2-SNAPSHOT" :scope "provided"]
+                 [pseidon "0.4.3-SNAPSHOT" :scope "provided"]
                  [com.taoensso/nippy "2.5.2"]
                  [night-vision "0.1.0-SNAPSHOT" :scope "test"]
                  [net.sf.jopt-simple/jopt-simple "3.2" :scope "provided"]

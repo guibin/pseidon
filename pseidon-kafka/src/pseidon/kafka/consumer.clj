@@ -15,13 +15,15 @@
 (defn create-consumer [bootstrap-brokers topics conf]
   (info "!!!!!!!!!!!!!!!!!!!!!! Bootstrap-brokers " bootstrap-brokers " topics " topics)
   (report-consumer-metrics :csv :freq 10 :dir (get conf :kafka-reporting-dir "/tmp/kafka-consumer-metrics"))
-   
+
   (consumer
               bootstrap-brokers
-              topics {:use-earliest true :metadata-timeout 60000
-                      :redis-conf (get conf :redis-conf {:redis-host "localhost"}) }))
+              topics (merge conf
+                        {:use-earliest true :metadata-timeout 60000
+
+                        :redis-conf (get conf :redis-conf {:redis-host "localhost"}) })))
 
 (defn messages [c ]
   "Returns a lazy sequence that will block when data is not available"
-         
+
     (lazy-ch c))

@@ -124,9 +124,16 @@
       ;we need to first copy to a temp location then rename the file 
       ;once its been copied completely, otherwise the file will be readable halfway through the copy process
       (.copyFromLocalFile fs false (Path. local-file) temp-path)
-      (.rename fs temp-path (Path. remote-file))
       
-      (info "Copy Done [local-file: " local-file "] [ds: " ds "] [id: " id "]")
+      (if (not (.rename fs temp-path (Path. remote-file)))
+            (do ;create the directories and rename again
+              (.mkdirs fs (-> remote-file clojure.java.io/file .getParent Path.))
+              (if (not (.rename fs temp-path (Path. remote-file)))
+                (throw (RuntimeException. (str "Unable to create file " remote-file))))
+              
+              ))
+      
+      (info "Copy Done local-file: " local-file)
 
       (mark-done! ds id (fn [] 
                           ;on mark done we delete the local file being copied.

@@ -5,7 +5,7 @@
 	<groupId>pseidon-kafka</groupId>
 	<artifactId>pseidon-kafka</artifactId>
 	<packaging>jar</packaging>
-	<version>0.4.2-SNAPSHOT</version>
+	<version>0.4.4-SNAPSHOT</version>
 	<name>pseidon-kafka</name>
 	<description>Pseidon kafka plugin</description>
 	<url>https://github.com/gerritjvv/pseidon</url>
@@ -94,7 +94,7 @@
 	    <dependency>
 			<groupId>kafka-clj</groupId>
 			<artifactId>kafka-clj</artifactId>
-			<version>0.4.1-SNAPSHOT</version>
+			<version>0.4.4-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.taoensso</groupId>
@@ -110,7 +110,7 @@
 		<dependency>
 			<groupId>pseidon</groupId>
 			<artifactId>pseidon</artifactId>
-			<version>0.4.2-SNAPSHOT</version>
+			<version>0.4.3-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
