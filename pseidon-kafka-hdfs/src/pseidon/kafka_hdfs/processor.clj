@@ -9,7 +9,7 @@
             [pseidon.core.registry :refer [register ->Processor reg-get-wait] ]
             [clj-time.coerce :refer [from-long to-long]]
             [clj-time.format :refer [unparse formatter]]
-            [fileape.core :refer [ape write]]
+            [fileape.core :refer [ape write close]]
             ;[pseidon.core.fileresource :refer [write register-on-roll-callback]]
             [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done! deserialize-message]]
             [clojure.tools.logging :refer [info error]]
@@ -151,6 +151,12 @@
   
   )
 
+(defn stop []
+  (info "Shutdown file writers")
+  (try 
+    (close ape-conn)
+    (catch Exception e (error e e)))
+  (info "Shutdown file writers complete"))
 
 ;register processor with topic solace
-(register (->Processor "pseidon.kafka-hdfs.processor" start #() exec))
+(register (->Processor "pseidon.kafka-hdfs.processor" start stop exec))
