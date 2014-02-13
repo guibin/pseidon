@@ -8,7 +8,7 @@
     [org.clojure/clojure "1.5.1" :scope "provided"]
     [org.apache.hadoop/hadoop-hdfs "2.0.0-cdh4.2.0" :scope "provided"]
     [org.apache.hadoop/hadoop-minicluster "2.0.0-mr1-cdh4.2.0" :scope "test"]
-    [pseidon "0.4.3-SNAPSHOT" :scope "provided"]
+    [pseidon "0.4.4-SNAPSHOT" :scope "provided"]
     [commons-lang "2.6" :scope "provided"]
     [org.clojure/core.async "0.1.267.0-0d7780-alpha"] 
     [midje "1.6-alpha2" :scope "test"]

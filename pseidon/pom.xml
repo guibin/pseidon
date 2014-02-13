@@ -3,7 +3,7 @@
   <groupId>pseidon</groupId>
   <artifactId>pseidon</artifactId>
   <packaging>jar</packaging>
-  <version>0.4.3-SNAPSHOT</version>
+  <version>0.4.4-SNAPSHOT</version>
   <name>pseidon</name>
   <description>BigData Import Framework</description>
   <url>https://github.com/gerritjvv/pseidon</url>
@@ -110,6 +110,11 @@
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
       <version>1.5.1</version>
+    </dependency>
+    <dependency>
+      <groupId>thread-exec</groupId>
+      <artifactId>thread-exec</artifactId>
+      <version>0.1.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.taoensso</groupId>

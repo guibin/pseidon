@@ -1,7 +1,6 @@
 (ns pseidon.kafka-hdfs.channel
   (:require [pseidon.core.conf :refer [get-conf2]]
             [pseidon.core.queue :refer [publish]]
-            [pseidon.core.app :refer [data-queue]]
             [pseidon.core.message :refer [create-message]]
             [pseidon.core.metrics :refer [add-meter update-meter] ]
             [pseidon.core.registry :refer [register ->Channel reg-get-wait] ]
@@ -32,8 +31,7 @@
 	          (update-meter (get consume-meter-map topic))
 	          (try
              (do
-               (publish data-queue (create-message bts ch-dsid msg-id "pseidon.kafka-hdfs.processor" true (System/currentTimeMillis) 1))
-               )
+               (publish "pseidon.kafka-hdfs.processor" (create-message bts ch-dsid msg-id topic true (System/currentTimeMillis) 1)))
              (catch java.sql.BatchUpdateException e (info "ignore duplicate message " msg-id)))))))))
 
 

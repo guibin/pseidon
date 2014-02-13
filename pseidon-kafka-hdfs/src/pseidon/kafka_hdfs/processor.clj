@@ -2,7 +2,6 @@
   
   (:require [pseidon.core.conf :refer [get-conf2]]
             [pseidon.core.queue :refer [publish]]
-            [pseidon.core.app :refer [data-queue]]
             [pseidon.core.message :refer [create-message]]
             [taoensso.nippy :as nippy]
             [clj-json.core :as json]
@@ -110,7 +109,7 @@
                                                              topic "hdfs"
                                                              id (.getAbsolutePath file)]
                                                              (mark-run! ds id)
-                                                             (publish data-queue (create-message
+                                                             (publish topic (create-message
                                                                           n-bytes
                                                                           ds id topic true (System/currentTimeMillis) 1
                                                                         ))))
@@ -148,7 +147,7 @@
    (doseq [{:keys [ds ids ts] :as msg} (map deserialize-message (select-ds-messages dsid))]
        (info "Recovering msg [" msg "]")
        (if msg  
-         (publish data-queue (create-message nil ds ids "hdfs" true (to-long ts) 1) )))
+         (publish "hdfs" (create-message nil ds ids "hdfs" true (to-long ts) 1) )))
   
   )
 

@@ -29,6 +29,18 @@ The variables are:
 | JAVA_OPTS | default is empty |
 
 
+### Configuration
+
+| Name | Description |
+| ---- | ----------- |
+| pseidon-queue-$topic-limit | if defined a unique queue, master thread will be created for this topic |
+| pseidon-queue-limit | the default queue's limit |
+| worker-$topic-threads | if defined a new thread pool will be created for this topic and the max number of threads set to its value |
+| worker-threads | the default thread pool's max number of threads |
+
+
+To completely isolate a slow topic from all other topic's execution specify the properties pseidon-queue-$topic-limit and worker-$topic-threads.
+
 ### Classpath setup and including new plugins
 
 The classpath for pseidon is set using the classpath property in the pseidon.edn file

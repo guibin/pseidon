@@ -3,7 +3,6 @@
 (use '[clojure.tools.namespace.repl :only (refresh set-refresh-dirs)])
 (use '[pseidon.core.queue :as q])
 (use '[pseidon.core.registry :as r])
-(use '[pseidon.core.worker :as w])
 (use '[pseidon.core.conf :as c])
 (use '[pseidon.core.datastore :as ds])
 (use '[pseidon.core.tracking :rename  {start tracking-start shutdown tracking-shutdown}])
@@ -12,7 +11,6 @@
 (use '[pseidon.core.message :as msg])
 (set! *warn-on-reflection* true)
 
-(declare data-queue)
 
 ;will reload all of the plugins
 (defn refresh-plugins []
@@ -34,7 +32,6 @@
        
      (shutdown-threads)
 	  
-     (q/close-channel data-queue)
 	   (r/stop-all)
 	    
      (shutdown-agents)
@@ -45,7 +42,6 @@
 )
 
 (defn start-app [& { :keys [start-plugins] :or {start-plugins true}}]
-  (def data-queue (q/channel "message" :decoder msg/MESSAGE-DECODER))
 
   (tracking-start)
   (refresh-plugins)
@@ -53,12 +49,10 @@
   (if start-plugins
         (r/start-all))
   (Thread/sleep 1000)
-  (w/start-consume data-queue)  
   (info "Started")
   (-> (Runtime/getRuntime) (.addShutdownHook  (Thread. (reify Runnable (run [this] (do  
                                                                                      (info "<<< Shutdown from System.exit or kill !!!!  >>>> ")
                                                                                      (try 
-                                                                                       (q/close-channel data-queue)
                                                                                        (stop-app)
                                                                                        (catch Exception e (error e e)) 
                                                                                          )))))))
