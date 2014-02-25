@@ -1,5 +1,6 @@
 (ns pseidon.core.queue
   (:require [clojure.tools.logging :refer [info error]]
+            [pseidon.core.conf :refer [get-conf2]]
             [thread-exec.core :refer [get-layout default-pool-manager submit shutdown]]
             [pseidon.core.metrics :refer [add-histogram add-gauge update-histogram add-timer measure-time add-meter update-meter]]
             [pseidon.core.registry :as r]
@@ -12,7 +13,9 @@
 (def queue-publish-meter (add-meter "pseidon.core.queue.publish-meter"))
 
 ;default-pool-manager [threshold max-groups start-group pool-size]
-(defonce pool-manager (default-pool-manager 10 3 [0 8] (.availableProcessors (Runtime/getRuntime))))
+(defonce threads (get-conf2 "worker-threads" (.availableProcessors (Runtime/getRuntime))))
+
+(defonce pool-manager (default-pool-manager 10 3 [0 8] threads))
 
 ;add-gauge [^String name ^clojure.lang.IFn f]
 (add-gauge "pseidon.core.queue.dynamic-threads"

@@ -5,20 +5,36 @@
             [pseidon.core.message :refer [create-message]]
             [taoensso.nippy :as nippy]
             [clj-json.core :as json]
+            [thread-exec.core :refer [get-layout default-pool-manager submit shutdown]]
+            [pseidon.core.queue :refer [pool-manager]]
             [pseidon.core.metrics :refer [add-meter update-meter] ]
             [pseidon.core.registry :refer [register ->Processor reg-get-wait] ]
             [clj-time.coerce :refer [from-long to-long]]
             [clj-time.format :refer [unparse formatter]]
+            [clj-tuple :refer [tuple]]
             [fileape.core :refer [ape write close]]
             ;[pseidon.core.fileresource :refer [write register-on-roll-callback]]
             [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done! deserialize-message]]
             [clojure.tools.logging :refer [info error]]
+            [fun-utils.core :refer [fixdelay]]
      )
+     (:use goat.core)
      (:import [org.apache.commons.lang StringUtils])
   )
 
 
 (def exec-meter (add-meter (str "pseidon.kafka_hdfs.processor" )))
+
+(defonce data-meter-map (ref {}))
+
+(defn get-data-meter [log-name]
+  (let [topic (str ".bytes-written-p/s-" log-name)]
+	  (if-let [m (get @data-meter-map topic)]
+      m
+	    (let [c (add-meter topic)]
+		    (dosync
+		       (commute data-meter-map assoc topic c))
+	     c))))
 
 (def ^:private dateformat (formatter "yyyyMMddHH"))
 
@@ -77,10 +93,13 @@
 				                                encoder
 				                                default-encoder))))))
 
-(defn- exec-write [^java.io.OutputStream out ^"[B" bts]
+(defn exec-write [topic ^java.io.OutputStream out ^"[B" bts]
        (if (nil? bts)
              (error "Receiving null byte messages from  ts ")
-             (pseidon.util.Bytes/writeln out bts)  
+             (do
+               (update-meter (get-data-meter topic) (count bts))
+               (pseidon.util.Bytes/writeln out bts))
+             
              ))
 
 (def  get-ts-parser (memoize (fn [topic]
@@ -104,7 +123,8 @@
    
 (defonce n-bytes (pseidon.util.Bytes/toBytes "1"))
 
-(defn callback-f [{:keys [file]}]
+(defn callback-f [{:keys [file] :as data}]
+  
                                                        (let [ds dsid
                                                              topic "hdfs"
                                                              id (.getAbsolutePath file)]
@@ -121,22 +141,33 @@
                     :rollover-timeout (get-conf2 :roll-timeout 60000)
                     :roll-callbacks [callback-f]}))
 
-                                    
+                           
+(defn- map-flatten [packed-msg]
+  "Flattens the packed msgs and maps to [topic key decoded-data]"
+  (map 
+    (fn [{:keys [topic bts] :as msg}] 
+      (let [bdata ((get-decoder topic) bts)
+            ts ((get-ts-parser topic) bdata (get-ts-parser-args topic))
+            k (str topic "_" (unparse dateformat (from-long ts)))]
+           (tuple topic k bdata)))
+    (flatten (:bytes-seq packed-msg))))
+  
+(defn- partition-msgs [msgs]
+  "Excepts messages from packed-msg and each msg in msgs must be [topic key data], the messages are partitioned by key"
+  (group-by second msgs))
+         
 ;read messages from the logpuller and send to hdfs
-(defn exec [ {:keys [bytes-seq ts ds ids] :as msg } ]
-   (let [id ids
-         [topic partition offset] (StringUtils/split (str id) \:)
-         bdata ((get-decoder topic) bytes-seq)
-         
-         ts ((get-ts-parser topic) bdata (get-ts-parser-args topic))
-         key (str topic "_" (unparse dateformat (from-long ts)))]
-         (if bdata  
-           (write ape-conn
-             key
-	           (fn [out] (exec-write out ((get-encoder topic) bdata))))
-                
-         (update-meter exec-meter))))
-         
+(defn exec [ packed-msg ]
+  ;group data by key, then for each message group call (write ape-conn ...) and write the bytes in one go
+  (doseq [[k msgs] (-> packed-msg map-flatten partition-msgs)]
+    (submit pool-manager "kafka-hdfs-file-writer"
+      (fn []
+	       (write ape-conn
+          k
+          (fn [out] 
+            (doseq [[topic k bdata] msgs] 
+              (exec-write topic out ((get-encoder topic) bdata)))))))))
+                      
 
 (defn ^:dynamic start []
   
@@ -160,3 +191,11 @@
 
 ;register processor with topic solace
 (register (->Processor "pseidon.kafka-hdfs.processor" start stop exec))
+(comment
+(instrument-functions! 'pseidon.kafka-hdfs.processor)
+(instrument-functions! 'fileape.core)
+
+(fixdelay 20000 
+  (info (get-top-fperf 20))))
+
+

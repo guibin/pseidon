@@ -26,12 +26,11 @@
   (let [consume-meter-map (into {} (map (fn [n] [n (add-meter (str "pseidon.kafka_hdfs.channel-" n))]) topics))]
 	  (while (not (Thread/interrupted))
 	    (let [rdr-seq (apply (force kafka-reader) topics)]
-	      (doseq [{:keys [offset topic partition bts] } rdr-seq]
-	        (let [msg-id (str topic ":" partition ":" offset)]
-	          (update-meter (get consume-meter-map topic))
+        (doseq [msgs (partition 50 rdr-seq)]
+	        (let [msg-id 1]
 	          (try
              (do
-               (publish "pseidon.kafka-hdfs.processor" (create-message bts ch-dsid msg-id topic true (System/currentTimeMillis) 1)))
+               (publish "pseidon.kafka-hdfs.processor" (create-message msgs ch-dsid msg-id ch-dsid true -1 1)))
              (catch java.sql.BatchUpdateException e (info "ignore duplicate message " msg-id)))))))))
 
 

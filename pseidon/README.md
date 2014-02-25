@@ -31,12 +31,10 @@ The variables are:
 
 ### Configuration
 
-| Name | Description |
-| ---- | ----------- |
-| pseidon-queue-$topic-limit | if defined a unique queue, master thread will be created for this topic |
-| pseidon-queue-limit | the default queue's limit |
-| worker-$topic-threads | if defined a new thread pool will be created for this topic and the max number of threads set to its value |
-| worker-threads | the default thread pool's max number of threads |
+| Name | Description | Default |
+| ---- | ----------- | ------- |
+| pseidon-queue-limit | the default queue's limit | 100 |
+| worker-threads | the default thread pool's max number of threads | the number of cpus |
 
 
 To completely isolate a slow topic from all other topic's execution specify the properties pseidon-queue-$topic-limit and worker-$topic-threads.
