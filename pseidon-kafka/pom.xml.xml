@@ -94,7 +94,7 @@
 	    <dependency>
 			<groupId>kafka-clj</groupId>
 			<artifactId>kafka-clj</artifactId>
-			<version>0.4.6-SNAPSHOT</version>
+			<version>0.4.7-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>com.taoensso</groupId>
