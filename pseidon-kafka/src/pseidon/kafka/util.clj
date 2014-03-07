@@ -61,7 +61,6 @@
               (close-producer p))
 
         (writer-f  [messages]
-                   ;called by the asyn thread below, to write to kafka
                       (if (and (coll? messages) (not (map? messages)))
                              (do (update-meter kafka-datasink-meter (count messages))
                                  (send-messages p messages))
