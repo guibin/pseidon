@@ -16,16 +16,27 @@
             ;[pseidon.core.fileresource :refer [write register-on-roll-callback]]
             [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done! deserialize-message]]
             [clojure.tools.logging :refer [info error]]
-            [fun-utils.core :refer [fixdelay]]
-     )
+            [fun-utils.core :refer [fixdelay]])
      (:use goat.core)
-     (:import [org.apache.commons.lang StringUtils])
+     (:import [org.apache.commons.lang StringUtils]
+              [java.io DataOutputStream]
+              [net.minidev.json JSONValue])
   )
 
 
 (def exec-meter (add-meter (str "pseidon.kafka_hdfs.processor" )))
 
 (defonce data-meter-map (ref {}))
+(defonce msg-meter-map (ref {}))
+
+(defn get-msg-meter [log-name]
+  (let [topic (str ".msgs-written-p/s-" log-name)]
+	  (if-let [m (get @msg-meter-map topic)]
+      m
+	    (let [c (add-meter topic)]
+		    (dosync
+		       (commute msg-meter-map assoc topic c))
+	     c))))
 
 (defn get-data-meter [log-name]
   (let [topic (str ".bytes-written-p/s-" log-name)]
@@ -36,7 +47,6 @@
 		       (commute data-meter-map assoc topic c))
 	     c))))
 
-(def ^:private dateformat (formatter "yyyyMMddHH"))
 
 (def ^:private ts-parser { :obj 
                           (fn [msg-data path-seq]
@@ -54,10 +64,15 @@
   (nippy/freeze msg))
 
 (defn  json-encoder [msg]
-  (.getBytes (str (json/generate-string msg)) "UTF-8"))
-
+ ; (.writeChars out ^String (JSONValue/toJSONString msg))
+  ;(.writeChars out "\n"))
+  (let [^java.io.ByteArrayOutputStream bts-array (java.io.ByteArrayOutputStream. (* 2 (count msg)))]
+    (with-open [^java.io.OutputStreamWriter appendable (java.io.OutputStreamWriter. bts-array)]
+       (net.minidev.json.JSONValue/writeJSONString msg appendable))
+    (.toByteArray bts-array)))
+      
 (defn json-decoder [^"[B" bts]
-  (json/parse-string (String. bts "UTF-8")))
+  (into {} (JSONValue/parse (java.io.InputStreamReader. (java.io.ByteArrayInputStream. ^"[B" bts)))))
 
 (defn ^"[B" default-encoder [msg]
   msg)
@@ -144,13 +159,16 @@
                            
 (defn- map-flatten [packed-msg]
   "Flattens the packed msgs and maps to [topic key decoded-data]"
+  (let [dateformat (formatter "yyyyMMddHH")]
   (map 
     (fn [{:keys [topic bts] :as msg}] 
       (let [bdata ((get-decoder topic) bts)
             ts ((get-ts-parser topic) bdata (get-ts-parser-args topic))
-            k (str topic "_" (unparse dateformat (from-long ts)))]
-           (tuple topic k bdata)))
-    (flatten (:bytes-seq packed-msg))))
+            k (str topic "_" (unparse dateformat (if ts 
+                                                   (from-long ts)
+                                                   (System/currentTimeMillis))))]
+           (tuple topic k bts)))
+    (flatten (:bytes-seq packed-msg)))))
   
 (defn- partition-msgs [msgs]
   "Excepts messages from packed-msg and each msg in msgs must be [topic key data], the messages are partitioned by key"
@@ -159,15 +177,17 @@
 ;read messages from the logpuller and send to hdfs
 (defn exec [ packed-msg ]
   ;group data by key, then for each message group call (write ape-conn ...) and write the bytes in one go
-  (doseq [[k msgs] (-> packed-msg map-flatten partition-msgs)]
-    (submit pool-manager "kafka-hdfs-file-writer"
-      (fn []
-	       (write ape-conn
-          k
-          (fn [out] 
-            (doseq [[topic k bdata] msgs] 
-              (exec-write topic out ((get-encoder topic) bdata)))))))))
-                      
+  (let [flatten-msgs (map-flatten packed-msg)
+        cnt (count flatten-msgs)]
+    (update-meter (get-msg-meter "total") cnt)
+    (doseq [[k msgs] (partition-msgs flatten-msgs)]
+      (write ape-conn k (fn [out] 
+                          (doseq [[topic k bts] msgs]
+                            ;we do not use a encoder here and just write out the original message
+                            ;using encoders are too in efficient
+                              (exec-write topic out bts))
+                            )))))
+     	                      
 
 (defn ^:dynamic start []
   

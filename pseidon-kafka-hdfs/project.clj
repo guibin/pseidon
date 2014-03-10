@@ -12,8 +12,10 @@
            ]
 
   :dependencies [
+		 [pseidon "0.4.4-SNAPSHOT" :scope "provided"]
                  [fileape "0.4.2-SNAPSHOT"]
                  [com.taoensso/nippy "2.5.2"] 
+                 [net.minidev/json-smart "1.2"]
                  [clj-json "0.5.3"]
                  [org.clojure/clojure "1.5.1"]]
 

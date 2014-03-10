@@ -26,7 +26,7 @@
   (let [consume-meter-map (into {} (map (fn [n] [n (add-meter (str "pseidon.kafka_hdfs.channel-" n))]) topics))]
 	  (while (not (Thread/interrupted))
 	    (let [rdr-seq (apply (force kafka-reader) topics)]
-        (doseq [msgs (partition 50 rdr-seq)]
+        (doseq [msgs rdr-seq]
 	        (let [msg-id 1]
 	          (try
              (do
