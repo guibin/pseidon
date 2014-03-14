@@ -72,7 +72,12 @@
     (.toByteArray bts-array)))
       
 (defn json-decoder [^"[B" bts]
-  (into {} (JSONValue/parse (java.io.InputStreamReader. (java.io.ByteArrayInputStream. ^"[B" bts)))))
+  (let [v (JSONValue/parse (java.io.InputStreamReader. (java.io.ByteArrayInputStream. ^"[B" bts)))]
+    (if (instance? net.minidev.json.JSONArray v)
+      (if (> (.size ^net.minidev.json.JSONArray v) 1) 
+        (into {} (second v))
+        (into {} [v]))
+      (into {} v))))
 
 (defn ^"[B" default-encoder [msg]
   msg)
@@ -160,15 +165,21 @@
 (defn- map-flatten [packed-msg]
   "Flattens the packed msgs and maps to [topic key decoded-data]"
   (let [dateformat (formatter "yyyyMMddHH")]
+  (filter (complement nil?) 
   (map 
     (fn [{:keys [topic bts] :as msg}] 
-      (let [bdata ((get-decoder topic) bts)
+      (try
+        (let [bdata ((get-decoder topic) bts)
             ts ((get-ts-parser topic) bdata (get-ts-parser-args topic))
             k (str topic "_" (unparse dateformat (if ts 
                                                    (from-long ts)
-                                                   (System/currentTimeMillis))))]
-           (tuple topic k bts)))
-    (flatten (:bytes-seq packed-msg)))))
+                                                   (from-long (System/currentTimeMillis)))))]
+           (tuple topic k bts))
+        (catch Exception e (do 
+                             (error (str "Exception " e " looking at " (String. bts) " msg " msg))
+                             ())
+        )))
+    (flatten (:bytes-seq packed-msg))))))
   
 (defn- partition-msgs [msgs]
   "Excepts messages from packed-msg and each msg in msgs must be [topic key data], the messages are partitioned by key"
