@@ -35,16 +35,16 @@
         (run [] 
               )
         (stop []
-              (close-consumer2 @c-ref))
+              (close-consumer2 @c))
         (list-files  [] )
         (reader-seq  [ & topics]
                      (doseq [topic topics]
-                       (add-topic @c-ref topic))
-                     (messages @c-ref))
+                       (add-topic @c topic))
+                     (messages @c))
         ]
       (assoc 
         (create-datasource {:name name :run run :stop stop :list-files list-files :reader-seq reader-seq})
-        :add-topic #(add-topic @c-ref %) :remove-topic #(remove-topic @c-ref %)))))
+        :add-topic #(add-topic @c %) :remove-topic #(remove-topic @c %)))))
 
 (defn load-datasink [conf]
   "Returns a DataSink instance that
