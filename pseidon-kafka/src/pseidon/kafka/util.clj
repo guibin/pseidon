@@ -28,7 +28,7 @@
   (prn "conf " conf)
   (let [name "pseidon.kafka.util.datasource"
         bootstrap-brokers (get conf :bootstrap-brokers)
-        c (delay (create-consumer bootstrap-brokers topics conf)) 
+        c (delay (create-consumer bootstrap-brokers #{} conf)) 
         ]
     (letfn [
         
@@ -37,7 +37,9 @@
         (stop []
               (close-consumer2 @c-ref))
         (list-files  [] )
-        (reader-seq  [ & _]
+        (reader-seq  [ & topics]
+                     (doseq [topic topics]
+                       (add-topic @c-ref topic))
                      (messages @c-ref))
         ]
       (assoc 
