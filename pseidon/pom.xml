@@ -114,7 +114,7 @@
     <dependency>
       <groupId>thread-exec</groupId>
       <artifactId>thread-exec</artifactId>
-      <version>0.1.0-SNAPSHOT</version>
+      <version>0.2.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.taoensso</groupId>
@@ -194,7 +194,7 @@
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>core.async</artifactId>
-      <version>LATEST</version>
+      <version>0.1.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>

@@ -1,6 +1,6 @@
 (ns pseidon.kafka.util
   (:require [pseidon.core.conf :refer [get-sub-conf]]
-            [pseidon.kafka.consumer :refer [messages create-consumer close-consumer2]]
+            [pseidon.kafka.consumer :refer [messages create-consumer close-consumer2 add-topic remove-topic]]
             [pseidon.kafka.producer :refer [producer send-messages send-message close-producer]]
             [pseidon.core.registry :refer [create-datasource create-datasink register]]
             [clojure.tools.logging :refer [info error]]
@@ -28,21 +28,21 @@
   (prn "conf " conf)
   (let [name "pseidon.kafka.util.datasource"
         bootstrap-brokers (get conf :bootstrap-brokers)
-        c-ref (atom nil)
+        c (delay (create-consumer bootstrap-brokers topics conf)) 
         ]
     (letfn [
+        
         (run [] 
               )
         (stop []
-              (if (nil? @c-ref)
-                 (close-consumer2 @c-ref)))
+              (close-consumer2 @c-ref))
         (list-files  [] )
-        (reader-seq  [ & topics]
-                     (if (not @c-ref)
-                        (swap! c-ref #(if (nil? %) (create-consumer bootstrap-brokers topics conf) %)))
+        (reader-seq  [ & _]
                      (messages @c-ref))
         ]
-      (create-datasource {:name name :run run :stop stop :list-files list-files :reader-seq reader-seq}))))
+      (assoc 
+        (create-datasource {:name name :run run :stop stop :list-files list-files :reader-seq reader-seq})
+        :add-topic #(add-topic @c-ref %) :remove-topic #(remove-topic @c-ref %)))))
 
 (defn load-datasink [conf]
   "Returns a DataSink instance that
