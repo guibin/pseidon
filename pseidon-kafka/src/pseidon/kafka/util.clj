@@ -28,7 +28,8 @@
   (prn "conf " conf)
   (let [name "pseidon.kafka.util.datasource"
         bootstrap-brokers (get conf :bootstrap-brokers)
-        c (delay (create-consumer bootstrap-brokers #{} conf)) 
+        ;we must have at least one topic that consumes.
+        c (ref nil)
         ]
     (letfn [
         
@@ -38,13 +39,18 @@
               (close-consumer2 @c))
         (list-files  [] )
         (reader-seq  [ & topics]
-                     (doseq [topic topics]
-                       (add-topic @c topic))
-                     (messages @c))
+          
+          (if (nil? @c)
+            (dosync (alter c (fn [_] 
+                               (delay (create-consumer bootstrap-brokers (if (empty? topics) #{"test"} (set topics)) conf)))))
+            (doseq [topic topics]
+              (add-topic @@c topic)))
+          
+            (messages @@c))
         ]
       (assoc 
         (create-datasource {:name name :run run :stop stop :list-files list-files :reader-seq reader-seq})
-        :add-topic #(add-topic @c %) :remove-topic #(remove-topic @c %)))))
+        :add-topic #(add-topic @@c %) :remove-topic #(remove-topic @@c %)))))
 
 (defn load-datasink [conf]
   "Returns a DataSink instance that
