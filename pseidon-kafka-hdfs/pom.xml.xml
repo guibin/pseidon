@@ -5,9 +5,9 @@
 	<groupId>pseidon-kafka-hdfs</groupId>
 	<artifactId>pseidon-kafka-hdfs</artifactId>
 	<packaging>jar</packaging>
-	<version>0.2.1-SNAPSHOT</version>
+	<version>0.3.1-SNAPSHOT</version>
 	<name>pseidon-kafka-hdfs</name>
-	<description>FIXME: write description</description>
+	<description>Pseidon kafka to hdfs import</description>
 	<url>http://example.com/FIXME</url>
 	<licenses>
 		<license>
@@ -107,6 +107,11 @@
 	</repositories>
 	<dependencies>
 		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<version>5.1.27</version>
+		</dependency>
+		<dependency>
 			<groupId>com.taoensso</groupId>
 			<artifactId>nippy</artifactId>
 			<version>2.5.2</version>
@@ -125,6 +130,16 @@
 			<groupId>clj-json</groupId>
 			<artifactId>clj-json</artifactId>
 			<version>0.5.3</version>
+		</dependency>
+		<dependency>
+			<groupId>org.tobereplaced</groupId>
+			<artifactId>jdbc-pool</artifactId>
+			<version>0.1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.clojure</groupId>
+			<artifactId>java.jdbc</artifactId>
+			<version>0.3.0-alpha4</version>
 		</dependency>
 		<dependency>
 			<groupId>org.clojure</groupId>
