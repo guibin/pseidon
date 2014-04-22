@@ -5,7 +5,7 @@
 	<groupId>pseidon</groupId>
 	<artifactId>pseidon</artifactId>
 	<packaging>jar</packaging>
-	<version>0.4.4-SNAPSHOT</version>
+	<version>0.5.0-SNAPSHOT</version>
 	<name>pseidon</name>
 	<description>BigData Import Framework</description>
 	<url>https://github.com/gerritjvv/pseidon</url>
@@ -239,14 +239,19 @@
 		<dependency>
 			<groupId>org.clojure</groupId>
 			<artifactId>clojure</artifactId>
-			<version>1.5.1</version>
+			<version>1.6.0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-exec</artifactId>
+			<version>1.2</version>
 		</dependency>
 		<dependency>
 			<groupId>thread-exec</groupId>
 			<artifactId>thread-exec</artifactId>
 			<version>0.2.0-SNAPSHOT</version>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.xerial.snappy</groupId>
 			<artifactId>snappy-java</artifactId>

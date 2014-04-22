@@ -62,7 +62,7 @@ start() {
   else
     echo -n $"Starting pseidon: "
     
-    su - ${PSEIDON_USER:-pseidon} -l -m -c "exec $gcronsd < /dev/null >>/opt/pseidon/log/serverlog.log 2>&1 &"
+    su - ${PSEIDON_USER:-pseidon} -l -m -c "exec $gcronsd --managed < /dev/null >>/opt/pseidon/log/serverlog.log 2>&1 &"
 
     counter=0
     while [ $counter -lt 30 ]

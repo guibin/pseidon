@@ -1,10 +1,10 @@
-(defproject pseidon "0.4.4-SNAPSHOT"
+(defproject pseidon "0.5.0-SNAPSHOT"
   :description "BigData Import Framework"
   :url "https://github.com/gerritjvv/pseidon"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [
-                 [org.clojure/clojure "1.5.1"]
+                 [org.clojure/clojure "1.6.0"]
                  [thread-exec "0.2.0-SNAPSHOT"]
                  [com.taoensso/nippy "2.4.1"] 
                  [net.openhft/chronicle "2.1-SNAPSHOT"]
@@ -39,7 +39,7 @@
                  [org.apache.curator/curator-test "2.2.0-incubating" :scope "test"]
                  
                  [midje "1.6-alpha2" :scope "test"]
-                 
+                 [org.apache.commons/commons-exec "1.2"]
                  [org.hsqldb/hsqldb "2.3.0"]
                  [org.clojure/java.jdbc "0.3.0-alpha4"]
                  [org.streams/commons "0.2.5" :exclusions [com.google.protobuf/protobuf-java

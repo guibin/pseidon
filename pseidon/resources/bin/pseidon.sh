@@ -1,7 +1,7 @@
 ###########################
 #
-# Start the pseidon
-# e.g. pseidon.sh
+# Start the pseidon manager that will run a monitor the pseidon process
+# e.g. pseidon.sh --managed
 #!/usr/bin/env bash
 
 
@@ -13,8 +13,10 @@ PSEIDON_HOME=/opt/pseidon
 export CONF_DIR=$PSEIDON_HOME/conf
 
 #source environment variables
-SOURCE="/etc/sysconfig/pseidon"
-test -f $SOURCE && source $SOURCE
+if [ "$1" != "--managed" ]; then
+ SOURCE="/etc/sysconfig/pseidon"
+ test -f $SOURCE && source $SOURCE
+fi
 
 # some Java parameters
 if [ "$JAVA_HOME" != "" ]; then
@@ -31,17 +33,12 @@ JAVA=$JAVA_HOME/bin/java
 
 
 if [ -z "$JAVA_HEAP" ]; then
-export JAVA_HEAP="-Xmx4096m -Xms1024m -XX:MaxDirectMemorySize=2048M"
+export JAVA_HEAP="-Xmx2048m -Xms1024m -XX:MaxDirectMemorySize=2048M"
 fi
 
 if [ -z "$JAVA_GC" ]; then
 export JAVA_GC="-XX:+UseCompressedOops -XX:+UseG1GC"
 fi
-
-if [ -z "$JAVA_OPTS" ]; then
-export JAVA_OPTS="-Djava.library.path=$STREAMS_HOME/lib/native/Linux-amd64-64/"
-fi
-
 
 # check envvars which might override default args
 # CLASSPATH initially contains $CONF_DIR
@@ -56,15 +53,16 @@ done
 CLIENT_CLASS="pseidon.core"
 CLASSPATH=$CONF_DIR:$CONF_DIR/META-INF:$CLASSPATH
 
-cp=$($JAVA -classpath "$CLASSPATH" pseidon.getenv --get-cp | tail -n 1)
-
-if [ -z "$cp" ]; then
-cp="/opt/pseidon/lib/*"
-fi
-
-CLASSPATH="$CONF_DIR:$CONF_DIR/META_INF:$cp"
-
-#profiling  -agentpath:/opt/yjp-2013-build-13048/bin/linux-x86-64/libyjpagent.so=port=8183,alloceach=1000,usedmem=90,onexit=memory,sampling
+CLASSPATH="$CLASSPATH:$CONF_DIR:$CONF_DIR/META_INF"
 
 echo $CLASSPATH
 $JAVA -server $JAVA_GC $JAVA_HEAP $JAVA_OPTS -classpath "$CLASSPATH" $CLIENT_CLASS $@
+
+if [ "$1" == "--stop" ];then
+ for i in $(ps -aux | grep 'pseidon.core' | awk '{print $2}'); do
+  kill $i &> /dev/null
+ done
+fi
+
+exit 0
+ 
