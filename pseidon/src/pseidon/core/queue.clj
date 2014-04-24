@@ -13,9 +13,9 @@
 (def queue-publish-meter (add-meter "pseidon.core.queue.publish-meter"))
 
 ;default-pool-manager [threshold max-groups start-group pool-size]
-(defonce threads (get-conf2 "worker-threads" (.availableProcessors (Runtime/getRuntime))))
+(defonce threads (get-conf2 :worker-threads (.availableProcessors (Runtime/getRuntime))))
 
-(defonce pool-manager (default-pool-manager 10 3 [0 8] threads))
+(defonce pool-manager (default-pool-manager 10 3 [0 8] 8))
 
 ;add-gauge [^String name ^clojure.lang.IFn f]
 (add-gauge "pseidon.core.queue.dynamic-threads"
