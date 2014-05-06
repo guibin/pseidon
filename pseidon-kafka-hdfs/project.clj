@@ -20,6 +20,7 @@
                  [com.taoensso/nippy "2.5.2"] 
                  [net.minidev/json-smart "1.2"]
                  [clj-json "0.5.3"]
-                 [org.clojure/clojure "1.5.1"]]
+                 [org.clojure/clojure "1.5.1"]
+                 [midje "1.6-alpha2" :scope "test"]]
 
   )
