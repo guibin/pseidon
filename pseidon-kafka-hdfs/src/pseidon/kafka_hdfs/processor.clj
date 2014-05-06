@@ -5,6 +5,7 @@
             [pseidon.core.message :refer [create-message]]
             [taoensso.nippy :as nippy]
             [clj-json.core :as json]
+            [pseidon.kafka-hdfs.json-csv :as json-csv]
             [thread-exec.core :refer [get-layout default-pool-manager submit shutdown]]
             [pseidon.core.queue :refer [pool-manager]]
             [pseidon.core.metrics :refer [add-meter update-meter] ]
@@ -12,6 +13,7 @@
             [clj-time.coerce :refer [from-long to-long]]
             [clj-time.format :refer [unparse formatter]]
             [clj-tuple :refer [tuple]]
+            [pseidon.kafka-hdfs.channel :refer [get-encoder encoder-map] :as channel ]
             [fileape.core :refer [ape write close]]
             ;[pseidon.core.fileresource :refer [write register-on-roll-callback]]
             [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done! deserialize-message]]
@@ -57,21 +59,10 @@
                              (System/currentTimeMillis))
                           })
 
-(defn nippy-decoder [^"[B" bts]
+(defn nippy-decoder [^"[B" bts & _]
   (nippy/thaw bts))
 
-(defn nippy-encoder [msg]
-  (nippy/freeze msg))
-
-(defn  json-encoder [msg]
- ; (.writeChars out ^String (JSONValue/toJSONString msg))
-  ;(.writeChars out "\n"))
-  (let [^java.io.ByteArrayOutputStream bts-array (java.io.ByteArrayOutputStream. (* 2 (count msg)))]
-    (with-open [^java.io.OutputStreamWriter appendable (java.io.OutputStreamWriter. bts-array)]
-       (net.minidev.json.JSONValue/writeJSONString msg appendable))
-    (.toByteArray bts-array)))
-      
-(defn json-decoder [^"[B" bts]
+(defn json-decoder [^"[B" bts & _]
   (let [v (JSONValue/parse (java.io.InputStreamReader. (java.io.ByteArrayInputStream. ^"[B" bts)))]
     (if (instance? net.minidev.json.JSONArray v)
       (if (> (.size ^net.minidev.json.JSONArray v) 1) 
@@ -79,23 +70,20 @@
         (into {} [v]))
       (into {} v))))
 
-(defn ^"[B" default-encoder [msg]
-  msg)
 
-(defn ^"[B" default-decoder [bts] 
+
+(defn ^"[B" default-decoder [bts & _] 
     bts)
 
 (defonce ^:constant decoder-map {:default default-decoder
                                  :nippy nippy-decoder
                                  :json json-decoder})
 
-(defonce ^:constant encoder-map {:default default-encoder
-                                 :nippy nippy-encoder
-                                 :json json-encoder})
   
 (defmacro with-info [s body]
   `(let [x# ~body] (info ~s " " x#) x#))
 
+ 
 (def get-decoder (memoize (fn [log-name]
                             (with-info (str "For topic " log-name " using decoder ")
 				                            (let [key1 (keyword (str "kafka-hdfs-" log-name "-decoder"))
@@ -105,13 +93,7 @@
 				                                default-decoder))))))
 
 
-(def get-encoder (memoize (fn [log-name]
-                            (with-info (str "For topic " log-name " using encoder ")
-				                            (let [key1 (keyword (str "kafka-hdfs-" log-name "-encoder"))
-				                                  key2 :kafka-hdfs-default-encoder]
-				                              (if-let [encoder (get encoder-map (get-conf2 key1 (get-conf2 key2 :default))) ]
-				                                encoder
-				                                default-encoder))))))
+
 
 (defn exec-write [topic ^java.io.OutputStream out ^"[B" bts]
        (if (nil? bts)
@@ -176,7 +158,7 @@
                                                    (from-long (System/currentTimeMillis)))))]
            (tuple topic k bts))
         (catch Exception e (do 
-                             (error (str "Exception " e " looking at " (String. bts) " msg " msg))
+                             (error (str "Exception " e " looking at " (String. ^"[B" bts) " msg " msg))
                              ())
         )))
     (flatten (:bytes-seq packed-msg))))))

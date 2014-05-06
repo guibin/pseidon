@@ -7,14 +7,57 @@
             [pseidon.core.watchdog :refer [watch-critical-error]]
             [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done! deserialize-message]]
      	      [clojure.tools.logging :refer [info error]]
+            [taoensso.nippy :as nippy]
+            [clj-json.core :as json]
+            [pseidon.kafka-hdfs.json-csv :as json-csv]
             [clj-time.coerce :refer [from-long to-long]]
+            [clj-json [core :as json]]
             [clj-time.format :refer [unparse formatter]]
             [clojure.java.jdbc :as sql]
             [fun-utils.core :refer [fixdelay]]
             [org.tobereplaced.jdbc-pool :refer [pool]])
   (:import (java.util.concurrent Executors TimeUnit)
-           (java.util.concurrent.atomic AtomicBoolean) )
-  )
+           (java.util.concurrent.atomic AtomicBoolean)
+           [org.apache.commons.lang StringUtils]
+           [java.io DataOutputStream]
+           [net.minidev.json JSONValue]))
+
+  
+(defmacro with-info [s body]
+  `(let [x# ~body] (info ~s " " x#) x#))
+
+(defn json-csv-encoder 
+  "Data should be the data returned from json-csv/parse-definitions"
+  [msg & data]
+  (json-csv/json->csv data "," msg))
+
+(defn ^"[B" default-encoder [msg & _]
+  msg)
+
+
+(defn nippy-encoder [msg]
+  (nippy/freeze msg))
+
+(defn json-encoder [msg & _]
+  (let [^java.io.ByteArrayOutputStream bts-array (java.io.ByteArrayOutputStream. (* 2 (count msg)))]
+    (with-open [^java.io.OutputStreamWriter appendable (java.io.OutputStreamWriter. bts-array)]
+       (net.minidev.json.JSONValue/writeJSONString msg appendable))
+    (.toByteArray bts-array)))
+      
+
+
+(defonce ^:constant encoder-map {:default default-encoder
+                                 :nippy nippy-encoder
+                                 :json json-encoder
+                                 :json-csv json-csv-encoder})
+
+(def get-fixed-encoder (memoize (fn [log-name]
+                            (with-info (str "For topic " log-name " using encoder ")
+				                            (let [key1 (keyword (str "kafka-hdfs-" log-name "-encoder"))
+				                                  key2 :kafka-hdfs-default-encoder]
+				                              (if-let [encoder (get encoder-map (get-conf2 key1 (get-conf2 key2 :default))) ]
+				                                encoder
+				                                default-encoder))))))
 
 (defn get-db-connecion []
    {:classname (get-conf2 :etl-tracking-driver "com.mysql.jdbc.Driver")
@@ -35,11 +78,48 @@
   (sql/with-connection db
     (sql/with-query-results rs [(str "select log from kafka_logs where type='hdfs' and host='" host "' and enabled=1")] (vec (map :log rs)))))
 
+(defn load-parser-data 
+  "load topics from the kafka-logs table"
+  [{:keys [db] :or {db (force DEFAULT_DB)}}]
+  (sql/with-connection db
+    (vec (sql/with-query-results rs [(str "select log,type,data from kafka_log_encoders")] ))))
+
+
 (def ch-dsid "pseidon.kafka-hdfs.channel")
 (defonce service (Executors/newSingleThreadExecutor))
 (defonce host-name (-> (java.net.InetAddress/getLocalHost) .getHostName))
 
 (def kafka-reader  (delay (let [{:keys [reader-seq]} (reg-get-wait "pseidon.kafka.util.datasource" 10000)] reader-seq)))
+
+(defonce topic-parsers (ref {}))
+
+
+(defn get-encoder [log-name]
+  (if-let [encoder (get @topic-parsers log-name)]
+    encoder
+    (get-fixed-encoder log-name)))
+
+(defn parse-parser-def 
+  "Returns a function that acceps a single argument"
+  [t data]
+  (let [k-t (keyword t)
+        json-data (json/parse-string data)
+        encoder (get encoder-map k-t (get encoder-map :default))]
+    (cond 
+      (= t :json-csv)
+      (let [parsed-def (json-csv/parse-definitions json-data)]
+        #(apply encoder %1 parsed-def)
+      :else
+      #(apply encoder %1 json-data)))))
+        
+(defn update-topic-parsers [topic-data]
+  (dosync 
+    (alter topic-parsers 
+      (fn [m] 
+        (try
+          (reduce (fn [state {:keys [log type data]}]
+                     (assoc state log (parse-parser-def type data)) state) {} topic-data)
+          (catch Exception e (do (error e e) m)))))))            
 
 (defn process-topics [topics]
   "Start in infinite loop that will read the current batch ids and send to the hdfs topic
@@ -50,7 +130,9 @@
     
 	  (fixdelay 10000
 	    (try
-	      (let [logs (set (load-topics host-name))
+	      (let [
+             _ (update-topic-parsers (load-parser-data ))
+             logs (set (load-topics host-name))
              logs-to-add (clojure.set/difference logs @topics-ref)
              logs-to-remove (clojure.set/difference @topics-ref logs)]
          (info "logs " logs " logs-to-add " logs-to-add " logs-to-remove " logs-to-remove " topics-ref " topics-ref)
