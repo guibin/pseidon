@@ -80,7 +80,7 @@
 
 (defn load-parser-data 
   "load topics from the kafka-logs table"
-  [{:keys [db] :or {db (force DEFAULT_DB)}}]
+  [& {:keys [db] :or {db (force DEFAULT_DB)}}]
   (sql/with-connection db
     (vec (sql/with-query-results rs [(str "select log,type,data from kafka_log_encoders")] ))))
 
