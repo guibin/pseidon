@@ -4,7 +4,7 @@
 
 ;this module contains the application configuration defaults and all logic that is used to read the configuration
 
-(def ^:dynamic *default-conf* "resources/conf/pseidon.edn")
+(def ^:dynamic *default-conf* "/opt/pseidon/conf/pseidon.edn")
 
 (def conf (ref {}))
 
@@ -48,5 +48,8 @@
   )
 
 (defn get-conf2 [n default-v]
+  (if (empty? @conf)
+    (load-default-config!))
+  
   (get @conf (keyword n) default-v)  
   )

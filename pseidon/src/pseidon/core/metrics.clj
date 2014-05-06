@@ -29,7 +29,7 @@
       (.start frequency TimeUnit/SECONDS)))
 
 (defn coerce-health-result [o]
-  (if (instance? HealthCheck$Result) 
+  (if (instance? HealthCheck$Result o) 
     o
     (let [{:keys [^boolean healthy ^String msg ^Throwable error]} o]
       (cond error (HealthCheck$Result/unhealthy error)
