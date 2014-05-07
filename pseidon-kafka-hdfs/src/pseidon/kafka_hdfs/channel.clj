@@ -4,7 +4,7 @@
             [pseidon.core.message :refer [create-message]]
             [pseidon.core.metrics :refer [add-meter update-meter] ]
             [pseidon.core.registry :refer [register ->Channel reg-get-wait] ]
-            [pseidon.core.watchdog :refer [watch-critical-error]]
+            [pseidon.core.watchdog :refer [watch-critical-error handle-critical-error]]
             [pseidon.core.tracking :refer [select-ds-messages mark-run! mark-done! deserialize-message]]
      	      [clojure.tools.logging :refer [info error]]
             [taoensso.nippy :as nippy]
@@ -31,9 +31,13 @@
   [msg & data]
   (json-csv/json->csv data "," msg))
 
+(defn json-tsv-encoder 
+  "Data should be the data returned from json-csv/parse-definitions"
+  [msg & data]
+  (json-csv/json->csv data "\t" msg))
+
 (defn ^"[B" default-encoder [msg & _]
   msg)
-
 
 (defn nippy-encoder [msg]
   (nippy/freeze msg))
@@ -45,11 +49,11 @@
     (.toByteArray bts-array)))
       
 
-
 (defonce ^:constant encoder-map {:default default-encoder
                                  :nippy nippy-encoder
                                  :json json-encoder
-                                 :json-csv json-csv-encoder})
+                                 :json-csv json-csv-encoder
+                                 :json-tsv json-tsv-encoder})
 
 (def get-fixed-encoder (memoize (fn [log-name]
                             (with-info (str "For topic " log-name " using encoder ")
@@ -78,11 +82,31 @@
   (sql/with-connection db
     (sql/with-query-results rs [(str "select log from kafka_logs where type='hdfs' and host='" host "' and enabled=1")] (vec (map :log rs)))))
 
+(defn- get-default-value 
+  "Based on the source log data type a default type is returned, string \"\" boolean false and everything else -1"
+  [data_type]
+  (cond 
+    (= data_type "string") ""
+    (= data_type "boolean") false
+    :else -1))
+
+(defn- add-source-logs 
+  "If no data value is specified the columns are retrieved from the source_logs source_log_fields tables
+   updates the data key in parser-data only if data is empty, data can be two types, a vector of vectors or a string"
+  [db {:keys [log type data] :as parser-data}]
+  (if (empty? data)
+    (assoc parser-data :data ;change the data field to the parsed source fields [[log_name default] [log_name default ...]]
+      (sql/with-query-results rs 
+                   [(str "select field_name, data_type from source_log_fields f, source_logs s where s.log_id = f.log_id and log_name=\"" log "\" order by field_id asc")] 
+                   (vec (map (fn [{:keys [field_name data_type]}] [field_name (get-default-value data_type)])))))
+                   
+    parser-data))
+
 (defn load-parser-data 
   "load topics from the kafka-logs table"
   [& {:keys [db] :or {db (force DEFAULT_DB)}}]
   (sql/with-connection db
-    (vec (sql/with-query-results rs [(str "select log,type,data from kafka_log_encoders")] ))))
+    (vec (map (partial add-source-logs db) (sql/with-query-results rs [(str "select log,type,data from kafka_log_encoders")] rs)))))
 
 
 (def ch-dsid "pseidon.kafka-hdfs.channel")
@@ -100,17 +124,16 @@
     (get-fixed-encoder log-name)))
 
 (defn parse-parser-def 
-  "Returns a function that acceps a single argument"
+  "Returns a function that acceps a single argument, t is :json-csv or :json-tsv the data is parsed using json-csv/parse-definitions before passing it to the encoder"
   [t data]
   (let [k-t (keyword t)
-        json-data (json/parse-string data)
         encoder (get encoder-map k-t (get encoder-map :default))]
     (cond 
-      (= t :json-csv)
-      (let [parsed-def (json-csv/parse-definitions json-data)]
+      (or (= t :json-csv) (= t :json-tsv))
+      (let [parsed-def (json-csv/parse-definitions data)]
         #(apply encoder %1 parsed-def)
       :else
-      #(apply encoder %1 json-data)))))
+      #(apply encoder %1 data)))))
         
 (defn update-topic-parsers [topic-data]
   (dosync 
@@ -131,7 +154,8 @@
 	  (fixdelay 10000
 	    (try
 	      (let [
-             _ (update-topic-parsers (load-parser-data ))
+             _ (update-topic-parsers (load-parser-data))
+             _ (do (info "using parsers " @topic-parsers))
              logs (set (load-topics host-name))
              logs-to-add (clojure.set/difference logs @topics-ref)
              logs-to-remove (clojure.set/difference @topics-ref logs)]
@@ -145,7 +169,7 @@
             (alter topics-ref #(apply conj % logs-to-add)))
            (if (not (empty? logs-to-remove))
             (alter topics-ref #(apply disj % logs-to-remove)))))
-         (catch Exception e (error e e))))
+         (catch Exception e (handle-critical-error e))))
 	  
         
 		  (while (not (Thread/interrupted))
@@ -169,7 +193,6 @@
   (let [topics (get-conf2 :kafka-hdfs-topics [])]
   {:start (fn [] 
               (channel-init)
-              (prn "Using logs " topics)
               (.submit service (watch-critical-error process-topics topics)))
    
    :stop (fn []

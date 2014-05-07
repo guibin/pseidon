@@ -12,6 +12,11 @@ and you want to save it as json to hadoop, you can use the :nippy decoder and th
 The default encoder and decoder are identity functions and does nothing, encoders and decoders can be specified
 on a topic per topic basis and or globally.
 
+Configuration is done via a database and or the properties file.
+Configuration in the database override the properties file configurations.
+
+#### Properties file:
+
 The configuration properties are:
 ```
 kafka-hdfs-$topic-encoder
@@ -20,9 +25,69 @@ kafka-hdfs-default-encoder
 kafka-hdfs-default-decoder
 ```
 
-And supported values are:
+#### Database configuration
 
-``` :nippy :json :default ```
+There are three tables:
+
+* kafka_log_encoders
+
+```
++-------+----------------------------------------------+------+-----+---------+-------+
+| Field | Type                                         | Null | Key | Default | Extra |
++-------+----------------------------------------------+------+-----+---------+-------+
+| log   | varchar(255)                                 | NO   | PRI | NULL    |       |
+| type  | enum('default','json','json-csv','json-tsv') | NO   | PRI | NULL    |       |
+| data  | text                                         | YES  |     | NULL    |       |
++-------+----------------------------------------------+------+-----+---------+-------+
+```
+
+* source_log_fields
+
+```
++------------+-------------+------+-----+---------+-------+
+| Field      | Type        | Null | Key | Default | Extra |
++------------+-------------+------+-----+---------+-------+
+| log_id     | int(11)     | NO   | PRI | NULL    |       |
+| field_id   | int(11)     | NO   | PRI | NULL    |       |
+| field_name | varchar(64) | NO   |     | NULL    |       |
+| data_type  | varchar(28) | YES  |     | NULL    |       |
++------------+-------------+------+-----+---------+-------+
+```
+
+* source_logs
+
+```
++-------------------------+---------------+------+-----+---------+-------+
+| Field                   | Type          | Null | Key | Default | Extra |
++-------------------------+---------------+------+-----+---------+-------+
+| log_id                  | int(11)       | NO   | PRI | NULL    |       |
+| log_name                | varchar(128)  | YES  |     | NULL    |       |
++-------------------------+---------------+------+-----+---------+-------+
+```
+
+By default the properties file should contain the default encoders that should be used for most of the logs, and only use the database tables
+to condigure encoders for logs that do not follow the default encodings e.g. default json and then add logs that require to csv/tsv encoding from json.
+
+#### How to configure an encoder for a log via the db?
+
+The kafka_log_encoders table has three fields log (log name), type (the encoder type) and data.
+
+The data field can be left null or filled in depending on the encoder type.
+
+__json-csv/tsv data definition__
+
+For csv/tsv a mapping from json to csv is required such that the data field needs to contain the mapping (in json format).
+This assumes that the default decoder is json. The data format should be "[[\"$keypath\", default-value] ...]", where keypath can be a path of keys pointing to the value
+e.g. to get at value 1 in the json {"a": {"b": 1} } the keypath should be "a/b".
+
+There is an extension to this, that if the data is empty and the encoders json-csv/tsv are specified the source_logs and source_log_fields tables will be queried.
+The latter allows for a more extensive definition of the logs and their columns.
+
+The source_logs contains the log name entries and for each column in a log and entry is made in the source_log_fields table.
+
+IMPORTANT:
+The field_id defines the field order only, and all columns should be present i.e. if the csv should have 10 columns there should be exactly 10 entries in the source_log_fields
+
 
 
 ### Time parsers

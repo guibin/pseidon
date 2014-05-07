@@ -23,9 +23,10 @@
   [(remove-empty-vals (check-empty (clojure.string/split path-str #"/"))) def-val])
 
 (defn parse-definitions 
-  "Parses the column definitions, the results of this function should be passed to json->csv"
+  "Parses the column definitions, the results of this function should be passed to json->csv
+   s can be a string or a vector of vectors, if a string its parsed as json"
   [s]
-    (vec (map parse-col-def  (json/parse-string s))))
+    (vec (map parse-col-def (if (string? s) (json/parse-string s) s))))
 
 
 (defn json->array 
