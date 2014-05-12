@@ -152,13 +152,15 @@
     (fn [{:keys [topic bts] :as msg}] 
       (try
         (let [bdata ((get-decoder topic) bts)
+              encoder (get-encoder topic)
             ts ((get-ts-parser topic) bdata (get-ts-parser-args topic))
             k (str topic "_" (unparse dateformat (if ts 
                                                    (from-long ts)
                                                    (from-long (System/currentTimeMillis)))))]
           ;need to include the option of using an encoder here only if specified
           ;use only the dynamically configured decoders
-           (tuple topic k bts))
+           
+           (tuple topic k (encoder bts bdata)))
         (catch Exception e (do 
                              (error (str "Exception " e " looking at " (String. ^"[B" bts) " msg " msg))
                              ())

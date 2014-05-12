@@ -28,32 +28,34 @@
 
 (defn json-csv-encoder 
   "Data should be the data returned from json-csv/parse-definitions"
-  [msg & data]
+  [org-msg msg & data]
   (json-csv/json->csv data "," msg))
 
 (defn json-tsv-encoder 
   "Data should be the data returned from json-csv/parse-definitions"
-  [msg & data]
+  [org-msg msg & data]
   (json-csv/json->csv data "\t" msg))
 
-(defn ^"[B" default-encoder [msg & _]
-  msg)
+(defn ^"[B" default-encoder [org-msg msg & _]
+  org-msg)
 
-(defn nippy-encoder [msg]
+(defn nippy-encoder [org-msg msg & _]
   (nippy/freeze msg))
 
-(defn json-encoder [msg & _]
+(defn json-encoder [org-msg msg & _]
   (let [^java.io.ByteArrayOutputStream bts-array (java.io.ByteArrayOutputStream. (* 2 (count msg)))]
     (with-open [^java.io.OutputStreamWriter appendable (java.io.OutputStreamWriter. bts-array)]
        (net.minidev.json.JSONValue/writeJSONString msg appendable))
     (.toByteArray bts-array)))
       
 
-(defonce ^:constant encoder-map {:default default-encoder
+(defonce ^:constant encoder-map { 
+                                 :default == default-encoder
                                  :nippy nippy-encoder
                                  :json json-encoder
                                  :json-csv json-csv-encoder
                                  :json-tsv json-tsv-encoder})
+
 
 (def get-fixed-encoder (memoize (fn [log-name]
                             (with-info (str "For topic " log-name " using encoder ")
@@ -98,7 +100,7 @@
     (assoc parser-data :data ;change the data field to the parsed source fields [[log_name default] [log_name default ...]]
       (sql/with-query-results rs 
                    [(str "select field_name, data_type from source_log_fields f, source_logs s where s.log_id = f.log_id and log_name=\"" log "\" order by field_id asc")] 
-                   (vec (map (fn [{:keys [field_name data_type]}] [field_name (get-default-value data_type)])))))
+                   (vec (doall (map (fn [{:keys [field_name data_type]}] [field_name (get-default-value data_type)])  rs)))))
                    
     parser-data))
 
@@ -106,7 +108,8 @@
   "load topics from the kafka-logs table"
   [& {:keys [db] :or {db (force DEFAULT_DB)}}]
   (sql/with-connection db
-    (vec (map (partial add-source-logs db) (sql/with-query-results rs [(str "select log,type,data from kafka_log_encoders")] rs)))))
+    (sql/with-query-results rs [(str "select log,type,data from kafka_log_encoders")]
+      (vec (doall (map (partial add-source-logs db) rs))))))
 
 
 (def ch-dsid "pseidon.kafka-hdfs.channel")
@@ -127,13 +130,13 @@
   "Returns a function that acceps a single argument, t is :json-csv or :json-tsv the data is parsed using json-csv/parse-definitions before passing it to the encoder"
   [t data]
   (let [k-t (keyword t)
-        encoder (get encoder-map k-t (get encoder-map :default))]
+        encoder (get encoder-map k-t default-encoder)]
     (cond 
-      (or (= t :json-csv) (= t :json-tsv))
+      (or (= k-t :json-csv) (= k-t :json-tsv))
       (let [parsed-def (json-csv/parse-definitions data)]
-        #(apply encoder %1 parsed-def)
+        #(apply encoder %1 parsed-def))
       :else
-      #(apply encoder %1 data)))))
+      #(apply encoder %1 data))))
         
 (defn update-topic-parsers [topic-data]
   (dosync 
@@ -141,7 +144,7 @@
       (fn [m] 
         (try
           (reduce (fn [state {:keys [log type data]}]
-                     (assoc state log (parse-parser-def type data)) state) {} topic-data)
+                     (assoc state log (parse-parser-def type data))) {} topic-data)
           (catch Exception e (do (error e e) m)))))))            
 
 (defn process-topics [topics]
@@ -149,7 +152,9 @@
   "
   (let [consume-meter-map (into {} (map (fn [n] [n (add-meter (str "pseidon.kafka_hdfs.channel-" n))]) topics))
         topics-ref (ref (set topics))
+        _ (do (update-topic-parsers (load-parser-data)))
         {:keys [reader-seq add-topic remove-topic]}(reg-get-wait "pseidon.kafka.util.datasource" 10000)]
+    
     
 	  (fixdelay 10000
 	    (try
