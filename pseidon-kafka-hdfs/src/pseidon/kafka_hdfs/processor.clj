@@ -53,7 +53,6 @@
 (def ^:private ts-parser { :obj 
                           (fn [msg-data path-seq]
                             	   (reduce (fn [d k] (get d k)) msg-data path-seq))
-                          
                            :now 
                            (fn [msg-data _]
                              (System/currentTimeMillis))
@@ -143,7 +142,12 @@
                     :rollover-timeout (get-conf2 :roll-timeout 60000)
                     :roll-callbacks [callback-f]}))
 
-                           
+           
+(defn- ^"[B" get-bytes [bts]
+  (if (string? bts)
+    (.getBytes (str bts) "UTF-8")
+    bts))
+
 (defn- map-flatten [packed-msg]
   "Flattens the packed msgs and maps to [topic key decoded-data]"
   (let [dateformat (formatter "yyyyMMddHH")]
@@ -159,8 +163,8 @@
                                                    (from-long (System/currentTimeMillis)))))]
           ;need to include the option of using an encoder here only if specified
           ;use only the dynamically configured decoders
-           
-           (tuple topic k (encoder bts bdata)))
+             
+           (tuple topic k (get-bytes (encoder bts bdata))))
         (catch Exception e (do 
                              (error (str "Exception " e " looking at " (String. ^"[B" bts) " msg " msg))
                              ())
@@ -170,7 +174,8 @@
 (defn- partition-msgs [msgs]
   "Excepts messages from packed-msg and each msg in msgs must be [topic key data], the messages are partitioned by key"
   (group-by second msgs))
-         
+
+
 ;read messages from the logpuller and send to hdfs
 (defn exec [ packed-msg ]
   ;group data by key, then for each message group call (write ape-conn ...) and write the bytes in one go

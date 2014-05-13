@@ -1,5 +1,6 @@
 (ns pseidon.kafka-hdfs.json-csv
-  (:require [clj-json [core :as json]]))
+  (:require [clj-json [core :as json]]
+             [clojure.tools.logging :refer [info error]]))
 
 ;converts json maps to csv based on a definition
 

@@ -50,7 +50,7 @@
       
 
 (defonce ^:constant encoder-map { 
-                                 :default == default-encoder
+                                 :default default-encoder
                                  :nippy nippy-encoder
                                  :json json-encoder
                                  :json-csv json-csv-encoder
@@ -99,7 +99,7 @@
   (if (empty? data)
     (assoc parser-data :data ;change the data field to the parsed source fields [[log_name default] [log_name default ...]]
       (sql/with-query-results rs 
-                   [(str "select field_name, data_type from source_log_fields f, source_logs s where s.log_id = f.log_id and log_name=\"" log "\" order by field_id asc")] 
+                   [(str "select field_name, data_type from source_log_fields f, source_logs_view s where s.log_id = f.log_id and log_name=\"" log "\" order by field_id asc")] 
                    (vec (doall (map (fn [{:keys [field_name data_type]}] [field_name (get-default-value data_type)])  rs)))))
                    
     parser-data))
@@ -134,9 +134,11 @@
     (cond 
       (or (= k-t :json-csv) (= k-t :json-tsv))
       (let [parsed-def (json-csv/parse-definitions data)]
-        #(apply encoder %1 parsed-def))
+        (fn [o json-msg] 
+          (apply encoder o json-msg parsed-def)))
       :else
-      #(apply encoder %1 data))))
+      (fn [o json-msg] 
+        (apply encoder o json-msg data)))))
         
 (defn update-topic-parsers [topic-data]
   (dosync 
