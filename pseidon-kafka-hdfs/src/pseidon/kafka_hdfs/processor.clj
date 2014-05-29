@@ -21,6 +21,8 @@
             [fun-utils.core :refer [fixdelay]])
      (:use goat.core)
      (:import [org.apache.commons.lang StringUtils]
+              [org.boon.json JsonFactory JsonParserFactory ObjectMapper JsonParserAndMapper]
+              [nf.fr.eraasoft.pool PoolSettings PoolableObject ObjectPool]
               [java.io DataOutputStream]
               [net.minidev.json JSONValue])
   )
@@ -30,6 +32,25 @@
 
 (defonce data-meter-map (ref {}))
 (defonce msg-meter-map (ref {}))
+
+(def parser-object-pool 
+  (let [
+        pool 
+        (PoolSettings. 
+          (reify PoolableObject
+            (make [this]
+              (-> (JsonFactory/create) (.parser)))
+            (validate [this obj] true)
+            (destroy [this obj])
+            (passivate [this obj])
+            (activate [this obj])))]
+    (.pool pool)))
+              
+(defn ^JsonParserAndMapper allocate-parser [^ObjectPool parser-object-pool]
+  (.getObj parser-object-pool))
+
+(defn release-parser [^ObjectPool parser-object-pool obj]
+  (.returnObj parser-object-pool obj))
 
 (defn get-msg-meter [log-name]
   (let [topic (str ".msgs-written-p/s-" log-name)]
@@ -62,14 +83,11 @@
   (nippy/thaw bts))
 
 (defn json-decoder [^"[B" bts & _]
-  (let [v (JSONValue/parse (java.io.InputStreamReader. (java.io.ByteArrayInputStream. ^"[B" bts)))]
-    (if (instance? net.minidev.json.JSONArray v)
-      (if (> (.size ^net.minidev.json.JSONArray v) 1) 
-        (into {} (second v))
-        (into {} [v]))
-      (into {} v))))
-
-
+  (let [parser (allocate-parser parser-object-pool) ]
+           (try
+             (into {} (.parse parser ^"[B" bts))
+             (finally
+               (release-parser parser-object-pool parser)))))
 
 (defn ^"[B" default-decoder [bts & _] 
     bts)
@@ -179,15 +197,15 @@
 ;read messages from the logpuller and send to hdfs
 (defn exec [ packed-msg ]
   ;group data by key, then for each message group call (write ape-conn ...) and write the bytes in one go
-  (let [flatten-msgs (map-flatten packed-msg)
-        cnt (count flatten-msgs)]
-    (update-meter (get-msg-meter "total") cnt)
+  (let [flatten-msgs (map-flatten packed-msg)]
+    
     (doseq [[k msgs] (partition-msgs flatten-msgs)]
       (write ape-conn k (fn [out] 
                           (doseq [[topic k bts] msgs]
                             ;we do not use a encoder here and just write out the original message
                             ;using encoders are too in efficient
-                              (exec-write topic out bts))
+                            (update-meter (get-msg-meter "total") 1)
+                            (exec-write topic out bts))
                             )))))
      	                      
 

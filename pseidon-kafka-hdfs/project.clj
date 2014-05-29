@@ -1,4 +1,4 @@
-(defproject pseidon-kafka-hdfs "0.4.1-SNAPSHOT"
+(defproject pseidon-kafka-hdfs "0.4.2-SNAPSHOT"
   :description "Pseidon pluging that copies data from kafka to hdfs"
   :url "https://github.com/gerritjvv/pseidon"
   :license {:name "Eclipse Public License"
@@ -20,6 +20,8 @@
                  [com.taoensso/nippy "2.5.2"] 
                  [net.minidev/json-smart "1.2"]
                  [clj-json "0.5.3"]
+                 [io.fastjson/boon "0.18"]
+                 [nf.fr.eraasoft/objectpool "1.1.2"]
                  [org.clojure/clojure "1.5.1"]
                  [midje "1.6-alpha2" :scope "test"]]
 
