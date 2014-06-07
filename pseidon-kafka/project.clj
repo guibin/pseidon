@@ -8,7 +8,7 @@
                  [org.clojure/core.async "LATEST"]
                  [kafka-clj "1.0.3-SNAPSHOT"]
                  [midje "1.6-alpha2" :scope "test"]
-                 [pseidon "0.4.4-SNAPSHOT" :scope "provided"]
+                 [pseidon "0.5.1-SNAPSHOT" :scope "provided"]
                  [com.taoensso/nippy "2.5.2"]
                  [night-vision "0.1.0-SNAPSHOT" :scope "test"]
                  [net.sf.jopt-simple/jopt-simple "3.2" :scope "provided"]

@@ -7,7 +7,7 @@
                  [org.clojure/clojure "1.6.0"]
                  [thread-exec "0.2.0-SNAPSHOT"]
                  [com.taoensso/nippy "2.4.1"] 
-                 [net.openhft/chronicle "2.1-SNAPSHOT"]
+                 [net.openhft/chronicle "3.1.1"]
                  [goat "0.1.0-SNAPSHOT"]
                  [commons-net "3.2"]
                  [commons-lang "2.6"]
